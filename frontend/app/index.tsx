@@ -19,7 +19,7 @@ function useThemeColors(theme: string) {
 export default function Home() {
   const router = useRouter();
   const { theme, days, eventHistory, completeEvent, eventsEnabled, currentDate, ensureDay, language, togglePill, incDrink, toggleFlag, setWeight, goPrevDay, goNextDay, goToday } = useAppStore();
-  const { level } = useLevel();
+  const { level, xp } = useLevel();
   const colors = useThemeColors(theme);
 
   // Ensure the selected day exists
