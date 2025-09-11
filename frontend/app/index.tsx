@@ -505,7 +505,7 @@ function PrimaryButton({ icon, label, onPress, colors, outline }: any) {
 
 function AchievementPreview() {
   const { achievementsUnlocked, xp } = useAppStore();
-  const next = useMemo(() =&gt; {
+  const next = useMemo(() => {
     const all: { id: string; title: string; percent: number }[] = [
       { id: "first_weight", title: "Erstes Gewicht", percent: achievementsUnlocked.includes("first_weight") ? 100 : 20 },
       { id: "seven_days", title: "7 Tage Gewichte", percent: achievementsUnlocked.includes("seven_days") ? 100 : 60 },
@@ -513,22 +513,22 @@ function AchievementPreview() {
     ];
     return all.slice(0, 3);
   }, [achievementsUnlocked, xp]);
-  const theme = useAppStore((s) =&gt; s.theme);
+  const theme = useAppStore((s) => s.theme);
   const colors = useThemeColors(theme);
   return (
-    &lt;View style={{ gap: 12 }}&gt;
-      {next.map((a) =&gt; (
-        &lt;View key={a.id}&gt;
-          &lt;View style={{ flexDirection: "row", justifyContent: "space-between" }}&gt;
-            &lt;Text style={{ color: colors.text }}&gt;{a.title}&lt;/Text&gt;
-            &lt;Text style={{ color: colors.muted }}&gt;{a.percent}%&lt;/Text&gt;
-          &lt;/View&gt;
-          &lt;View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: "hidden", marginTop: 6 }}&gt;
-            &lt;View style={{ width: `${a.percent}%`, height: 8, backgroundColor: colors.primary }} /&gt;
-          &lt;/View&gt;
-        &lt;/View&gt;
+    <View style={{ gap: 12 }}>
+      {next.map((a) => (
+        <View key={a.id}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: colors.text }}>{a.title}</Text>
+            <Text style={{ color: colors.muted }}>{a.percent}%</Text>
+          </View>
+          <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: "hidden", marginTop: 6 }}>
+            <View style={{ width: `${a.percent}%`, height: 8, backgroundColor: colors.primary }} />
+          </View>
+        </View>
       ))}
-    &lt;/View&gt;
+    </View>
   );
 }
 
