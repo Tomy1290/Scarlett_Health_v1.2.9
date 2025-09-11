@@ -83,10 +83,9 @@ export const useAppStore = create<AppState>()(
 
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
       setTheme: (t) => {
-        // Gate Golden Pink theme to Level >= 10
+        // Gate Golden Pink theme to Level >= 25 (getauscht)
         const lvl = Math.floor(get().xp / 100) + 1;
-        if (t === 'golden_pink' && lvl < 10) {
-          // ignore attempt to set locked theme
+        if (t === 'golden_pink' && lvl < 25) {
           return;
         }
         set({ theme: t });
@@ -106,7 +105,7 @@ export const useAppStore = create<AppState>()(
       updateReminder: (id, patch) => set({ reminders: get().reminders.map((r) => (r.id === id ? { ...r, ...patch } : r)) }),
       deleteReminder: (id) => { set({ reminders: get().reminders.filter((r) => r.id !== id) }); get().recalcAchievements(); },
       addChat: (m) => {
-        // VIP-Chat Gating: L<50 => max 120 Zeichen für User-Nachrichten
+        // VIP-Chat Gating: L<50 => max 120 Zeichen
         const lvl = Math.floor(get().xp / 100) + 1;
         let msg = m;
         if (m.sender === 'user' && lvl < 50 && typeof m.text === 'string' && m.text.length > 120) {
@@ -124,7 +123,6 @@ export const useAppStore = create<AppState>()(
       completeEvent: (weekKey, entry) => {
         const existing = get().eventHistory[weekKey];
         if (existing?.completed) return;
-        // Apply event bonus percent if we can find it from the id
         let bonus = 0;
         try {
           const { EVENTS } = require('../gamification/events');
@@ -144,11 +142,11 @@ export const useAppStore = create<AppState>()(
         const prevSet = new Set(state.achievementsUnlocked);
         const newUnlocks = base.unlocked.filter((id) => !prevSet.has(id));
         let xpBonus = state.xpBonus;
-        if (newUnlocks.length >= 2) xpBonus += (newUnlocks.length - 1) * 50; // combo bonus
+        if (newUnlocks.length >= 2) xpBonus += (newUnlocks.length - 1) * 50;
         set({ achievementsUnlocked: base.unlocked, xpBonus, xp: base.xp + xpBonus });
       },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 8, onRehydrateStorage: () => (state) => {
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 9, onRehydrateStorage: () => (state) => {
       if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; }
     } }
   )

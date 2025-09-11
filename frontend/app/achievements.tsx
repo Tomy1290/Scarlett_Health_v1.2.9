@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -22,6 +22,7 @@ export default function AchievementsScreen() {
   const colors = useThemeColors(state.theme);
   const [filter, setFilter] = useState<'all'|'progress'|'done'>('all');
   const [query, setQuery] = useState("");
+  const [legendVisible, setLegendVisible] = useState(false);
 
   const { list } = useMemo(() => computeAchievements({
     days: state.days, goal: state.goal, reminders: state.reminders, chat: state.chat, saved: state.saved,
@@ -43,8 +44,8 @@ export default function AchievementsScreen() {
 
   const level = Math.floor(state.xp / 100) + 1;
   const rewards = [
-    { id: 'golden', lvl: 10, title: 'Golden Pink Theme' },
-    { id: 'ext', lvl: 25, title: 'Erweiterte Statistiken' },
+    { id: 'ext', lvl: 10, title: 'Erweiterte Statistiken' },
+    { id: 'golden', lvl: 25, title: 'Golden Pink Theme' },
     { id: 'vip', lvl: 50, title: 'VIP-Chat' },
     { id: 'ins', lvl: 75, title: 'Premium Insights' },
     { id: 'leg', lvl: 100, title: 'Legendärer Status' },
@@ -54,6 +55,7 @@ export default function AchievementsScreen() {
   useEffect(() => {
     if (level >= 100 && !state.rewardsSeen?.legend) {
       state.setRewardSeen('legend', true);
+      setLegendVisible(true);
     }
   }, [level]);
 
@@ -91,10 +93,10 @@ export default function AchievementsScreen() {
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Freischaltungen</Text>
 
-          {/* L25 Extended Stats */}
+          {/* L10 Extended Stats (getauscht) */}
           <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Erweiterte Statistiken (L25)</Text>
-            {level >= 25 ? (
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Erweiterte Statistiken (L10)</Text>
+            {level >= 10 ? (
               <View style={{ marginTop: 6 }}>
                 <Text style={{ color: colors.muted }}>Ø Wasser 7T: {ext.waterAvg7.toFixed(1)}</Text>
                 <Text style={{ color: colors.muted }}>Ø Wasser 30T: {ext.waterAvg30.toFixed(1)}</Text>
@@ -103,7 +105,7 @@ export default function AchievementsScreen() {
                 <Text style={{ color: colors.muted }}>Bester Perfekt-Streak: {ext.bestPerfectStreak} Tage</Text>
               </View>
             ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 25 verfügbar.</Text>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 10 verfügbar.</Text>
             )}
           </View>
 
@@ -128,6 +130,16 @@ export default function AchievementsScreen() {
               </View>
             ) : (
               <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 75 verfügbar.</Text>
+            )}
+          </View>
+
+          {/* L25 Golden Pink Hinweis (Theme-Gate extern) */}
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Golden Pink Theme (L25)</Text>
+            {level >= 25 ? (
+              <Text style={{ color: colors.muted, marginTop: 4 }}>Im Design wählbar.</Text>
+            ) : (
+              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 25 verfügbar.</Text>
             )}
           </View>
 
@@ -186,6 +198,20 @@ export default function AchievementsScreen() {
           <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>Keine Ergebnisse</Text>
         ) : null}
       </ScrollView>
+
+      {/* Legend Modal */}
+      <Modal visible={legendVisible} transparent animationType="fade" onRequestClose={() => setLegendVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ backgroundColor: colors.card, padding: 16, borderRadius: 12, width: '80%', alignItems: 'center' }}>
+            <Ionicons name="trophy" size={48} color={colors.primary} />
+            <Text style={{ color: colors.text, fontWeight: '700', marginTop: 8 }}>Legendär!</Text>
+            <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 6 }}>Du hast Level 100 erreicht. Vielen Dank für deine unglaubliche Ausdauer! 🎉</Text>
+            <TouchableOpacity onPress={() => setLegendVisible(false)} style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 8 }}>
+              <Text style={{ color: '#fff' }}>Schließen</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

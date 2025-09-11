@@ -59,10 +59,10 @@ export default function AnalysisScreen() {
           )}
         </View>
 
-        {/* L25 Erweiterte Statistiken */}
+        {/* L10 Erweiterte Statistiken (getauscht) */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Erweiterte Statistiken</Text>
-          {level >= 25 ? (
+          {level >= 10 ? (
             <View style={{ gap: 4 }}>
               <Text style={{ color: colors.muted }}>Ø Wasser 7T: {ext.waterAvg7.toFixed(1)}</Text>
               <Text style={{ color: colors.muted }}>Ø Wasser 30T: {ext.waterAvg30.toFixed(1)}</Text>
@@ -71,7 +71,7 @@ export default function AnalysisScreen() {
               <Text style={{ color: colors.muted }}>Bester Perfekt-Streak: {ext.bestPerfectStreak} Tage</Text>
             </View>
           ) : (
-            <Text style={{ color: colors.muted }}>Ab Level 25 verfügbar.</Text>
+            <Text style={{ color: colors.muted }}>Ab Level 10 verfügbar.</Text>
           )}
         </View>
 

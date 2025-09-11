@@ -20,7 +20,6 @@ export default function Home() {
   const { level } = useLevel();
   const colors = useThemeColors(theme);
 
-  // Weekly event computation
   const now = new Date();
   const { weekKey, dayKeys } = getWeekRange(now);
   const weeklyEvent = getCurrentWeeklyEvent(now);
@@ -35,8 +34,8 @@ export default function Home() {
   }, [evProg.completed, weekKey]);
 
   const rewardList = [
-    { lvl: 10, title: 'Golden Pink Theme' },
-    { lvl: 25, title: 'Erweiterte Statistiken' },
+    { lvl: 10, title: 'Erweiterte Statistiken' },
+    { lvl: 25, title: 'Golden Pink Theme' },
     { lvl: 50, title: 'VIP-Chat' },
     { lvl: 75, title: 'Premium Insights' },
     { lvl: 100, title: 'Legendärer Status' },
