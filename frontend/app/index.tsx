@@ -17,13 +17,13 @@ function useThemeColors(theme: string) {
 }
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  const theme = useAppStore((s) =&gt; s.theme);
+  const theme = useAppStore((s) => s.theme);
   const c = useThemeColors(theme);
   return (
-    &lt;View style={[styles.card, { backgroundColor: c.card }]}&gt;
-      &lt;Text style={[styles.cardTitle, { color: c.text }]}&gt;{title}&lt;/Text&gt;
+    <View style={[styles.card, { backgroundColor: c.card }]}>
+      <Text style={[styles.cardTitle, { color: c.text }]}>{title}</Text>
       {children}
-    &lt;/View&gt;
+    </View>
   );
 }
 
