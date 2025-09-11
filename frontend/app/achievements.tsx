@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -23,7 +23,6 @@ export default function AchievementsScreen() {
   const colors = useThemeColors(state.theme);
   const [filter, setFilter] = useState<'all'|'progress'|'done'>('all');
   const [query, setQuery] = useState("");
-  const [legendVisible, setLegendVisible] = useState(false);
 
   const { list } = useMemo(() => computeAchievements({
     days: state.days, goal: state.goal, reminders: state.reminders, chat: state.chat, saved: state.saved,
@@ -38,13 +37,8 @@ export default function AchievementsScreen() {
     return arr.sort((a,b) => (a.completed === b.completed) ? (b.percent - a.percent) : (a.completed ? 1 : -1));
   }, [list, filter, query]);
 
-  // Rewards & Events integration
-  const { weekKey, dayKeys } = getWeekRange(new Date());
-  const weeklyEvent = getCurrentWeeklyEvent(new Date());
-  const evProg = computeEventProgress(dayKeys, { days: state.days }, weeklyEvent);
-
+  // Rewards (display order only) L10, L25, L50, L75, L100
   const level = Math.floor(state.xp / 100) + 1;
-  // swapped L25/L75 and sorted order: 10,25,50,75,100
   const rewards = [
     { id: 'ext', lvl: 10, title: 'Erweiterte Statistiken' },
     { id: 'ins', lvl: 25, title: 'Premium Insights' },
@@ -53,76 +47,81 @@ export default function AchievementsScreen() {
     { id: 'leg', lvl: 100, title: 'Legendärer Status' },
   ];
 
-  // Legend Celebration once
-  useEffect(() => {
-    if (level >= 100 && !state.rewardsSeen?.legend) {
-      state.setRewardSeen('legend', true);
-      setLegendVisible(true);
-    }
-  }, [level]);
-
   const chains = useMemo(() => computeChains(state), [state.days, state.goal, state.reminders, state.chat, state.saved, state.achievementsUnlocked, state.xp, state.language, state.theme]);
-  const topChains = useMemo(() => chains
-    .filter(c => c.completed < c.total)
-    .sort((a,b) => b.nextPercent - a.nextPercent)
-    .slice(0, 3), [chains]);
-  const topIds = new Set(topChains.map(c=>c.id));
-  const otherChains = useMemo(() => chains.filter(c=>!topIds.has(c.id)).sort((a,b)=>{
-    // Sort: nicht fertig zuerst, dann nach Fortschritt absteigend
-    const aDone = a.completed >= a.total; const bDone = b.completed >= b.total;
-    if (aDone !== bDone) return aDone ? 1 : -1;
-    const ap = a.completed >= a.total ? 100 : a.nextPercent;
-    const bp = b.completed >= b.total ? 100 : b.nextPercent;
-    return bp - ap;
-  }), [chains, topIds]);
 
-  const ext = useMemo(() => computeExtendedStats(state.days), [state.days]);
-  const premium = useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]);
+  const [showAch, setShowAch] = useState(false);
+  const [showChains, setShowChains] = useState(false);
+  const [showUnlocks, setShowUnlocks] = useState(false);
 
   const appTitle = state.language === 'en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
-  const screenTitle = state.language === 'en' ? 'Achievements' : 'Erfolge';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[styles.header, { backgroundColor: colors.card }]}> 
+      <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel={state.language==='de'?'Zurück':'Back'}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
           <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
-          <Text style={[styles.title, { color: colors.muted }]}>{screenTitle}</Text>
+          <Text style={[styles.title, { color: colors.muted }]}>{state.language==='de'?'Erfolge':'Achievements'}</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-        {/* Chains summary */}
+        {/* Search & filters at top */}
+        <TextInput placeholder={state.language==='de'?"Suchen…":"Search…"} placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {(['all','progress','done'] as const).map((f) => (
+            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: filter===f ? colors.primary : 'transparent' }]} accessibilityLabel={`Filter ${f}`}>
+              <Text style={{ color: filter===f ? '#fff' : colors.text }}>{f==='all'?(state.language==='de'?'Alle':'All'):f==='progress'?(state.language==='de'?'In Arbeit':'In progress'):(state.language==='de'?'Erreicht':'Done')}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Achievements list – collapsible, show first 3 by default */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Ketten':'Chains'}</Text>
-            <TouchableOpacity onPress={() => router.push('/leaderboard')} style={{ padding: 6 }}>
-              <Ionicons name='podium' size={18} color={colors.muted} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Erfolge':'Achievements'}</Text>
+            <TouchableOpacity onPress={() => setShowAch(v=>!v)}>
+              <Ionicons name={showAch?'chevron-up':'chevron-down'} size={18} color={colors.muted} />
             </TouchableOpacity>
           </View>
-          {topChains.length ? topChains.map((c) => (
-            <View key={c.id} style={{ marginTop: 8 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={{ color: colors.text }}>{c.title} · {state.language==='de'?'Schritt':'Step'} {c.completed+1}/{c.total}</Text>
-                <Text style={{ color: colors.muted }}>{Math.round(c.nextPercent)}%</Text>
-              </View>
-              <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 4 }}>
-                <View style={{ width: `${c.nextPercent}%`, height: 6, backgroundColor: colors.primary }} />
-              </View>
-              {c.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Als Nächstes':'Next'}: {c.nextTitle}</Text> : null}
-            </View>
-          )) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Alle Ketten abgeschlossen oder keine vorhanden.':'All chains completed or none available.'}</Text>
-          )}
+          {(showAch ? filtered : filtered.slice(0,3)).map((a) => {
+            const cfg = getAchievementConfigById(a.id);
+            return (
+              <TouchableOpacity key={a.id} style={[styles.itemCard, { backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 12 }]} onPress={() => router.push(`/achievements/${a.id}`)}>
+                <BadgeIcon size={48} percent={a.percent} color={colors.primary} bg={colors.bg} icon={cfg?.icon || 'trophy'} iconColor={colors.text} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '700' }}>{a.title}</Text>
+                  <Text style={{ color: colors.muted, marginTop: 4 }} numberOfLines={2}>{a.description}</Text>
+                  <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
+                    <View style={{ width: `${a.percent}%`, height: 6, backgroundColor: colors.primary }} />
+                  </View>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Ionicons name={a.completed ? 'trophy' : 'medal'} size={18} color={a.completed ? colors.primary : colors.muted} />
+                  <Text style={{ color: colors.text }}>{a.xp} XP</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+          {filtered.length > 3 ? (
+            <TouchableOpacity onPress={() => setShowAch(v=>!v)} style={{ alignSelf: 'center', marginTop: 6 }}>
+              <Text style={{ color: colors.primary }}>{showAch ? (state.language==='de'?'Weniger anzeigen':'Show less') : (state.language==='de'?'Mehr anzeigen':'Show more')}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
 
-          {/* All Chains under Top 3 */}
-          <View style={{ height: 12 }} />
-          <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Alle Ketten':'All chains'}</Text>
-          {otherChains.length ? otherChains.map((c) => {
+        {/* Chains – collapsible, first 3 */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Ketten':'Chains'}</Text>
+            <TouchableOpacity onPress={() => setShowChains(v=>!v)}>
+              <Ionicons name={showChains?'chevron-up':'chevron-down'} size={18} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+          {(showChains ? chains : chains.slice(0,3)).map((c) => {
             const done = c.completed >= c.total;
             const pct = done ? 100 : Math.round(c.nextPercent);
             return (
@@ -137,140 +136,49 @@ export default function AchievementsScreen() {
                 {!done && c.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Als Nächstes':'Next'}: {c.nextTitle}</Text> : null}
               </View>
             );
-          }) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Keine weiteren Ketten.':'No further chains.'}</Text>
+          })}
+          {chains.length > 3 ? (
+            <TouchableOpacity onPress={() => setShowChains(v=>!v)} style={{ alignSelf: 'center', marginTop: 6 }}>
+              <Text style={{ color: colors.primary }}>{showChains ? (state.language==='de'?'Weniger anzeigen':'Show less') : (state.language==='de'?'Mehr anzeigen':'Show more')}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* Unlock previews – collapsible, order with L25 before L50 */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Freischaltungen':'Unlocks'}</Text>
+            <TouchableOpacity onPress={() => setShowUnlocks(v=>!v)}>
+              <Ionicons name={showUnlocks?'chevron-up':'chevron-down'} size={18} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+          {showUnlocks ? (
+            <>
+              <View style={{ marginTop: 6 }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Erweiterte Statistiken':'Extended stats'} (L10)</Text>
+              </View>
+              <View style={{ marginTop: 6 }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>Premium Insights (L25)</Text>
+              </View>
+              <View style={{ marginTop: 6 }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>VIP-Chat (L50)</Text>
+              </View>
+              <View style={{ marginTop: 6 }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>Golden Pink Theme (L75)</Text>
+              </View>
+              <View style={{ marginTop: 6 }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Legendärer Status':'Legendary status'} (L100)</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={{ color: colors.text, marginTop: 6 }}>• {state.language==='de'?'Erweiterte Statistiken':'Extended stats'} (L10)</Text>
+              <Text style={{ color: colors.text, marginTop: 6 }}>• Premium Insights (L25)</Text>
+              <Text style={{ color: colors.text, marginTop: 6 }}>• VIP-Chat (L50)</Text>
+            </>
           )}
         </View>
-
-        {/* Rewards summary */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>{state.language==='de'?'Belohnungen':'Rewards'}</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {rewards.map((r) => {
-              const unlocked = level >= r.lvl;
-              return (
-                <View key={r.id} style={[styles.rewardPill, { borderColor: unlocked ? colors.primary : colors.muted, backgroundColor: unlocked ? colors.primary : 'transparent' }]}> 
-                  <Ionicons name={unlocked ? 'lock-open' : 'lock-closed'} size={14} color={unlocked ? '#fff' : colors.muted} />
-                  <Text style={{ color: unlocked ? '#fff' : colors.text, marginLeft: 6 }}>{r.title} (L{r.lvl})</Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Unlock previews */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>{state.language==='de'?'Freischaltungen':'Unlocks'}</Text>
-          <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Erweiterte Statistiken':'Extended stats'} (L10)</Text>
-            {level >= 10 ? (
-              <View style={{ marginTop: 6 }}>
-                <Text style={{ color: colors.muted }}>Ø Wasser 7T: {ext.waterAvg7.toFixed(1)}</Text>
-                <Text style={{ color: colors.muted }}>Ø Wasser 30T: {ext.waterAvg30.toFixed(1)}</Text>
-                <Text style={{ color: colors.muted }}>{state.language==='de'?'Gewichts-Trend/Tag':'Weight trend/day'}: {ext.weightTrendPerDay.toFixed(2)} kg</Text>
-                <Text style={{ color: colors.muted }}>{state.language==='de'?'Compliance':'Compliance'}: {(ext.complianceRate*100).toFixed(0)}%</Text>
-                <Text style={{ color: colors.muted }}>{state.language==='de'?'Bester Perfekt-Streak':'Best perfect streak'}: {ext.bestPerfectStreak} {state.language==='de'?'Tage':'days'}</Text>
-              </View>
-            ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Ab Level 10 verfügbar.':'Available from level 10.'}</Text>
-            )}
-          </View>
-          <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>VIP-Chat (L50)</Text>
-            {level >= 50 ? (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Aktiv. Längere Nachrichten und Erweiterungen freigeschaltet.':'Active. Longer messages and extensions unlocked.'}</Text>
-            ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Ab Level 50 verfügbar.':'Available from level 50.'}</Text>
-            )}
-          </View>
-          <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Premium Insights (L25)</Text>
-            {level >= 25 ? (
-              <View style={{ marginTop: 4, gap: 4 }}>
-                {useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]).slice(0, 3).map((t, i) => (
-                  <Text key={i} style={{ color: colors.muted }}>• {t}</Text>
-                ))}
-              </View>
-            ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Ab Level 25 verfügbar.':'Available from level 25.'}</Text>
-            )}
-          </View>
-          <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Golden Pink Theme (L75)</Text>
-            {level >= 75 ? (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Im Design wählbar.':'Available in themes.'}</Text>
-            ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Ab Level 75 verfügbar.':'Available from level 75.'}</Text>
-            )}
-          </View>
-          <View>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Legendärer Status':'Legendary status'} (L100)</Text>
-            {level >= 100 ? (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Aktiv! Danke für deine Ausdauer. 🏆':'Active! Thanks for your endurance. 🏆'}</Text>
-            ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Ab Level 100 verfügbar.':'Available from level 100.'}</Text>
-            )}
-          </View>
-        </View>
-
-        {/* Weekly event */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 4 }}>{weeklyEvent.title(state.language)}</Text>
-          <Text style={{ color: colors.muted }}>{weeklyEvent.description(state.language)}</Text>
-          <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
-            <View style={{ width: `${evProg.percent}%`, height: 8, backgroundColor: colors.primary }} />
-          </View>
-          <Text style={{ color: colors.muted, marginTop: 6 }}>{evProg.percent}% · +{weeklyEvent.xp} XP · Bonus {Math.round(weeklyEvent.bonusPercent*100)}%</Text>
-        </View>
-
-        {/* Filters & search */}
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {(['all','progress','done'] as const).map((f) => (
-            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: filter===f ? colors.primary : 'transparent' }]} 
-              accessibilityLabel={`Filter ${f}`}>
-              <Text style={{ color: filter===f ? '#fff' : colors.text }}>{f==='all'?(state.language==='de'?'Alle':'All'):f==='progress'?(state.language==='de'?'In Arbeit':'In progress'):(state.language==='de'?'Erreicht':'Done')}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TextInput placeholder={state.language==='de'?"Suchen…":"Search…"} placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
-
-        {filtered.map((a) => {
-          const cfg = getAchievementConfigById(a.id);
-          return (
-            <TouchableOpacity key={a.id} style={[styles.itemCard, { backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 12 }]} onPress={() => router.push(`/achievements/${a.id}`)}>
-              <BadgeIcon size={48} percent={a.percent} color={colors.primary} bg={colors.bg} icon={cfg?.icon || 'trophy'} iconColor={colors.text} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontWeight: '700' }}>{a.title}</Text>
-                <Text style={{ color: colors.muted, marginTop: 4 }} numberOfLines={2}>{a.description}</Text>
-                <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
-                  <View style={{ width: `${a.percent}%`, height: 6, backgroundColor: colors.primary }} />
-                </View>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Ionicons name={a.completed ? 'trophy' : 'medal'} size={18} color={a.completed ? colors.primary : colors.muted} />
-                <Text style={{ color: colors.text }}>{a.xp} XP</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-        {filtered.length === 0 ? (
-          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>{state.language==='de'?'Keine Ergebnisse':'No results'}</Text>
-        ) : null}
       </ScrollView>
-
-      {/* Legend Modal */}
-      <Modal visible={legendVisible} transparent animationType="fade" onRequestClose={() => setLegendVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ backgroundColor: colors.card, padding: 16, borderRadius: 12, width: '80%', alignItems: 'center' }}>
-            <Ionicons name="trophy" size={48} color={colors.primary} />
-            <Text style={{ color: colors.text, fontWeight: '700', marginTop: 8 }}>{state.language==='de'?'Legendär!':'Legendary!'}</Text>
-            <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 6 }}>{state.language==='de'?'Du hast Level 100 erreicht. Vielen Dank für deine unglaubliche Ausdauer! 🎉':'You reached level 100. Thank you for your incredible consistency! 🎉'}</Text>
-            <TouchableOpacity onPress={() => setLegendVisible(false)} style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 8 }}>
-              <Text style={{ color: '#fff' }}>{state.language==='de'?'Schließen':'Close'}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -284,5 +192,4 @@ const styles = StyleSheet.create({
   card: { borderRadius: 12, padding: 12 },
   itemCard: { borderRadius: 12, padding: 12 },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginTop: 8 },
-  rewardPill: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
 });

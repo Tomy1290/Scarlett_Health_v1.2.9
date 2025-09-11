@@ -1,9 +1,8 @@
-/* updated header/topbar height */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Animated, TextInput, Platform, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppStore, useLevel } from "../src/store/useStore";
+import { useAppStore, useLevel, getAverageCycleLengthDays } from "../src/store/useStore";
 import { useRouter } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import { getWeekRange, getCurrentWeeklyEvent, computeEventProgress } from "../src/gamification/events";
@@ -19,24 +18,55 @@ function useThemeColors(theme: string) {
 
 export default function Home() {
   const router = useRouter();
-  const { theme, days, eventHistory, completeEvent, eventsEnabled, currentDate, ensureDay, language, togglePill, incDrink, toggleFlag, setWeight, goPrevDay, goNextDay, goToday } = useAppStore();
+  const state = useAppStore();
+  const { theme, days, eventHistory, completeEvent, eventsEnabled, currentDate, ensureDay, language, togglePill, incDrink, toggleFlag, setWeight, goPrevDay, goNextDay, goToday } = state;
   const { level, xp } = useLevel();
   const colors = useThemeColors(theme);
 
-  useEffect(() => { ensureDay(currentDate); }, [currentDate]);
+  // previous values to detect level up / unlocks
+  const prevLevelRef = useRef(level);
+  const prevUnlockCountRef = useRef(state.achievementsUnlocked?.length || 0);
+  const [overlayMsg, setOverlayMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (level > prevLevelRef.current) {
+      setOverlayMsg(language==='de' ? `Level Up! L${level}` : `Level up! L${level}`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(() => setOverlayMsg(null), 1400);
+      prevLevelRef.current = level;
+    }
+  }, [level]);
+  useEffect(() => {
+    const count = state.achievementsUnlocked?.length || 0;
+    if (count > prevUnlockCountRef.current) {
+      setOverlayMsg(language==='de' ? 'Neuer Erfolg!' : 'New achievement!');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(() => setOverlayMsg(null), 1400);
+      prevUnlockCountRef.current = count;
+    }
+  }, [state.achievementsUnlocked]);
+
+  // Ensure the selected day exists
+  useEffect(() => {
+    ensureDay(currentDate);
+  }, [currentDate]);
 
   const todayKey = toKey(new Date());
   const day = days[currentDate] || { pills: { morning: false, evening: false }, drinks: { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } } as any;
 
+  // Localized date label
   const dateLabel = React.useMemo(() => {
     try {
       const [y, m, d] = currentDate.split('-').map((n) => parseInt(n, 10));
       const dt = new Date(y, m - 1, d);
       const locale = language === 'en' ? 'en-GB' : 'de-DE';
       return dt.toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: '2-digit' });
-    } catch { return currentDate; }
+    } catch {
+      return currentDate;
+    }
   }, [currentDate, language]);
 
+  // Weekly event computation
   const now = new Date();
   const { weekKey, dayKeys } = getWeekRange(now);
   const weeklyEvent = getCurrentWeeklyEvent(now);
@@ -47,6 +77,7 @@ export default function Home() {
   const [celebrate, setCelebrate] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
 
+  // Weight modal state
   const [weightModal, setWeightModal] = useState(false);
   const [weightInput, setWeightInput] = useState<string>(day?.weight ? String(day.weight) : "");
   useEffect(() => { setWeightInput(day?.weight ? String(day.weight) : ""); }, [currentDate, day?.weight]);
@@ -56,6 +87,7 @@ export default function Home() {
     if (evProg.completed && !eventHistory[weekKey]?.completed) {
       completeEvent(weekKey, { id: weeklyEvent.id, xp: weeklyEvent.xp });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // simple confetti fade
       setCelebrate(true);
       fade.setValue(0);
       Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: true }).start(() => {
@@ -64,8 +96,11 @@ export default function Home() {
     }
   }, [evProg.completed, weekKey, eventsEnabled]);
 
+  // Chains teaser (Top 1)
   const chains = useMemo(() => computeChains(useAppStore.getState()), [days]);
-  const topChain = useMemo(() => chains.filter(c => c.completed < c.total).sort((a,b) => b.nextPercent - a.nextPercent)[0], [chains]);
+  const topChain = useMemo(() => chains
+    .filter(c => c.completed < c.total)
+    .sort((a,b) => b.nextPercent - a.nextPercent)[0], [chains]);
 
   const rewardList = [
     { lvl: 10, title: 'Erweiterte Statistiken' },
@@ -76,22 +111,28 @@ export default function Home() {
   ];
   const nextReward = rewardList.find(r => level < r.lvl);
 
-  const canGoNext = currentDate <= todayKey;
+  const canGoNext = currentDate <= todayKey; // goNextDay itself blocks future
 
   const t = (de: string, en: string) => (language === 'en' ? en : de);
+
+  // Cycle helpers
+  const activeCycle = state.cycles.find(c => !c.end);
+  const avgLen = getAverageCycleLengthDays(state.cycles);
+  const lastStart = [...state.cycles].filter(c=>c.start).sort((a,b)=>a.start.localeCompare(b.start)).slice(-1)[0]?.start;
+  const expectedNext = lastStart ? (() => { const dt = new Date(lastStart); dt.setDate(dt.getDate() + avgLen); return dt; })() : null;
+  const daysUntilNext = expectedNext ? Math.max(0, Math.ceil((+expectedNext - +new Date(currentDate))/(24*60*60*1000))) : null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-        {/* Top bar with app title and Level/XP */}
+        {/* Top bar with app title and Level/XP (settings icon removed) */}
         <View style={[styles.card, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: colors.text, fontWeight: '800', fontSize: 18 }}>{t('Scarletts Gesundheitstracking', "Scarlett’s Health Tracking")}</Text>
-            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/settings'); }} accessibilityLabel={t('Einstellungen', 'Settings')} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="star" size={18} color={colors.primary} />
               <Text style={{ color: colors.text, marginLeft: 6 }}>L{level} · {xp} XP</Text>
-              <Ionicons name="settings" size={18} color={colors.text} style={{ marginLeft: 10 }} />
-            </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -180,35 +221,43 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Weight */}
+        {/* Cycle card */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="fitness" size={20} color={colors.primary} />
-            <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('Gewicht', 'Weight')}</Text>
-          </View>
-          <Text style={{ color: colors.muted, marginTop: 6 }}>
-            {day?.weight ? `${day.weight.toFixed(1)} kg` : t('Kein Eintrag', 'No entry')}
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 10 }}>
-            <TouchableOpacity style={[styles.cta, { backgroundColor: colors.primary }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setWeightModal(true); }}>
-              <Ionicons name="create" size={18} color="#fff" />
-              <Text style={{ color: '#fff', marginLeft: 6 }}>{t('Eintragen', 'Log weight')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.cta, { borderColor: colors.primary, borderWidth: 1 }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/analysis'); }}>
-              <Ionicons name="stats-chart" size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, marginLeft: 6 }}>{t('Analyse', 'Analysis')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{language==='de'?'Zyklus':'Cycle'}</Text>
+            <TouchableOpacity onPress={() => router.push('/cycle')} accessibilityLabel='Kalender & Analyse'>
+              <Ionicons name='calendar' size={20} color={colors.primary} />
             </TouchableOpacity>
           </View>
+          {activeCycle ? (
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+              <TouchableOpacity onPress={() => { state.endCycle(currentDate); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }} style={[styles.cta, { backgroundColor: colors.primary }]}>
+                <Text style={{ color: '#fff' }}>{language==='de'?'Zyklus Ende':'End cycle'}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+              <TouchableOpacity onPress={() => { state.startCycle(currentDate); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }} style={[styles.cta, { backgroundColor: colors.primary }]}>
+                <Text style={{ color: '#fff' }}>{language==='de'?'Zyklus Beginn':'Start cycle'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {expectedNext ? (
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{language==='de'?'Nächster Zyklus in':'Next cycle in'} {daysUntilNext} {language==='de'?'Tagen':'days'} {language==='de'?'erwartet':'expected'} ({expectedNext.toLocaleDateString()})</Text>
+          ) : null}
+          <TouchableOpacity onPress={() => router.push('/cycle')} style={{ alignSelf: 'flex-start', marginTop: 8 }}>
+            <Text style={{ color: colors.primary }}>{language==='de'?'Kalender & Analyse öffnen':'Open calendar & analysis'}</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Event card, chains, rewards, quick access unchanged except sizes already adjusted above */}
+        {/* Event-Karte */}
         {eventsEnabled ? (
           <TouchableOpacity onPress={() => setDetailVisible(true)} activeOpacity={0.8}>
             <View style={[styles.card, { backgroundColor: colors.card }]}> 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>{weeklyEvent.title(language)}</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity onPress={() => router.push('/events')} accessibilityLabel={t('Archiv', 'Archive')} style={{ padding: 6 }}>
+                  <TouchableOpacity onPress={() => router.push('/events')} accessibilityLabel={language==='de'?'Archiv':'Archive'} style={{ padding: 6 }}>
                     <Ionicons name="calendar" size={20} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
@@ -217,80 +266,84 @@ export default function Home() {
               <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
                 <View style={{ width: `${evProg.percent}%`, height: 8, backgroundColor: colors.primary }} />
               </View>
-              <Text style={{ color: colors.muted, marginTop: 6 }}>{evProg.percent}% · +{weeklyEvent.xp} XP · Bonus {Math.round(weeklyEvent.bonusPercent*100)}% {evCompleted ? t('· Abgeschlossen', '· Completed') : ''}</Text>
+              <Text style={{ color: colors.muted, marginTop: 6 }}>{evProg.percent}% · +{weeklyEvent.xp} XP · Bonus {Math.round(weeklyEvent.bonusPercent*100)}% {evCompleted ? (language==='de'?'· Abgeschlossen':'· Completed') : ''}</Text>
             </View>
           </TouchableOpacity>
         ) : null}
 
+        {/* Ketten-Teaser */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name='link' size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('Ketten', 'Chains')}</Text>
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{language==='de'?'Ketten':'Chains'}</Text>
             </View>
-            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/achievements'); }} accessibilityLabel={t('Zu Ketten', 'To chains')}>
+            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/achievements'); }} accessibilityLabel={language==='de'?'Zu Ketten':'To chains'}>
               <Ionicons name='chevron-forward' size={20} color={colors.text} />
             </TouchableOpacity>
           </View>
           {topChain ? (
             <View style={{ marginTop: 6 }}>
-              <Text style={{ color: colors.muted }}>{topChain.title} · {t('Schritt', 'Step')} {topChain.completed+1}/{topChain.total}</Text>
+              <Text style={{ color: colors.muted }}>{topChain.title} · {language==='de'?'Schritt':'Step'} {topChain.completed+1}/{topChain.total}</Text>
               <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
                 <View style={{ width: `${Math.round(topChain.nextPercent)}%`, height: 6, backgroundColor: colors.primary }} />
               </View>
-              {topChain.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>{t('Als Nächstes', 'Next')}: {topChain.nextTitle}</Text> : null}
+              {topChain.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>{language==='de'?'Als Nächstes':'Next'}: {topChain.nextTitle}</Text> : null}
             </View>
           ) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Alle Ketten abgeschlossen oder keine vorhanden.', 'All chains completed or none available.')}</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{language==='de'?'Alle Ketten abgeschlossen oder keine vorhanden.':'All chains completed or none available.'}</Text>
           )}
         </View>
 
+        {/* Belohnungen */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Ionicons name="gift" size={20} color={colors.primary} />
-            <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('Belohnungen', 'Rewards')}</Text>
+            <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{language==='de'?'Belohnungen':'Rewards'}</Text>
           </View>
           {nextReward ? (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Nächste Belohnung', 'Next reward')}: {nextReward.title} {t('ab Level', 'at level')} {nextReward.lvl}</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{language==='de'?'Nächste Belohnung':'Next reward'}: {nextReward.title} {language==='de'?'ab Level':'at level'} {nextReward.lvl}</Text>
           ) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Alle Belohnungen freigeschaltet! 🎉', 'All rewards unlocked! 🎉')}</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{language==='de'?'Alle Belohnungen freigeschaltet! 🎉':'All rewards unlocked! 🎉'}</Text>
           )}
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 10 }}>
             <TouchableOpacity style={[styles.cta, { backgroundColor: colors.primary }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/achievements'); }}>
               <Ionicons name="trophy" size={16} color="#fff" />
-              <Text style={{ color: '#fff', marginLeft: 6 }}>{t('Erfolge', 'Achievements')}</Text>
+              <Text style={{ color: '#fff', marginLeft: 6 }}>{language==='de'?'Erfolge':'Achievements'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.cta, { borderColor: colors.primary, borderWidth: 1 }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/analysis'); }}>
               <Ionicons name="stats-chart" size={16} color={colors.primary} />
-              <Text style={{ color: colors.text, marginLeft: 6 }}>{t('Analyse', 'Analysis')}</Text>
+              <Text style={{ color: colors.text, marginLeft: 6 }}>{language==='de'?'Analyse':'Analysis'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Schnellzugriff */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700' }}>{t('Schnellzugriff', 'Quick access')}</Text>
+          <Text style={{ color: colors.text, fontWeight: '700' }}>{language==='de'?'Schnellzugriff':'Quick access'}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 10 }}>
-            <TouchableOpacity accessibilityLabel={t('Chat', 'Chat')} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/chat'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
+            <TouchableOpacity accessibilityLabel={language==='de'?'Chat':'Chat'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/chat'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
               <Ionicons name="chatbubbles" size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, marginTop: 6 }}>{t('Chat', 'Chat')}</Text>
+              <Text style={{ color: colors.text, marginTop: 6 }}>{language==='de'?'Chat':'Chat'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity accessibilityLabel={t('Gespeichert', 'Saved')} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/saved'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
+            <TouchableOpacity accessibilityLabel={language==='de'?'Gespeichert':'Saved'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/saved'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
               <Ionicons name="bookmark" size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, marginTop: 6 }}>{t('Gespeichert', 'Saved')}</Text>
+              <Text style={{ color: colors.text, marginTop: 6 }}>{language==='de'?'Gespeichert':'Saved'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity accessibilityLabel={t('Einstellungen', 'Settings')} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/settings'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
-              <Ionicons name="settings" size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, marginTop: 6 }}>{t('Einstellungen', 'Settings')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity accessibilityLabel={t('Bestenliste', 'Leaderboard')} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/leaderboard'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
+            <TouchableOpacity accessibilityLabel={language==='de'?'Bestenliste':'Leaderboard'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/leaderboard'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
               <Ionicons name="podium" size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, marginTop: 6 }}>{t('Rangliste', 'Leaderboard')}</Text>
+              <Text style={{ color: colors.text, marginTop: 6 }}>{language==='de'?'Rangliste':'Leaderboard'}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
 
-      {/* Event detail modal and weight modal unchanged below... */}
+      {/* Floating settings button */}
+      <TouchableOpacity onPress={() => router.push('/settings')} accessibilityLabel={language==='de'?'Einstellungen':'Settings'} style={{ position: 'absolute', right: 16, bottom: 16, backgroundColor: colors.primary, borderRadius: 28, width: 56, height: 56, alignItems: 'center', justifyContent: 'center', elevation: 4 }}>
+        <Ionicons name='settings' size={24} color={'#fff'} />
+      </TouchableOpacity>
+
+      {/* Event detail modal */}
       <Modal visible={detailVisible} transparent animationType="fade" onRequestClose={() => setDetailVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ backgroundColor: colors.card, padding: 16, borderRadius: 12, width: '88%' }}>
@@ -306,12 +359,13 @@ export default function Home() {
             </View>
             <Text style={{ color: colors.muted, marginTop: 6 }}>{evProg.percent}% · +{weeklyEvent.xp} XP · Bonus {Math.round(weeklyEvent.bonusPercent*100)}%</Text>
             <TouchableOpacity onPress={() => { setDetailVisible(false); router.push('/events'); }} style={{ alignSelf: 'flex-end', marginTop: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 8 }}>
-              <Text style={{ color: '#fff' }}>{t('Archiv', 'Archive')}</Text>
+              <Text style={{ color: '#fff' }}>{language==='de'?'Archiv':'Archive'}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
+      {/* Weight modal */}
       <Modal visible={weightModal} transparent animationType="slide" onRequestClose={() => setWeightModal(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' }}>
@@ -352,9 +406,17 @@ export default function Home() {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* Simple celebration overlay */}
       {celebrate ? (
         <Animated.View pointerEvents='none' style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', opacity: fade }}>
           <Text style={{ fontSize: 48 }}>🎉</Text>
+        </Animated.View>
+      ) : null}
+      {overlayMsg ? (
+        <Animated.View pointerEvents='none' style={{ position: 'absolute', left: 0, right: 0, top: 80, alignItems: 'center' }}>
+          <View style={{ backgroundColor: colors.card, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{overlayMsg}</Text>
+          </View>
         </Animated.View>
       ) : null}
     </SafeAreaView>

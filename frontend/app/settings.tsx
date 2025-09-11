@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../src/store/useStore';
 import { ensureAndroidChannel, ensureNotificationPermissions, scheduleDailyReminder, cancelNotification, parseHHMM } from '../src/utils/notifications';
 import Constants from 'expo-constants';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 
 function useThemeColors(theme: string) {
   if (theme === 'pink_pastel') return { bg: '#fff0f5', card: '#ffe4ef', primary: '#d81b60', text: '#3a2f33', muted: '#8a6b75', input: '#ffffff' };
@@ -15,18 +18,8 @@ function useThemeColors(theme: string) {
 }
 
 function themeLabel(key: 'pink_default'|'pink_pastel'|'pink_vibrant'|'golden_pink', lang: 'de'|'en') {
-  const mapDe: Record<string,string> = {
-    pink_default: 'Rosa – Standard',
-    pink_pastel: 'Rosa – Pastell',
-    pink_vibrant: 'Rosa – Kräftig',
-    golden_pink: 'Goldenes Rosa',
-  };
-  const mapEn: Record<string,string> = {
-    pink_default: 'Pink – Default',
-    pink_pastel: 'Pink – Pastel',
-    pink_vibrant: 'Pink – Vibrant',
-    golden_pink: 'Golden Pink',
-  };
+  const mapDe: Record<string,string> = { pink_default: 'Rosa – Standard', pink_pastel: 'Rosa – Pastell', pink_vibrant: 'Rosa – Kräftig', golden_pink: 'Goldenes Rosa' };
+  const mapEn: Record<string,string> = { pink_default: 'Pink – Default', pink_pastel: 'Pink – Pastel', pink_vibrant: 'Pink – Vibrant', golden_pink: 'Golden Pink' };
   return (lang==='en'?mapEn:mapDe)[key] || key;
 }
 
@@ -34,7 +27,6 @@ export default function SettingsScreen() {
   const state = useAppStore();
   const router = useRouter();
   const colors = useThemeColors(state.theme);
-  const [newTime, setNewTime] = useState('08:00');
 
   const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
   const version = Constants?.expoConfig?.version || '—';
@@ -94,6 +86,36 @@ export default function SettingsScreen() {
     }
   }
 
+  async function exportData() {
+    try {
+      const data = useAppStore.getState();
+      const snapshot = JSON.stringify(data);
+      const fileUri = FileSystem.cacheDirectory + `scarlett-backup-${Date.now()}.json`;
+      await FileSystem.writeAsStringAsync(fileUri, snapshot, { encoding: FileSystem.EncodingType.UTF8 });
+      await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Export' });
+    } catch (e) {
+      Alert.alert('Error', String(e));
+    }
+  }
+
+  async function importData() {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
+      if (res.canceled || !res.assets?.[0]?.uri) return;
+      const txt = await FileSystem.readAsStringAsync(res.assets[0].uri, { encoding: FileSystem.EncodingType.UTF8 });
+      const parsed = JSON.parse(txt);
+      // minimal safety: only copy known fields
+      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','xpBonus','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
+      const patch: any = {};
+      for (const k of keys) if (k in parsed) patch[k] = parsed[k];
+      useAppStore.setState(patch);
+      useAppStore.getState().recalcAchievements();
+      Alert.alert(state.language==='de'?'Import abgeschlossen':'Import finished');
+    } catch (e) {
+      Alert.alert('Error', String(e));
+    }
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
@@ -107,8 +129,8 @@ export default function SettingsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.IS==='ios'?'padding':'height' as any} style={{ flex: 1 }}>
-        <View style={{ padding: 16, gap: 12 }}>
+      <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
           {/* Language */}
           <View style={[styles.card, { backgroundColor: colors.card }]}> 
             <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>{state.language==='de'?'Sprache':'Language'}</Text>
@@ -180,13 +202,21 @@ export default function SettingsScreen() {
             <Switch value={state.eventsEnabled} onValueChange={state.setEventsEnabled} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
           </View>
 
-          {/* App info */}
+          {/* App info / Import/Export */}
           <View style={[styles.card, { backgroundColor: colors.card }]}> 
             <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'App':'App'}</Text>
             <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Version':'Version'}: {version}</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+              <TouchableOpacity onPress={exportData} style={[styles.badge, { borderColor: colors.muted }]}> 
+                <Text style={{ color: colors.text }}>{state.language==='de'?'Daten exportieren':'Export data'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={importData} style={[styles.badge, { borderColor: colors.muted }]}> 
+                <Text style={{ color: colors.text }}>{state.language==='de'?'Daten importieren':'Import data'}</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={{ color: colors.muted, marginTop: 2 }}>created by Gugi</Text>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
