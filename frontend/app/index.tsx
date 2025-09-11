@@ -569,6 +569,40 @@ export default function Home() {
                 onChangeText={setNewRemTime}
                 placeholder="HH:MM"
                 placeholderTextColor={colors.muted}
+function buildRange(days: any, mode: 'week'|'month'|'custom', customStart?: string, customEnd?: string) {
+  const today = new Date();
+  let start: Date; let end: Date;
+  if (mode === 'week') { start = new Date(today); start.setDate(today.getDate() - 6); end = today; }
+  else if (mode === 'month') { start = new Date(today); start.setDate(today.getDate() - 29); end = today; }
+  else {
+    const { parseGermanOrShort, toKey } = require('../src/utils/date');
+    const s = parseGermanOrShort(customStart || '');
+    const e = parseGermanOrShort(customEnd || '');
+    start = s || new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    end = e || today;
+  }
+  // Collect weights
+  const res: { date: string; weight?: number }[] = [];
+  const cur = new Date(start);
+  while (cur <= end) {
+    const k = toKey(cur);
+    res.push({ date: k, weight: days[k]?.weight });
+    cur.setDate(cur.getDate() + 1);
+  }
+  return res;
+}
+
+function computeStats(series: { date: string; weight?: number }[]) {
+  const points = series.filter(s => typeof s.weight === 'number') as { date: string; weight: number }[];
+  if (points.length < 2) return { delta: 0, perDay: 0 };
+  const first = points[0].weight;
+  const last = points[points.length - 1].weight;
+  const delta = +(last - first).toFixed(1);
+  const days = points.length - 1;
+  const perDay = +((last - first) / days).toFixed(2);
+  return { delta, perDay };
+}
+
                 style={[styles.input, { borderColor: colors.muted, color: colors.text, width: 96 }]}
               />
               <TouchableOpacity
