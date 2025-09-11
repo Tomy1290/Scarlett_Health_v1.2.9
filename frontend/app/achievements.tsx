@@ -4,7 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAppStore } from "../src/store/useStore";
-import { computeAchievements } from "../src/achievements";
+import { computeAchievements, getAchievementConfigById } from "../src/achievements";
+import { BadgeIcon } from "../src/components/BadgeIcon";
 
 function useThemeColors(theme: string) {
   if (theme === "pink_pastel") return { bg: "#fff0f5", card: "#ffe4ef", primary: "#d81b60", text: "#3a2f33", muted: "#8a6b75" };
@@ -20,15 +21,8 @@ export default function AchievementsScreen() {
   const [query, setQuery] = useState("");
 
   const { list } = useMemo(() => computeAchievements({
-    days: state.days,
-    goal: state.goal,
-    reminders: state.reminders,
-    chat: state.chat,
-    saved: state.saved,
-    achievementsUnlocked: state.achievementsUnlocked,
-    xp: state.xp,
-    language: state.language,
-    theme: state.theme,
+    days: state.days, goal: state.goal, reminders: state.reminders, chat: state.chat, saved: state.saved,
+    achievementsUnlocked: state.achievementsUnlocked, xp: state.xp, language: state.language, theme: state.theme,
   }), [state.days, state.goal, state.reminders, state.chat, state.saved, state.achievementsUnlocked, state.xp, state.language, state.theme]);
 
   const filtered = useMemo(() => {
@@ -58,36 +52,30 @@ export default function AchievementsScreen() {
           ))}
         </View>
         <View style={{ marginBottom: 8 }}>
-          <TextInput
-            placeholder="Suchen…"
-            placeholderTextColor={colors.muted}
-            value={query}
-            onChangeText={setQuery}
-            style={[styles.input, { borderColor: colors.muted, color: colors.text }]}
-          />
+          <TextInput placeholder="Suchen…" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
         </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-        {filtered.map((a) => (
-          <View key={a.id} style={[styles.card, { backgroundColor: colors.card }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={{ flex: 1, paddingRight: 8 }}>
+        {filtered.map((a) => {
+          const cfg = getAchievementConfigById(a.id);
+          return (
+            <TouchableOpacity key={a.id} style={[styles.card, { backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 12 }]} onPress={() => router.push(`/achievements/${a.id}`)}>
+              <BadgeIcon size={48} percent={a.percent} color={colors.primary} bg={colors.bg} icon={cfg?.icon || 'trophy'} iconColor={colors.text} />
+              <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>{a.title}</Text>
-                <Text style={{ color: colors.muted, marginTop: 4 }}>{a.description}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name={a.completed ? 'trophy' : 'medal'} size={18} color={a.completed ? colors.primary : colors.muted} />
-                  <Text style={{ color: colors.text }}>{a.xp} XP</Text>
+                <Text style={{ color: colors.muted, marginTop: 4 }} numberOfLines={2}>{a.description}</Text>
+                <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
+                  <View style={{ width: `${a.percent}%`, height: 6, backgroundColor: colors.primary }} />
                 </View>
               </View>
-            </View>
-            <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
-              <View style={{ width: `${a.percent}%`, height: 8, backgroundColor: colors.primary }} />
-            </View>
-          </View>
-        ))}
+              <View style={{ alignItems: 'flex-end' }}>
+                <Ionicons name={a.completed ? 'trophy' : 'medal'} size={18} color={a.completed ? colors.primary : colors.muted} />
+                <Text style={{ color: colors.text }}>{a.xp} XP</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
         {filtered.length === 0 ? (
           <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>Keine Ergebnisse</Text>
         ) : null}
