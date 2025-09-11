@@ -85,7 +85,7 @@ export const useAppStore = create<AppState>()(
       setTheme: (t) => {
         // Gate Golden Pink theme to Level >= 10
         const lvl = Math.floor(get().xp / 100) + 1;
-        if (t === 'golden_pink' &amp;&amp; lvl &lt; 10) {
+        if (t === 'golden_pink' && lvl < 10) {
           // ignore attempt to set locked theme
           return;
         }
@@ -93,7 +93,7 @@ export const useAppStore = create<AppState>()(
         get().recalcAchievements();
       },
       goPrevDay: () => { const cur = new Date(get().currentDate); const prev = new Date(cur); prev.setDate(cur.getDate() - 1); set({ currentDate: toKey(prev) }); },
-      goNextDay: () => { const cur = new Date(get().currentDate); const next = new Date(cur); next.setDate(cur.getDate() + 1); const todayKey = toKey(new Date()); const nextKey = toKey(next); if (nextKey &gt; todayKey) return; set({ currentDate: nextKey }); },
+      goNextDay: () => { const cur = new Date(get().currentDate); const next = new Date(cur); next.setDate(cur.getDate() + 1); const todayKey = toKey(new Date()); const nextKey = toKey(next); if (nextKey > todayKey) return; set({ currentDate: nextKey }); },
       goToday: () => set({ currentDate: toKey(new Date()) }),
       ensureDay: (key) => { const days = get().days; if (!days[key]) set({ days: { ...days, [key]: defaultDay(key) } }); },
       togglePill: (key, time) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); d.pills = { ...d.pills, [time]: !d.pills[time] } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
@@ -105,7 +105,16 @@ export const useAppStore = create<AppState>()(
       addReminder: (r) => { set({ reminders: [r, ...get().reminders] }); get().recalcAchievements(); },
       updateReminder: (id, patch) => set({ reminders: get().reminders.map((r) => (r.id === id ? { ...r, ...patch } : r)) }),
       deleteReminder: (id) => { set({ reminders: get().reminders.filter((r) => r.id !== id) }); get().recalcAchievements(); },
-      addChat: (m) => { set({ chat: [...get().chat, m] }); get().recalcAchievements(); },
+      addChat: (m) => {
+        // VIP-Chat Gating: L<50 => max 120 Zeichen für User-Nachrichten
+        const lvl = Math.floor(get().xp / 100) + 1;
+        let msg = m;
+        if (m.sender === 'user' && lvl < 50 && typeof m.text === 'string' && m.text.length > 120) {
+          msg = { ...m, text: m.text.slice(0, 120) };
+        }
+        set({ chat: [...get().chat, msg] });
+        get().recalcAchievements();
+      },
       addSaved: (s) => { set({ saved: [s, ...get().saved] }); get().recalcAchievements(); },
       deleteSaved: (id) => { set({ saved: get().saved.filter((s) => s.id !== id) }); get().recalcAchievements(); },
 
@@ -119,7 +128,7 @@ export const useAppStore = create<AppState>()(
         let bonus = 0;
         try {
           const { EVENTS } = require('../gamification/events');
-          const evt = (EVENTS as any[]).find((e) =&gt; e.id === entry.id);
+          const evt = (EVENTS as any[]).find((e) => e.id === entry.id);
           if (evt) bonus = Math.round(entry.xp * (evt.bonusPercent || 0));
         } catch {}
         const total = entry.xp + bonus;
@@ -135,11 +144,11 @@ export const useAppStore = create<AppState>()(
         const prevSet = new Set(state.achievementsUnlocked);
         const newUnlocks = base.unlocked.filter((id) => !prevSet.has(id));
         let xpBonus = state.xpBonus;
-        if (newUnlocks.length &gt;= 2) xpBonus += (newUnlocks.length - 1) * 50; // combo bonus
+        if (newUnlocks.length >= 2) xpBonus += (newUnlocks.length - 1) * 50; // combo bonus
         set({ achievementsUnlocked: base.unlocked, xpBonus, xp: base.xp + xpBonus });
       },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 7, onRehydrateStorage: () => (state) => {
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 8, onRehydrateStorage: () => (state) => {
       if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; }
     } }
   )
