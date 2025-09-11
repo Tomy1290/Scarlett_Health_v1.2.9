@@ -40,7 +40,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - your@email.here
+          - thomas1290@gmx.net
         notify:
           success: true
           failure: true
