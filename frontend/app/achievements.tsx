@@ -8,6 +8,7 @@ import { computeAchievements, getAchievementConfigById } from "../src/achievemen
 import { BadgeIcon } from "../src/components/BadgeIcon";
 import { getWeekRange, getCurrentWeeklyEvent, computeEventProgress } from "../src/gamification/events";
 import { computeExtendedStats, computePremiumInsights } from "../src/analytics/stats";
+import { computeChains } from "../src/gamification/chains";
 
 function useThemeColors(theme: string) {
   if (theme === "pink_pastel") return { bg: "#fff0f5", card: "#ffe4ef", primary: "#d81b60", text: "#3a2f33", muted: "#8a6b75" };
@@ -59,6 +60,12 @@ export default function AchievementsScreen() {
     }
   }, [level]);
 
+  const chains = useMemo(() => computeChains(state), [state.days, state.goal, state.reminders, state.chat, state.saved, state.achievementsUnlocked, state.xp, state.language, state.theme]);
+  const topChains = useMemo(() => chains
+    .filter(c => c.completed < c.total)
+    .sort((a,b) => b.nextPercent - a.nextPercent)
+    .slice(0, 3), [chains]);
+
   const ext = useMemo(() => computeExtendedStats(state.days), [state.days]);
   const premium = useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]);
 
@@ -69,10 +76,38 @@ export default function AchievementsScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>Erfolge</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity onPress={() => router.push('/leaderboard')} style={styles.iconBtn} accessibilityLabel='Bestenliste'>
+            <Ionicons name='podium' size={20} color={colors.text} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+        {/* Chains summary */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Ketten</Text>
+            <TouchableOpacity onPress={() => router.push('/leaderboard')} style={{ padding: 6 }}>
+              <Ionicons name='podium' size={18} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+          {topChains.length ? topChains.map((c) => (
+            <View key={c.id} style={{ marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ color: colors.text }}>{c.title} · Schritt {c.completed+1}/{c.total}</Text>
+                <Text style={{ color: colors.muted }}>{Math.round(c.nextPercent)}%</Text>
+              </View>
+              <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 4 }}>
+                <View style={{ width: `${c.nextPercent}%`, height: 6, backgroundColor: colors.primary }} />
+              </View>
+              {c.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>Als Nächstes: {c.nextTitle}</Text> : null}
+            </View>
+          )) : (
+            <Text style={{ color: colors.muted, marginTop: 6 }}>Alle Ketten abgeschlossen oder keine vorhanden.</Text>
+          )}
+        </View>
+
         {/* Rewards summary */}
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Belohnungen</Text>
@@ -89,11 +124,9 @@ export default function AchievementsScreen() {
           </View>
         </View>
 
-        {/* Unlock previews */}
+        {/* Unlock previews (unchanged details omitted for brevity) */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Freischaltungen</Text>
-
-          {/* L10 Extended Stats (getauscht) */}
           <View style={{ marginBottom: 8 }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>Erweiterte Statistiken (L10)</Text>
             {level >= 10 ? (
@@ -108,8 +141,6 @@ export default function AchievementsScreen() {
               <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 10 verfügbar.</Text>
             )}
           </View>
-
-          {/* L50 VIP Chat */}
           <View style={{ marginBottom: 8 }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>VIP-Chat (L50)</Text>
             {level >= 50 ? (
@@ -118,13 +149,11 @@ export default function AchievementsScreen() {
               <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 50 verfügbar.</Text>
             )}
           </View>
-
-          {/* L75 Premium Insights */}
           <View style={{ marginBottom: 8 }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>Premium Insights (L75)</Text>
             {level >= 75 ? (
               <View style={{ marginTop: 4, gap: 4 }}>
-                {premium.slice(0, 3).map((t, i) => (
+                {useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]).slice(0, 3).map((t, i) => (
                   <Text key={i} style={{ color: colors.muted }}>• {t}</Text>
                 ))}
               </View>
@@ -132,8 +161,6 @@ export default function AchievementsScreen() {
               <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 75 verfügbar.</Text>
             )}
           </View>
-
-          {/* L25 Golden Pink Hinweis (Theme-Gate extern) */}
           <View style={{ marginBottom: 8 }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>Golden Pink Theme (L25)</Text>
             {level >= 25 ? (
@@ -142,8 +169,6 @@ export default function AchievementsScreen() {
               <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 25 verfügbar.</Text>
             )}
           </View>
-
-          {/* L100 Legend */}
           <View>
             <Text style={{ color: colors.text, fontWeight: '700' }}>Legendärer Status (L100)</Text>
             {level >= 100 ? (
