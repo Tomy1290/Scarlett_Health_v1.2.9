@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -20,6 +20,9 @@ export default function AnalysisScreen() {
   const { level } = useLevel();
   const colors = useThemeColors(state.theme);
 
+  const [showExtHelp, setShowExtHelp] = useState(false);
+  const [showInsightsHelp, setShowInsightsHelp] = useState(false);
+
   const weightSeries = useMemo(() => {
     const arr = Object.values(state.days)
       .filter((d) => typeof d.weight === 'number')
@@ -30,18 +33,64 @@ export default function AnalysisScreen() {
   const ext = useMemo(() => computeExtendedStats(state.days), [state.days]);
   const insights = useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]);
 
+  const t = (key: string) => {
+    const de: Record<string, string> = {
+      analysis: 'Analyse',
+      weight: 'Gewicht',
+      ext_stats: 'Erweiterte Statistiken',
+      ext_locked: 'Ab Level 10 verfügbar.',
+      insights_title: 'Premium Insights',
+      insights_locked: 'Ab Level 75 verfügbar.',
+      help: 'Hilfe',
+      // Extended explanations
+      ext_hint1: 'Ø Wasser 7/30T: Durchschnittliche Anzahl an Wassereinheiten pro Tag (Ziel ≥ 6).',
+      ext_hint2: 'Gewichts-Trend/Tag: Negativ = Abnahme, Positiv = Zunahme (kg/Tag).',
+      ext_hint3: 'Compliance: Anteil der Tage mit Morgen- UND Abendpille.',
+      ext_hint4: 'Perfekter Tag: Pillen (mo+ab), Wasserziel erreicht (≥6), Gewicht eingetragen.',
+      // Insights explanations
+      ins_hint1: 'EWMA: Geglätteter Durchschnitt der letzten Messungen (robust gegen Ausreißer).',
+      ins_hint2: 'Prognose (3 Tage): Einfache Trendfortschreibung, nur als Orientierung.',
+      ins_hint3: 'Ausreißer Wasser: Erkennung deutlich über/unter Median (14 Tage).',
+      ins_hint4: 'Adhärenz (7T): Tageswerte aus Pillen, Wasser, Gewicht, Sport.',
+      ins_hint5: 'Datenschutz: Alles offline lokal berechnet und gespeichert.',
+      too_few: 'Zu wenige Daten',
+    };
+    const en: Record<string, string> = {
+      analysis: 'Analysis',
+      weight: 'Weight',
+      ext_stats: 'Extended stats',
+      ext_locked: 'Available from level 10.',
+      insights_title: 'Premium insights',
+      insights_locked: 'Available from level 75.',
+      help: 'Help',
+      ext_hint1: 'Avg water 7/30d: Average water units per day (goal ≥ 6).',
+      ext_hint2: 'Weight trend/day: Negative = loss, Positive = gain (kg/day).',
+      ext_hint3: 'Compliance: Share of days with both morning AND evening pill.',
+      ext_hint4: 'Perfect day: Pills (am+pm), water goal (≥6), weight logged.',
+      ins_hint1: 'EWMA: Smoothed average of recent measurements (robust to outliers).',
+      ins_hint2: 'Forecast (3 days): Simple trend extension, for orientation only.',
+      ins_hint3: 'Water outliers: Detects days far above/below 14-day median.',
+      ins_hint4: 'Adherence (7d): Daily points from pills, water, weight, sport.',
+      ins_hint5: 'Privacy: All analytics computed offline and stored locally.',
+      too_few: 'Not enough data',
+    };
+    return (state.language === 'de' ? de : en)[key] || key;
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <Ionicons name='chevron-back' size={24} color={colors.text} onPress={() => router.back()} />
-        <Text style={[styles.title, { color: colors.text }]}>Analyse</Text>
+        <Ionicons name='chevron-back' size={24} color={colors.text} onPress={() => router.back()} accessibilityLabel={state.language==='de'?'Zurück':'Back'} />
+        <Text style={[styles.title, { color: colors.text }]}>{t('analysis')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {/* Gewichtslinie */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Gewicht</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{t('weight')}</Text>
+          </View>
           {weightSeries.length > 1 ? (
             <LineChart
               data={weightSeries}
@@ -55,15 +104,28 @@ export default function AnalysisScreen() {
               endOpacity={0.01}
             />
           ) : (
-            <Text style={{ color: colors.muted }}>Zu wenige Daten</Text>
+            <Text style={{ color: colors.muted }}>{t('too_few')}</Text>
           )}
         </View>
 
-        {/* L10 Erweiterte Statistiken (getauscht) */}
+        {/* L10 Erweiterte Statistiken */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Erweiterte Statistiken</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{t('ext_stats')}</Text>
+            <TouchableOpacity onPress={() => setShowExtHelp(v => !v)} accessibilityLabel={t('help')} style={{ padding: 6 }}>
+              <Ionicons name={showExtHelp ? 'information-circle' : 'information-circle-outline'} size={18} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+          {showExtHelp ? (
+            <View style={{ gap: 4, marginTop: 6 }}>
+              <Text style={{ color: colors.muted }}>• {t('ext_hint1')}</Text>
+              <Text style={{ color: colors.muted }}>• {t('ext_hint2')}</Text>
+              <Text style={{ color: colors.muted }}>• {t('ext_hint3')}</Text>
+              <Text style={{ color: colors.muted }}>• {t('ext_hint4')}</Text>
+            </View>
+          ) : null}
           {level >= 10 ? (
-            <View style={{ gap: 4 }}>
+            <View style={{ gap: 4, marginTop: 8 }}>
               <Text style={{ color: colors.muted }}>Ø Wasser 7T: {ext.waterAvg7.toFixed(1)}</Text>
               <Text style={{ color: colors.muted }}>Ø Wasser 30T: {ext.waterAvg30.toFixed(1)}</Text>
               <Text style={{ color: colors.muted }}>Gewichts-Trend/Tag: {ext.weightTrendPerDay.toFixed(2)} kg</Text>
@@ -71,22 +133,36 @@ export default function AnalysisScreen() {
               <Text style={{ color: colors.muted }}>Bester Perfekt-Streak: {ext.bestPerfectStreak} Tage</Text>
             </View>
           ) : (
-            <Text style={{ color: colors.muted }}>Ab Level 10 verfügbar.</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('ext_locked')}</Text>
           )}
         </View>
 
         {/* L75 Premium Insights */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Premium Insights</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{t('insights_title')}</Text>
+            <TouchableOpacity onPress={() => setShowInsightsHelp(v => !v)} accessibilityLabel={t('help')} style={{ padding: 6 }}>
+              <Ionicons name={showInsightsHelp ? 'information-circle' : 'information-circle-outline'} size={18} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+          {showInsightsHelp ? (
+            <View style={{ gap: 4, marginTop: 6 }}>
+              <Text style={{ color: colors.muted }}>• {t('ins_hint1')}</Text>
+              <Text style={{ color: colors.muted }}>• {t('ins_hint2')}</Text>
+              <Text style={{ color: colors.muted }}>• {t('ins_hint3')}</Text>
+              <Text style={{ color: colors.muted }}>• {t('ins_hint4')}</Text>
+              <Text style={{ color: colors.muted }}>• {t('ins_hint5')}</Text>
+            </View>
+          ) : null}
           {level >= 75 ? (
             insights.length ? insights.slice(0, 5).map((t, i) => (
-              <View key={i} style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
+              <View key={i} style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginTop: i === 0 ? 8 : 4 }}>
                 <Ionicons name='bulb' size={16} color={colors.muted} />
                 <Text style={{ color: colors.text, flex: 1 }}>{t}</Text>
               </View>
-            )) : <Text style={{ color: colors.muted }}>Noch keine Insights.</Text>
+            )) : <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Noch keine Insights.':'No insights yet.'}</Text>
           ) : (
-            <Text style={{ color: colors.muted }}>Ab Level 75 verfügbar.</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('insights_locked')}</Text>
           )}
         </View>
       </ScrollView>
