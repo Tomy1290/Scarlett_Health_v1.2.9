@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Animated } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppStore, useLevel } from "../src/store/useStore";
@@ -17,7 +17,7 @@ function useThemeColors(theme: string) {
 
 export default function Home() {
   const router = useRouter();
-  const { theme, days, eventHistory, completeEvent } = useAppStore();
+  const { theme, days, eventHistory, completeEvent, eventsEnabled } = useAppStore();
   const { level } = useLevel();
   const colors = useThemeColors(theme);
 
@@ -28,12 +28,23 @@ export default function Home() {
   const evProg = computeEventProgress(dayKeys, { days }, weeklyEvent);
   const evCompleted = evProg.completed || !!eventHistory[weekKey]?.completed;
 
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
+  const fade = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
+    if (!eventsEnabled) return;
     if (evProg.completed && !eventHistory[weekKey]?.completed) {
       completeEvent(weekKey, { id: weeklyEvent.id, xp: weeklyEvent.xp });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // simple confetti fade
+      setCelebrate(true);
+      fade.setValue(0);
+      Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: true }).start(() => {
+        setTimeout(() => Animated.timing(fade, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => setCelebrate(false)), 600);
+      });
     }
-  }, [evProg.completed, weekKey]);
+  }, [evProg.completed, weekKey, eventsEnabled]);
 
   // Chains teaser (Top 1)
   const chains = useMemo(() => computeChains(useAppStore.getState()), [days]);
@@ -54,24 +65,25 @@ export default function Home() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {/* Dashboard: Event-Karte */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{weeklyEvent.title('de')}</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/achievements'); }} accessibilityLabel="Zu Erfolge">
-                <Ionicons name="trophy" size={20} color={colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/analysis'); }} accessibilityLabel="Zu Analyse">
-                <Ionicons name="stats-chart" size={20} color={colors.primary} />
-              </TouchableOpacity>
+        {eventsEnabled ? (
+          <TouchableOpacity onPress={() => setDetailVisible(true)} activeOpacity={0.8}>
+            <View style={[styles.card, { backgroundColor: colors.card }]}> 
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>{weeklyEvent.title('de')}</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity onPress={() => router.push('/events')} accessibilityLabel="Archiv" style={{ padding: 6 }}>
+                    <Ionicons name="calendar" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{weeklyEvent.description('de')}</Text>
+              <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
+                <View style={{ width: `${evProg.percent}%`, height: 8, backgroundColor: colors.primary }} />
+              </View>
+              <Text style={{ color: colors.muted, marginTop: 6 }}>{evProg.percent}% · +{weeklyEvent.xp} XP · Bonus {Math.round(weeklyEvent.bonusPercent*100)}% {evCompleted ? '· Abgeschlossen' : ''}</Text>
             </View>
-          </View>
-          <Text style={{ color: colors.muted, marginTop: 4 }}>{weeklyEvent.description('de')}</Text>
-          <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
-            <View style={{ width: `${evProg.percent}%`, height: 8, backgroundColor: colors.primary }} />
-          </View>
-          <Text style={{ color: colors.muted, marginTop: 6 }}>{evProg.percent}% · +{weeklyEvent.xp} XP · Bonus {Math.round(weeklyEvent.bonusPercent*100)}% {evCompleted ? '· Abgeschlossen' : ''}</Text>
-        </View>
+          </TouchableOpacity>
+        ) : null}
 
         {/* Dashboard: Ketten-Teaser */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
@@ -120,6 +132,35 @@ export default function Home() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Event detail modal */}
+      <Modal visible={detailVisible} transparent animationType="fade" onRequestClose={() => setDetailVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ backgroundColor: colors.card, padding: 16, borderRadius: 12, width: '88%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{weeklyEvent.title('de')}</Text>
+              <TouchableOpacity onPress={() => setDetailVisible(false)}>
+                <Ionicons name='close' size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{weeklyEvent.description('de')}</Text>
+            <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
+              <View style={{ width: `${evProg.percent}%`, height: 8, backgroundColor: colors.primary }} />
+            </View>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{evProg.percent}% · +{weeklyEvent.xp} XP · Bonus {Math.round(weeklyEvent.bonusPercent*100)}%</Text>
+            <TouchableOpacity onPress={() => { setDetailVisible(false); router.push('/events'); }} style={{ alignSelf: 'flex-end', marginTop: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 8 }}>
+              <Text style={{ color: '#fff' }}>Archiv</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Simple celebration overlay */}
+      {celebrate ? (
+        <Animated.View pointerEvents='none' style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', opacity: fade }}>
+          <Text style={{ fontSize: 48 }}>🎉</Text>
+        </Animated.View>
+      ) : null}
     </SafeAreaView>
   );
 }

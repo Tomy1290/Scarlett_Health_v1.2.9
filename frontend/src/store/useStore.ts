@@ -47,6 +47,7 @@ export type AppState = {
   xpLog?: XpLogEntry[];
   aiInsightsEnabled: boolean;
   aiFeedback?: Record<string, number>;
+  eventsEnabled: boolean;
 
   setLanguage: (lng: Language) => void;
   setTheme: (t: ThemeName) => void;
@@ -76,6 +77,7 @@ export type AppState = {
   setProfileAlias: (alias: string) => void;
   setAiInsightsEnabled: (v: boolean) => void;
   feedbackAI: (id: string, delta: 1 | -1) => void;
+  setEventsEnabled: (v: boolean) => void;
 
   recalcAchievements: () => void;
 };
@@ -88,7 +90,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.0.0",
       currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {}, profileAlias: '', xpLog: [],
-      aiInsightsEnabled: true, aiFeedback: {},
+      aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true,
 
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
       setTheme: (t) => { const lvl = Math.floor(get().xp / 100) + 1; if (t === 'golden_pink' && lvl < 25) { return; } set({ theme: t }); get().recalcAchievements(); },
@@ -118,6 +120,7 @@ export const useAppStore = create<AppState>()(
       setProfileAlias: (alias) => set({ profileAlias: alias }),
       setAiInsightsEnabled: (v) => set({ aiInsightsEnabled: v }),
       feedbackAI: (id, delta) => { const map = { ...(get().aiFeedback||{}) }; map[id] = (map[id]||0) + delta; set({ aiFeedback: map }); },
+      setEventsEnabled: (v) => set({ eventsEnabled: v }),
 
       recalcAchievements: () => {
         const state = get();
@@ -137,7 +140,7 @@ export const useAppStore = create<AppState>()(
         set({ achievementsUnlocked: base.unlocked, xpBonus, xp: base.xp + xpBonus, xpLog: [...(state.xpLog||[]), ...addLog] });
       },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 11, onRehydrateStorage: () => (state) => {
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 12, onRehydrateStorage: () => (state) => {
       if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; }
     } }
   )

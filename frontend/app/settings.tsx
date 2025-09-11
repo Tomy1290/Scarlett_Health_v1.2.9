@@ -35,6 +35,14 @@ export default function SettingsScreen() {
           </View>
           <Switch value={state.aiInsightsEnabled} onValueChange={state.setAiInsightsEnabled} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
         </View>
+
+        <View style={[styles.card, { backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}> 
+          <View>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Saisonevents aktiv</Text>
+            <Text style={{ color: colors.muted, marginTop: 4 }}>Wöchentliche Event‑Challenges mit Bonus‑XP.</Text>
+          </View>
+          <Switch value={state.eventsEnabled} onValueChange={state.setEventsEnabled} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
+        </View>
       </View>
     </SafeAreaView>
   );
