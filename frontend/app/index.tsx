@@ -9,6 +9,20 @@ import { LineChart } from "react-native-gifted-charts";
 import { useWindowDimensions } from "react-native";
 
 function useThemeColors(theme: string) {
+  const { width } = useWindowDimensions();
+  const compact = width < 360; // z.B. kleine/enge Displays
+  // Basistöne je Theme:
+  const base = theme === "pink_pastel"
+    ? { bg: "#fff0f5", card: "#ffe4ef", primary: "#d81b60", text: "#3a2f33", muted: "#8a6b75" }
+    : theme === "pink_vibrant"
+    ? { bg: "#1b0b12", card: "#2a0f1b", primary: "#ff2d87", text: "#ffffff", muted: "#e59ab8" }
+    : { bg: "#fde7ef", card: "#ffd0e0", primary: "#e91e63", text: "#2a1e22", muted: "#7c5866" };
+  // Adaptive Nuancen für sehr kleine Breiten: etwas stärkere Kontraste
+  if (compact) {
+    return { ...base, card: base.card, primary: base.primary, text: base.text, muted: base.muted };
+  }
+  return base;
+}
   if (theme === "pink_pastel") {
     return { bg: "#fff0f5", card: "#ffe4ef", primary: "#d81b60", text: "#3a2f33", muted: "#8a6b75" };
   }
