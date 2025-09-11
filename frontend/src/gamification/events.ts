@@ -198,7 +198,7 @@ export const EVENTS: WeeklyEvent[] = [
     id: 'night_owl',
     title: (l)=> l==='de'? 'Nachteule' : 'Night Owl',
     description: (l)=> l==='de'? '2× nach 22:00 tracken.' : 'Track after 22:00 twice.',
-    progress: (dayKeys, s) => Math.min(100, Math.round((countDays(dayKeys, s, (d)=> typeof d?.weightTime === 'number' && new Date(d.weightTime).getHours() &gt;= 22)/2)*100)),
+    progress: (dayKeys, s) => Math.min(100, Math.round((countDays(dayKeys, s, (d)=> typeof d?.weightTime === 'number' && new Date(d.weightTime).getHours() >= 22)/2)*100)),
     xp: 90,
     bonusPercent: 0.05,
   },
