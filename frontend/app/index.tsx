@@ -124,7 +124,7 @@ export default function Home() {
         pills: "Pills",
         morning: "Morning",
         evening: "Evening",
-        drinks: "Drinks &amp; Sport",
+        drinks: "Drinks & Sport",
         water: "Water",
         coffee: "Coffee",
         slimCoffee: "Slim coffee",
