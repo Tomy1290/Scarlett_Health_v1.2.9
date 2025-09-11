@@ -245,37 +245,20 @@ export default function Home() {
     &lt;/View&gt;
   );
 
-  function setShowGoalPrompt() {
+  function handleSaveGoal() {
     if (d?.weight == null) {
       Alert.alert("Hinweis", "Bitte erst Gewicht eingeben");
       return;
     }
-    // simple inline prompt via Alert not ideal; keep minimal for MVP
-    Alert.prompt(
-      t("goals"),
-      "Zielgewicht in kg (z. B. 72.4) und Zieldatum (TT.MM.JJJJ)",
-      [
-        {
-          text: "Abbrechen",
-          style: "cancel",
-        },
-        {
-          text: "OK",
-          onPress: (text) =&gt; {
-            const [wStr, dateStr] = (text || "").split(/[ ,;]+/);
-            const w = parseFloat(wStr);
-            const parsed = parseGermanOrShort(dateStr || "");
-            if (!isFinite(w) || !parsed) {
-              Alert.alert("Fehler", "Bitte Gewicht und Datum korrekt angeben (TT.MM.JJJJ)");
-              return;
-            }
-            const g = { targetWeight: w, targetDate: toKey(parsed), startWeight: d?.weight!, active: true };
-            setGoal(g);
-          },
-        },
-      ],
-      "plain-text"
-    );
+    const w = parseFloat(goalWeight.replace(",", "."));
+    const parsed = parseGermanOrShort(goalDate || "");
+    if (!isFinite(w) || !parsed) {
+      Alert.alert("Fehler", "Bitte Gewicht und Datum korrekt angeben (TT.MM.JJJJ)");
+      return;
+    }
+    const g = { targetWeight: w, targetDate: toKey(parsed), startWeight: d?.weight!, active: true };
+    setGoal(g);
+    setShowGoalModal(false);
   }
 
   function handleSaveWeight() {
