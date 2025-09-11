@@ -151,28 +151,28 @@ export default function Home() {
   };
 
   const header = (
-    &lt;View style={[styles.header, { backgroundColor: colors.card }]}&gt;
-      &lt;TouchableOpacity onPress={goPrevDay} style={styles.iconBtn} accessibilityLabel="Prev day"&gt;
-        &lt;Ionicons name="chevron-back" size={24} color={colors.text} /&gt;
-      &lt;/TouchableOpacity&gt;
-      &lt;View style={styles.headerCenter}&gt;
-        &lt;Text style={[styles.title, { color: colors.text }]}&gt;Scarletts Gesundheitstracking&lt;/Text&gt;
-        &lt;Text style={{ color: colors.muted, marginTop: 2 }}&gt;{displayDate(new Date(currentDate))} • Lv {level}&lt;/Text&gt;
-      &lt;/View&gt;
-      &lt;View style={{ flexDirection: "row", alignItems: "center" }}&gt;
-        &lt;TouchableOpacity onPress={goToday} style={styles.iconBtn} accessibilityLabel={t("today")} &gt;
-          &lt;Ionicons name="calendar" size={20} color={colors.text} /&gt;
-        &lt;/TouchableOpacity&gt;
-        &lt;TouchableOpacity
+    <View style={[styles.header, { backgroundColor: colors.card }]}>
+      <TouchableOpacity onPress={goPrevDay} style={styles.iconBtn} accessibilityLabel="Prev day">
+        <Ionicons name="chevron-back" size={24} color={colors.text} />
+      </TouchableOpacity>
+      <View style={styles.headerCenter}>
+        <Text style={[styles.title, { color: colors.text }]}>Scarletts Gesundheitstracking</Text>
+        <Text style={{ color: colors.muted, marginTop: 2 }}>{displayDate(new Date(currentDate))} • Lv {level}</Text>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <TouchableOpacity onPress={goToday} style={styles.iconBtn} accessibilityLabel={t("today")} >
+          <Ionicons name="calendar" size={20} color={colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={goNextDay}
           style={[styles.iconBtn, { opacity: currentDate === todayKey ? 0.3 : 1 }]}
           disabled={currentDate === todayKey}
           accessibilityLabel="Next day"
-        &gt;
-          &lt;Ionicons name="chevron-forward" size={24} color={colors.text} /&gt;
-        &lt;/TouchableOpacity&gt;
-      &lt;/View&gt;
-    &lt;/View&gt;
+        >
+          <Ionicons name="chevron-forward" size={24} color={colors.text} />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 
   const pillRow = (
