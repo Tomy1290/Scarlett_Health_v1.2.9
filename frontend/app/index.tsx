@@ -462,49 +462,21 @@ function ToggleButton({ icon, label, active, onPress, colors }: any) {
 
 function CounterRow({ icon, label, value, onAdd, onSub, colors }: any) {
   return (
-    &lt;View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}&gt;
-      &lt;View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}&gt;
-        &lt;Ionicons name={icon} size={18} color={colors.text} /&gt;
-      {showGoalModal ? (
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}> 
-            <Text style={[styles.cardTitle, { color: colors.text }]}>{t("goals")} ({displayDate(new Date(currentDate))})</Text>
-            <TextInput
-              keyboardType="decimal-pad"
-              value={goalWeight}
-              onChangeText={setGoalWeight}
-              placeholder={language === 'de' ? 'Zielgewicht (kg)' : 'Target weight (kg)'}
-              placeholderTextColor={colors.muted}
-              style={[styles.input, { borderColor: colors.muted, color: colors.text, marginBottom: 8 }]}
-            />
-            <TextInput
-              keyboardType="numbers-and-punctuation"
-              value={goalDate}
-              onChangeText={setGoalDate}
-              placeholder={language === 'de' ? 'Zieldatum (TT.MM.JJJJ)' : 'Target date (DD.MM.YYYY)'}
-              placeholderTextColor={colors.muted}
-              style={[styles.input, { borderColor: colors.muted, color: colors.text }]}
-            />
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-              <PrimaryButton label="Abbrechen" icon="close" onPress={() => setShowGoalModal(false)} colors={colors} outline />
-              <PrimaryButton label="Ziel erstellen" icon="flag" onPress={handleSaveGoal} colors={colors} />
-            </View>
-          </View>
-        </View>
-      ) : null}
-
-        &lt;Text style={{ color: colors.text }}&gt;{label}&lt;/Text&gt;
-      &lt;/View&gt;
-      &lt;View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}&gt;
-        &lt;TouchableOpacity onPress={onSub} style={[styles.roundBtn, { borderColor: colors.muted }]} accessibilityLabel="minus"&gt;
-          &lt;Ionicons name="remove" size={16} color={colors.text} /&gt;
-        &lt;/TouchableOpacity&gt;
-        &lt;Text style={{ color: colors.text, minWidth: 24, textAlign: "center" }}&gt;{value}&lt;/Text&gt;
-        &lt;TouchableOpacity onPress={onAdd} style={[styles.roundBtn, { borderColor: colors.muted }]} accessibilityLabel="plus"&gt;
-          &lt;Ionicons name="add" size={16} color={colors.text} /&gt;
-        &lt;/TouchableOpacity&gt;
-      &lt;/View&gt;
-    &lt;/View&gt;
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Ionicons name={icon} size={18} color={colors.text} />
+        <Text style={{ color: colors.text }}>{label}</Text>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <TouchableOpacity onPress={onSub} style={[styles.roundBtn, { borderColor: colors.muted }]} accessibilityLabel="minus">
+          <Ionicons name="remove" size={16} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={{ color: colors.text, minWidth: 24, textAlign: "center" }}>{value}</Text>
+        <TouchableOpacity onPress={onAdd} style={[styles.roundBtn, { borderColor: colors.muted }]} accessibilityLabel="plus">
+          <Ionicons name="add" size={16} color={colors.text} />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
