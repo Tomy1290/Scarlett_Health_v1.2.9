@@ -6,6 +6,8 @@ import { useAppStore, useLevel } from "../src/store/useStore";
 import { displayDate, toKey, parseGermanOrShort } from "../src/utils/date";
 import { LineChart } from "react-native-gifted-charts";
 
+import { useWindowDimensions } from "react-native";
+
 function useThemeColors(theme: string) {
   if (theme === "pink_pastel") {
     return { bg: "#fff0f5", card: "#ffe4ef", primary: "#d81b60", text: "#3a2f33", muted: "#8a6b75" };
