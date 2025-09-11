@@ -372,7 +372,7 @@ export default function Home() {
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}> 
             <Text style={[styles.cardTitle, { color: colors.text }]}>{language==='de'?'Gewichtsverlauf':'Weight analysis'}</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-              {(['week','month','custom'] as const).map((tab) => (
+              {(['7','14','30','custom'] as const).map((tab) => (
                 <TouchableOpacity key={tab} onPress={() => setAnalysisTab(tab)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: analysisTab===tab ? colors.primary : 'transparent' }]}>
                   <Text style={{ color: analysisTab===tab ? '#fff' : colors.text }}>{language==='de' ? (tab==='week'?'Woche':tab==='month'?'Monat':'Benutzerdefiniert') : (tab==='week'?'Week':tab==='month'?'Month':'Custom')}</Text>
                 </TouchableOpacity>
