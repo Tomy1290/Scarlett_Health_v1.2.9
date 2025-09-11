@@ -17,29 +17,34 @@ export default function SettingsScreen() {
   const router = useRouter();
   const colors = useThemeColors(state.theme);
 
+  const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
+      <View style={[styles.header, { backgroundColor: colors.card }]}> 
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel='Zurück'>
           <Ionicons name='chevron-back' size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Einstellungen</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
+          <Text style={[styles.title, { color: colors.muted }]}>{state.language==='de'?'Einstellungen':'Settings'}</Text>
+        </View>
         <View style={{ width: 40 }} />
       </View>
 
       <View style={{ padding: 16, gap: 12 }}>
         <View style={[styles.card, { backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}> 
           <View>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Insights aktiv</Text>
-            <Text style={{ color: colors.muted, marginTop: 4 }}>Offline‑Analysen und Tipps anzeigen.</Text>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Insights aktiv':'Insights enabled'}</Text>
+            <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Offline‑Analysen und Tipps anzeigen.':'Show offline analyses and tips.'}</Text>
           </View>
           <Switch value={state.aiInsightsEnabled} onValueChange={state.setAiInsightsEnabled} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}> 
           <View>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Saisonevents aktiv</Text>
-            <Text style={{ color: colors.muted, marginTop: 4 }}>Wöchentliche Event‑Challenges mit Bonus‑XP.</Text>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Saisonevents aktiv':'Seasonal events enabled'}</Text>
+            <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Wöchentliche Event‑Challenges mit Bonus‑XP.':'Weekly event challenges with bonus XP.'}</Text>
           </View>
           <Switch value={state.eventsEnabled} onValueChange={state.setEventsEnabled} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
         </View>
@@ -50,7 +55,8 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 16, fontWeight: '700' },
+  appTitle: { fontSize: 14, fontWeight: '800' },
+  title: { fontSize: 12, fontWeight: '600' },
   iconBtn: { padding: 8 },
   card: { borderRadius: 12, padding: 12 },
 });

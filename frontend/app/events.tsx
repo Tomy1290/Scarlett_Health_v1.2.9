@@ -30,13 +30,18 @@ export default function EventsScreen() {
     return arr;
   }, []);
 
+  const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
+      <View style={[styles.header, { backgroundColor: colors.card }]}> 
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel='Zurück'>
           <Ionicons name='chevron-back' size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Events</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
+          <Text style={[styles.title, { color: colors.muted }]}>{state.language==='de'?'Events':'Events'}</Text>
+        </View>
         <View style={{ width: 40 }} />
       </View>
 
@@ -45,14 +50,14 @@ export default function EventsScreen() {
           const evt = getCurrentWeeklyEvent(w.start);
           const hist = state.eventHistory[w.key];
           return (
-            <View key={w.key} style={[styles.card, { backgroundColor: colors.card }]}>
+            <View key={w.key} style={[styles.card, { backgroundColor: colors.card }]}> 
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>{evt.title(state.language)}</Text>
                 {hist?.completed ? <Ionicons name='checkmark-circle' size={18} color={'#2bb673'} /> : <Ionicons name='time' size={18} color={colors.muted} />}
               </View>
               <Text style={{ color: colors.muted, marginTop: 4 }}>{evt.description(state.language)}</Text>
               <Text style={{ color: colors.muted, marginTop: 6 }}>{w.start.toLocaleDateString()} – {w.end.toLocaleDateString()}</Text>
-              <Text style={{ color: colors.muted, marginTop: 2 }}>{hist?.completed ? `+${hist.xp} XP` : 'Nicht abgeschlossen'}</Text>
+              <Text style={{ color: colors.muted, marginTop: 2 }}>{hist?.completed ? `+${hist.xp} XP` : (state.language==='de'?'Nicht abgeschlossen':'Not completed')}</Text>
             </View>
           );
         })}
@@ -61,4 +66,4 @@ export default function EventsScreen() {
   );
 }
 
-const styles = StyleSheet.create({ header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, title: { fontSize: 16, fontWeight: '700' }, iconBtn: { padding: 8 }, card: { borderRadius: 12, padding: 12 } });
+const styles = StyleSheet.create({ header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, appTitle: { fontSize: 14, fontWeight: '800' }, title: { fontSize: 12, fontWeight: '600' }, iconBtn: { padding: 8 }, card: { borderRadius: 12, padding: 12 } });

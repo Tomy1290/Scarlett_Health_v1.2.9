@@ -47,27 +47,32 @@ export default function AnalysisScreen() {
 
   const t = (key: string) => {
     const de: Record<string, string> = {
-      analysis: 'Analyse', weight: 'Gewicht', ext_stats: 'Erweiterte Statistiken', ext_locked: 'Ab Level 10 verfügbar.', insights_title: 'Premium Insights', insights_locked: 'Ab Level 75 verfügbar.', help: 'Hilfe', too_few: 'Zu wenige Daten', scale: 'Skala',
+      analysis: 'Analyse', weight: 'Gewicht', ext_stats: 'Erweiterte Statistiken', ext_locked: 'Ab Level 10 verfügbar.', insights_title: 'Premium Insights', insights_locked: 'Ab Level 25 verfügbar.', help: 'Hilfe', too_few: 'Zu wenige Daten', scale: 'Skala',
       w_hint1: 'Wiege dich möglichst täglich zur gleichen Zeit (z. B. morgens).', w_hint2: 'Nutze dieselbe Waage, barfuß, auf festem Untergrund.', w_hint3: 'Tagesrauschen ist normal – bewerte Trends über mehrere Tage.',
       ext_hint1: 'Ø Wasser 7/30T: Durchschnittliche Anzahl an Wassereinheiten pro Tag (Ziel ≥ 6).', ext_hint2: 'Gewichts-Trend/Tag: Negativ = Abnahme, Positiv = Zunahme (kg/Tag).', ext_hint3: 'Compliance: Anteil der Tage mit Morgen- UND Abendpille.', ext_hint4: 'Perfekter Tag: Pillen (mo+ab), Wasserziel erreicht (≥6), Gewicht eingetragen.',
       ins_hint1: 'AI v1 nutzt Trends, Ausreißer, Prognosen und Routinen – alles offline.', ins_hint2: 'Bewerte Tipps (Daumen hoch/runter) – so lernt die Priorisierung.', ins_hint3: 'Datenschutz: Keine Cloud, nur lokale Berechnung.',
-      ai_disabled: 'Insights sind in den Einstellungen deaktiviert.',
+      ai_disabled: 'Insights sind in den Einstellungen deaktiviert.', app: 'Scarletts Gesundheitstracking',
     };
     const en: Record<string, string> = {
-      analysis: 'Analysis', weight: 'Weight', ext_stats: 'Extended stats', ext_locked: 'Available from level 10.', insights_title: 'Premium insights', insights_locked: 'Available from level 75.', help: 'Help', too_few: 'Not enough data', scale: 'Scale',
+      analysis: 'Analysis', weight: 'Weight', ext_stats: 'Extended stats', ext_locked: 'Available from level 10.', insights_title: 'Premium insights', insights_locked: 'Available from level 25.', help: 'Help', too_few: 'Not enough data', scale: 'Scale',
       w_hint1: 'Weigh at the same time daily (e.g., mornings).', w_hint2: 'Use the same scale, barefoot, on hard floor.', w_hint3: 'Daily noise is normal – assess multi-day trends.',
       ext_hint1: 'Avg water 7/30d: Average water units per day (goal ≥ 6).', ext_hint2: 'Weight trend/day: Negative = loss, Positive = gain (kg/day).', ext_hint3: 'Compliance: Share of days with both morning AND evening pill.', ext_hint4: 'Perfect day: Pills (am+pm), water goal (≥6), weight logged.',
       ins_hint1: 'AI v1 uses trends, outliers, forecasts and routines – all offline.', ins_hint2: 'Rate tips (thumbs up/down) to personalize priority.', ins_hint3: 'Privacy: No cloud, all local.',
-      ai_disabled: 'Insights are disabled in settings.',
+      ai_disabled: 'Insights are disabled in settings.', app: "Scarlett’s Health Tracking",
     };
     return (state.language === 'de' ? de : en)[key] || key;
   };
 
+  const appTitle = t('app');
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
+      <View style={[styles.header, { backgroundColor: colors.card }]}> 
         <Ionicons name='chevron-back' size={24} color={colors.text} onPress={() => router.back()} accessibilityLabel={state.language==='de'?'Zurück':'Back'} />
-        <Text style={[styles.title, { color: colors.text }]}>{t('analysis')}</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
+          <Text style={[styles.title, { color: colors.muted }]}>{t('analysis')}</Text>
+        </View>
         <View style={{ width: 24 }} />
       </View>
 
@@ -127,9 +132,9 @@ export default function AnalysisScreen() {
           {showExtHelp ? (
             <View style={{ gap: 4, marginTop: 6 }}>
               <Text style={{ color: colors.muted }}>• Ø Wasser 7/30T: {ext.waterAvg7.toFixed(1)} / {ext.waterAvg30.toFixed(1)}</Text>
-              <Text style={{ color: colors.muted }}>• Gewichts-Trend/Tag: {ext.weightTrendPerDay.toFixed(2)} kg</Text>
+              <Text style={{ color: colors.muted }}>• {state.language==='de'?'Gewichts-Trend/Tag':'Weight trend/day'}: {ext.weightTrendPerDay.toFixed(2)} kg</Text>
               <Text style={{ color: colors.muted }}>• Compliance: {(ext.complianceRate*100).toFixed(0)}%</Text>
-              <Text style={{ color: colors.muted }}>• Perfekt‑Streak: {ext.bestPerfectStreak}</Text>
+              <Text style={{ color: colors.muted }}>• {state.language==='de'?'Perfekt‑Streak':'Perfect streak'}: {ext.bestPerfectStreak}</Text>
             </View>
           ) : null}
           {level >= 10 ? null : (
@@ -137,7 +142,7 @@ export default function AnalysisScreen() {
           )}
         </View>
 
-        {/* L75 Premium Insights (AI v1) */}
+        {/* L25 Premium Insights (AI v1) */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>{t('insights_title')}</Text>
@@ -152,7 +157,7 @@ export default function AnalysisScreen() {
               <Text style={{ color: colors.muted }}>• {t('ins_hint3')}</Text>
             </View>
           ) : null}
-          {level >= 75 ? (
+          {level >= 25 ? (
             state.aiInsightsEnabled ? (
               ai.length ? ai.slice(0,5).map((item, i) => (
                 <View key={item.id+String(i)} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: i===0?8:4 }}>
@@ -172,7 +177,7 @@ export default function AnalysisScreen() {
               <Text style={{ color: colors.muted, marginTop: 6 }}>{t('ai_disabled')}</Text>
             )
           ) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Ab Level 75 verfügbar.':'Available from level 75.'}</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('insights_locked')}</Text>
           )}
         </View>
       </ScrollView>
@@ -180,4 +185,4 @@ export default function AnalysisScreen() {
   );
 }
 
-const styles = StyleSheet.create({ header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, title: { fontSize: 16, fontWeight: '700' }, card: { borderRadius: 12, padding: 12 }, });
+const styles = StyleSheet.create({ header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, title: { fontSize: 12, fontWeight: '600' }, appTitle: { fontSize: 14, fontWeight: '800' }, card: { borderRadius: 12, padding: 12 }, });

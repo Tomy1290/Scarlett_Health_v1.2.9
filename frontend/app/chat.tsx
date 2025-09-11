@@ -61,6 +61,7 @@ export default function ChatScreen() {
   }
 
   const canSend = text.trim().length > 0;
+  const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -69,7 +70,8 @@ export default function ChatScreen() {
           <Ionicons name='chevron-back' size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.title, { color: colors.text }]}>Gugi</Text>
+          <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
+          <Text style={[styles.title, { color: colors.muted }]}>Gugi</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
             {level >= 50 ? (
               <View style={[styles.vipPill, { borderColor: colors.primary, backgroundColor: colors.primary }]}> 
@@ -93,7 +95,7 @@ export default function ChatScreen() {
         <View style={{ flex: 1 }}>
           <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, gap: 8 }} showsVerticalScrollIndicator={false} onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
             {level < 50 ? (
-              <Text style={{ color: colors.muted, textAlign: 'center', marginBottom: 8 }}>Nur die letzten 5 Nachrichten sichtbar. Mit VIP (L50) siehst du 30.</Text>
+              <Text style={{ color: colors.muted, textAlign: 'center', marginBottom: 8 }}>{state.language==='de'?'Nur die letzten 5 Nachrichten sichtbar. Mit VIP (L50) siehst du 30.':'Only last 5 messages visible. With VIP (L50) you see 30.'}</Text>
             ) : null}
             {visibleChat.map((m) => (
               <View key={m.id} style={[styles.msgRow, { justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start' }]}>
@@ -139,7 +141,8 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 16, fontWeight: '700' },
+  appTitle: { fontSize: 14, fontWeight: '800' },
+  title: { fontSize: 12, fontWeight: '600' },
   iconBtn: { padding: 8 },
   vipPill: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   msgRow: { flexDirection: 'row' },

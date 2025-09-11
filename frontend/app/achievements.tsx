@@ -44,11 +44,12 @@ export default function AchievementsScreen() {
   const evProg = computeEventProgress(dayKeys, { days: state.days }, weeklyEvent);
 
   const level = Math.floor(state.xp / 100) + 1;
+  // swapped L25/L75 and sorted order: 10,25,50,75,100
   const rewards = [
     { id: 'ext', lvl: 10, title: 'Erweiterte Statistiken' },
-    { id: 'golden', lvl: 25, title: 'Golden Pink Theme' },
+    { id: 'ins', lvl: 25, title: 'Premium Insights' },
     { id: 'vip', lvl: 50, title: 'VIP-Chat' },
-    { id: 'ins', lvl: 75, title: 'Premium Insights' },
+    { id: 'golden', lvl: 75, title: 'Golden Pink Theme' },
     { id: 'leg', lvl: 100, title: 'Legendärer Status' },
   ];
 
@@ -78,25 +79,27 @@ export default function AchievementsScreen() {
   const ext = useMemo(() => computeExtendedStats(state.days), [state.days]);
   const premium = useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]);
 
+  const appTitle = state.language === 'en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
+  const screenTitle = state.language === 'en' ? 'Achievements' : 'Erfolge';
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel="Zurück">
+      <View style={[styles.header, { backgroundColor: colors.card }]}> 
+        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel={state.language==='de'?'Zurück':'Back'}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Erfolge</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity onPress={() => router.push('/leaderboard')} style={styles.iconBtn} accessibilityLabel='Bestenliste'>
-            <Ionicons name='podium' size={20} color={colors.text} />
-          </TouchableOpacity>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
+          <Text style={[styles.title, { color: colors.muted }]}>{screenTitle}</Text>
         </View>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {/* Chains summary */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Ketten</Text>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Ketten':'Chains'}</Text>
             <TouchableOpacity onPress={() => router.push('/leaderboard')} style={{ padding: 6 }}>
               <Ionicons name='podium' size={18} color={colors.muted} />
             </TouchableOpacity>
@@ -104,44 +107,44 @@ export default function AchievementsScreen() {
           {topChains.length ? topChains.map((c) => (
             <View key={c.id} style={{ marginTop: 8 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={{ color: colors.text }}>{c.title} · Schritt {c.completed+1}/{c.total}</Text>
+                <Text style={{ color: colors.text }}>{c.title} · {state.language==='de'?'Schritt':'Step'} {c.completed+1}/{c.total}</Text>
                 <Text style={{ color: colors.muted }}>{Math.round(c.nextPercent)}%</Text>
               </View>
               <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 4 }}>
                 <View style={{ width: `${c.nextPercent}%`, height: 6, backgroundColor: colors.primary }} />
               </View>
-              {c.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>Als Nächstes: {c.nextTitle}</Text> : null}
+              {c.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Als Nächstes':'Next'}: {c.nextTitle}</Text> : null}
             </View>
           )) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>Alle Ketten abgeschlossen oder keine vorhanden.</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Alle Ketten abgeschlossen oder keine vorhanden.':'All chains completed or none available.'}</Text>
           )}
 
           {/* All Chains under Top 3 */}
           <View style={{ height: 12 }} />
-          <Text style={{ color: colors.text, fontWeight: '700' }}>Alle Ketten</Text>
+          <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Alle Ketten':'All chains'}</Text>
           {otherChains.length ? otherChains.map((c) => {
             const done = c.completed >= c.total;
             const pct = done ? 100 : Math.round(c.nextPercent);
             return (
               <View key={c.id} style={{ marginTop: 8 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ color: colors.text }}>{c.title} {done ? '· Abgeschlossen' : `· Schritt ${c.completed+1}/${c.total}`}</Text>
+                  <Text style={{ color: colors.text }}>{c.title} {done ? '· '+(state.language==='de'?'Abgeschlossen':'Completed') : `· ${(state.language==='de'?'Schritt':'Step')} ${c.completed+1}/${c.total}`}</Text>
                   <Text style={{ color: colors.muted }}>{pct}%</Text>
                 </View>
                 <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 4 }}>
                   <View style={{ width: `${pct}%`, height: 6, backgroundColor: done ? '#2bb673' : colors.primary }} />
                 </View>
-                {!done && c.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>Als Nächstes: {c.nextTitle}</Text> : null}
+                {!done && c.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Als Nächstes':'Next'}: {c.nextTitle}</Text> : null}
               </View>
             );
           }) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>Keine weiteren Ketten.</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Keine weiteren Ketten.':'No further chains.'}</Text>
           )}
         </View>
 
         {/* Rewards summary */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Belohnungen</Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
+          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>{state.language==='de'?'Belohnungen':'Rewards'}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {rewards.map((r) => {
               const unlocked = level >= r.lvl;
@@ -155,63 +158,63 @@ export default function AchievementsScreen() {
           </View>
         </View>
 
-        {/* Unlock previews (unchanged core) */}
+        {/* Unlock previews */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Freischaltungen</Text>
+          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>{state.language==='de'?'Freischaltungen':'Unlocks'}</Text>
           <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Erweiterte Statistiken (L10)</Text>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Erweiterte Statistiken':'Extended stats'} (L10)</Text>
             {level >= 10 ? (
               <View style={{ marginTop: 6 }}>
                 <Text style={{ color: colors.muted }}>Ø Wasser 7T: {ext.waterAvg7.toFixed(1)}</Text>
                 <Text style={{ color: colors.muted }}>Ø Wasser 30T: {ext.waterAvg30.toFixed(1)}</Text>
-                <Text style={{ color: colors.muted }}>Gewichts-Trend/Tag: {ext.weightTrendPerDay.toFixed(2)} kg</Text>
-                <Text style={{ color: colors.muted }}>Compliance: {(ext.complianceRate*100).toFixed(0)}%</Text>
-                <Text style={{ color: colors.muted }}>Bester Perfekt-Streak: {ext.bestPerfectStreak} Tage</Text>
+                <Text style={{ color: colors.muted }}>{state.language==='de'?'Gewichts-Trend/Tag':'Weight trend/day'}: {ext.weightTrendPerDay.toFixed(2)} kg</Text>
+                <Text style={{ color: colors.muted }}>{state.language==='de'?'Compliance':'Compliance'}: {(ext.complianceRate*100).toFixed(0)}%</Text>
+                <Text style={{ color: colors.muted }}>{state.language==='de'?'Bester Perfekt-Streak':'Best perfect streak'}: {ext.bestPerfectStreak} {state.language==='de'?'Tage':'days'}</Text>
               </View>
             ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 10 verfügbar.</Text>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Ab Level 10 verfügbar.':'Available from level 10.'}</Text>
             )}
           </View>
           <View style={{ marginBottom: 8 }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>VIP-Chat (L50)</Text>
             {level >= 50 ? (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>Aktiv. Längere Nachrichten und Erweiterungen freigeschaltet.</Text>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Aktiv. Längere Nachrichten und Erweiterungen freigeschaltet.':'Active. Longer messages and extensions unlocked.'}</Text>
             ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 50 verfügbar.</Text>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Ab Level 50 verfügbar.':'Available from level 50.'}</Text>
             )}
           </View>
           <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Premium Insights (L75)</Text>
-            {level >= 75 ? (
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Premium Insights (L25)</Text>
+            {level >= 25 ? (
               <View style={{ marginTop: 4, gap: 4 }}>
                 {useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]).slice(0, 3).map((t, i) => (
                   <Text key={i} style={{ color: colors.muted }}>• {t}</Text>
                 ))}
               </View>
             ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 75 verfügbar.</Text>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Ab Level 25 verfügbar.':'Available from level 25.'}</Text>
             )}
           </View>
           <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Golden Pink Theme (L25)</Text>
-            {level >= 25 ? (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>Im Design wählbar.</Text>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Golden Pink Theme (L75)</Text>
+            {level >= 75 ? (
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Im Design wählbar.':'Available in themes.'}</Text>
             ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 25 verfügbar.</Text>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Ab Level 75 verfügbar.':'Available from level 75.'}</Text>
             )}
           </View>
           <View>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>Legendärer Status (L100)</Text>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Legendärer Status':'Legendary status'} (L100)</Text>
             {level >= 100 ? (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>Aktiv! Danke für deine Ausdauer. 🏆</Text>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Aktiv! Danke für deine Ausdauer. 🏆':'Active! Thanks for your endurance. 🏆'}</Text>
             ) : (
-              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 100 verfügbar.</Text>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Ab Level 100 verfügbar.':'Available from level 100.'}</Text>
             )}
           </View>
         </View>
 
         {/* Weekly event */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 4 }}>{weeklyEvent.title(state.language)}</Text>
           <Text style={{ color: colors.muted }}>{weeklyEvent.description(state.language)}</Text>
           <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
@@ -225,11 +228,11 @@ export default function AchievementsScreen() {
           {(['all','progress','done'] as const).map((f) => (
             <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: filter===f ? colors.primary : 'transparent' }]} 
               accessibilityLabel={`Filter ${f}`}>
-              <Text style={{ color: filter===f ? '#fff' : colors.text }}>{f==='all'?'Alle':f==='progress'?'In Arbeit':'Erreicht'}</Text>
+              <Text style={{ color: filter===f ? '#fff' : colors.text }}>{f==='all'?(state.language==='de'?'Alle':'All'):f==='progress'?(state.language==='de'?'In Arbeit':'In progress'):(state.language==='de'?'Erreicht':'Done')}</Text>
             </TouchableOpacity>
           ))}
         </View>
-        <TextInput placeholder="Suchen…" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
+        <TextInput placeholder={state.language==='de'?"Suchen…":"Search…"} placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
 
         {filtered.map((a) => {
           const cfg = getAchievementConfigById(a.id);
@@ -251,7 +254,7 @@ export default function AchievementsScreen() {
           );
         })}
         {filtered.length === 0 ? (
-          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>Keine Ergebnisse</Text>
+          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>{state.language==='de'?'Keine Ergebnisse':'No results'}</Text>
         ) : null}
       </ScrollView>
 
@@ -260,10 +263,10 @@ export default function AchievementsScreen() {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ backgroundColor: colors.card, padding: 16, borderRadius: 12, width: '80%', alignItems: 'center' }}>
             <Ionicons name="trophy" size={48} color={colors.primary} />
-            <Text style={{ color: colors.text, fontWeight: '700', marginTop: 8 }}>Legendär!</Text>
-            <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 6 }}>Du hast Level 100 erreicht. Vielen Dank für deine unglaubliche Ausdauer! 🎉</Text>
+            <Text style={{ color: colors.text, fontWeight: '700', marginTop: 8 }}>{state.language==='de'?'Legendär!':'Legendary!'}</Text>
+            <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 6 }}>{state.language==='de'?'Du hast Level 100 erreicht. Vielen Dank für deine unglaubliche Ausdauer! 🎉':'You reached level 100. Thank you for your incredible consistency! 🎉'}</Text>
             <TouchableOpacity onPress={() => setLegendVisible(false)} style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 8 }}>
-              <Text style={{ color: '#fff' }}>Schließen</Text>
+              <Text style={{ color: '#fff' }}>{state.language==='de'?'Schließen':'Close'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -274,7 +277,8 @@ export default function AchievementsScreen() {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 16, fontWeight: '700' },
+  title: { fontSize: 12, fontWeight: '600' },
+  appTitle: { fontSize: 14, fontWeight: '800' },
   iconBtn: { padding: 8 },
   badge: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   card: { borderRadius: 12, padding: 12 },
