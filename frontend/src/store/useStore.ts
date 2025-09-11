@@ -50,6 +50,7 @@ export type AppState = {
   currentDate: string; // yyyy-MM-dd
   notificationIds: Record<string, string | undefined>; // reminderId -> notifId
   hasSeededReminders: boolean;
+  showOnboarding: boolean;
 
   setLanguage: (lng: Language) => void;
   setTheme: (t: ThemeName) => void;
@@ -72,6 +73,7 @@ export type AppState = {
 
   setNotificationId: (remId: string, notifId?: string) => void;
   setHasSeededReminders: (v: boolean) => void;
+  setShowOnboarding: (v: boolean) => void;
 
   recalcAchievements: () => void;
 };
@@ -99,6 +101,7 @@ export const useAppStore = create<AppState>()(
       currentDate: toKey(new Date()),
       notificationIds: {},
       hasSeededReminders: false,
+      showOnboarding: true,
 
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
       setTheme: (t) => { set({ theme: t }); get().recalcAchievements(); },
@@ -121,6 +124,7 @@ export const useAppStore = create<AppState>()(
 
       setNotificationId: (remId, notifId) => set({ notificationIds: { ...get().notificationIds, [remId]: notifId } }),
       setHasSeededReminders: (v) => set({ hasSeededReminders: v }),
+      setShowOnboarding: (v) => set({ showOnboarding: v }),
 
       recalcAchievements: () => {
         const state = get();
@@ -132,7 +136,7 @@ export const useAppStore = create<AppState>()(
       name: "scarlett-app-state",
       storage: createJSONStorage(() => mmkvAdapter),
       partialize: (s) => s,
-      version: 3,
+      version: 4,
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         const days = state.days || {};
