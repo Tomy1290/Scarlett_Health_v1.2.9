@@ -77,9 +77,9 @@ export default function Home() {
     setWeightInput(d?.weight ? String(d.weight) : "");
   }, [currentDate, d?.weight]);
 
-  const last7 = useMemo(() =&gt; {
+  const last7 = useMemo(() => {
     const arr: { value: number; label: string }[] = [];
-    for (let i = 6; i &gt;= 0; i--) {
+    for (let i = 6; i >= 0; i--) {
       const date = new Date(new Date(currentDate));
       date.setDate(date.getDate() - i);
       const key = toKey(date);
