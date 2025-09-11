@@ -611,6 +611,36 @@ function computeStats(series: { date: string; weight?: number }[]) {
                   if (!/^\d{2}:\d{2}$/.test(newRemTime)) { Alert.alert('Fehler', 'Zeit bitte als HH:MM angeben'); return; }
                   const r = { id: String(Date.now()), type: newRemType || 'custom', time: newRemTime, enabled: true } as any;
                   addReminder(r);
+function renderAnalysisChart(this: any) {
+  const state = useAppStore.getState();
+  const { days } = state;
+  const series = buildRange(days, (this as any)?.analysisTab ?? 'week');
+  const data = series.map((s) => ({ value: typeof s.weight === 'number' ? s.weight : 0, label: s.date.slice(5) }));
+  return (
+    <LineChart
+      data={data}
+      thickness={3}
+      color={useThemeColors(useAppStore.getState().theme).primary}
+      hideDataPoints
+      noOfSections={4}
+      yAxisTextStyle={{ color: useThemeColors(useAppStore.getState().theme).muted }}
+      xAxisLabelTextStyle={{ color: useThemeColors(useAppStore.getState().theme).muted }}
+      rulesColor={useThemeColors(useAppStore.getState().theme).muted}
+      yAxisColor={useThemeColors(useAppStore.getState().theme).muted}
+      xAxisColor={useThemeColors(useAppStore.getState().theme).muted}
+      curved
+    />
+  );
+}
+
+function renderAnalysisStats() {
+  const { days } = useAppStore.getState();
+  const mode = useAppStore.getState();
+  const series = buildRange(days, 'week');
+  const { delta, perDay } = computeStats(series);
+  return `${delta >= 0 ? '+' : ''}${delta} kg gesamt, ${perDay >= 0 ? '+' : ''}${perDay} kg/Tag durchschnittlich`;
+}
+
                   setNewRemType('');
                   setNewRemTime('');
                 }}
