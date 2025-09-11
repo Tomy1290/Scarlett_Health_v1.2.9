@@ -466,6 +466,74 @@ export default function Home() {
               style={[styles.input, { borderColor: colors.muted, color: colors.text, marginBottom: 8 }]}
             />
             <TextInput
+
+      {/* Reminders Modal */}
+      {showRemindersModal ? (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}> 
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{t('reminders')}</Text>
+            <View style={{ maxHeight: 320 }}>
+              <ScrollView contentContainerStyle={{ gap: 8 }}>
+                {reminders.length === 0 ? (
+                  <Text style={{ color: colors.muted }}>–</Text>
+                ) : reminders.map((r) => (
+                  <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Ionicons name="alarm" size={18} color={colors.text} />
+                      <Text style={{ color: colors.text }}>{r.type}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <TextInput
+                        value={r.time}
+                        onChangeText={(v) => updateReminder(r.id, { time: v })}
+                        style={[styles.input, { borderColor: colors.muted, color: colors.text, width: 96 }]}
+                        placeholder="HH:MM"
+                        placeholderTextColor={colors.muted}
+                      />
+                      <Switch value={r.enabled} onValueChange={(v) => updateReminder(r.id, { enabled: v })} />
+                      <TouchableOpacity onPress={() => deleteReminder(r.id)}>
+                        <Ionicons name="trash" size={18} color={colors.muted} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
+              <TextInput
+                value={newRemType}
+                onChangeText={setNewRemType}
+                placeholder={language === 'de' ? 'Typ (z. B. pills_morning)' : 'Type (e.g. pills_morning)'}
+                placeholderTextColor={colors.muted}
+                style={[styles.input, { borderColor: colors.muted, color: colors.text }]}
+              />
+              <TextInput
+                value={newRemTime}
+                onChangeText={setNewRemTime}
+                placeholder="HH:MM"
+                placeholderTextColor={colors.muted}
+                style={[styles.input, { borderColor: colors.muted, color: colors.text, width: 96 }]}
+              />
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+                onPress={() => {
+                  if (!/^\d{2}:\d{2}$/.test(newRemTime)) { Alert.alert('Fehler', 'Zeit bitte als HH:MM angeben'); return; }
+                  const r = { id: String(Date.now()), type: newRemType || 'custom', time: newRemTime, enabled: true } as any;
+                  addReminder(r);
+                  setNewRemType('');
+                  setNewRemTime('');
+                }}
+              >
+                <Ionicons name="add" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+              <PrimaryButton label={language === 'de' ? 'Schließen' : 'Close'} icon="close" onPress={() => setShowRemindersModal(false)} colors={colors} outline />
+            </View>
+          </View>
+        </View>
+      ) : null}
+
               keyboardType="numbers-and-punctuation"
               value={goalDate}
               onChangeText={setGoalDate}
