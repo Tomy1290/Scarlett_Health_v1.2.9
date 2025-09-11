@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,16 +14,30 @@ function useThemeColors(theme: string) {
   return { bg: '#fde7ef', card: '#ffd0e0', primary: '#e91e63', text: '#2a1e22', muted: '#7c5866', input: '#ffffff' };
 }
 
+function fmtTime(ts: number, lang: 'de'|'en') {
+  try { return new Date(ts).toLocaleTimeString(lang==='de'?'de-DE':'en-US', { hour: '2-digit', minute: '2-digit' }); } catch { return ''; }
+}
+
 export default function ChatScreen() {
   const router = useRouter();
   const state = useAppStore();
   const { level } = useLevel();
   const colors = useThemeColors(state.theme);
   const inputRef = useRef<TextInput>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const [text, setText] = useState('');
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
 
-  const maxVisible = level >= 50 ? 20 : 5;
-  const visibleChat = useMemo(() => { const arr = state.chat || []; return arr.slice(Math.max(0, arr.length - maxVisible)); }, [state.chat, maxVisible]);
+  const maxVisible = level >= 50 ? 30 : 5;
+  const allChat = state.chat || [];
+  const visibleChat = useMemo(() => {
+    return allChat.slice(Math.max(0, allChat.length - maxVisible));
+  }, [allChat, maxVisible]);
+
+  useEffect(() => {
+    // Smooth scroll to bottom when content changes
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+  }, [visibleChat.length]);
 
   function send() {
     const t = text.trim(); if (!t) return;
@@ -35,7 +49,18 @@ export default function ChatScreen() {
     const replyText = ai[0]?.text || (state.language==='de' ? 'Bleib dran – kleine Schritte zählen.' : 'Keep going – small steps add up.');
     const bot = { id: String(Date.now()+1), sender: 'bot' as const, text: replyText, createdAt: Date.now()+1 };
     state.addChat(bot);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   }
+
+  function saveTip(id: string, text: string) {
+    if (saved[id]) return;
+    const title = (text.slice(0, 30) + (text.length > 30 ? '…' : '')) || 'Gugi-Tipp';
+    state.addSaved({ id: String(Date.now()), title: `Gugi: ${title}`, category: 'Chat', tags: ['Gugi','Tipp'], text, createdAt: Date.now() });
+    setSaved((s) => ({ ...s, [id]: true }));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  const canSend = text.trim().length > 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -66,14 +91,24 @@ export default function ChatScreen() {
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={{ padding: 16, gap: 8 }} showsVerticalScrollIndicator={false}>
+          <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, gap: 8 }} showsVerticalScrollIndicator={false} onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
             {level < 50 ? (
-              <Text style={{ color: colors.muted, textAlign: 'center', marginBottom: 8 }}>Nur die letzten 5 Nachrichten sichtbar. Mit VIP (L50) siehst du 20.</Text>
+              <Text style={{ color: colors.muted, textAlign: 'center', marginBottom: 8 }}>Nur die letzten 5 Nachrichten sichtbar. Mit VIP (L50) siehst du 30.</Text>
             ) : null}
             {visibleChat.map((m) => (
               <View key={m.id} style={[styles.msgRow, { justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start' }]}>
-                <View style={[styles.msgBubble, { backgroundColor: m.sender==='user' ? colors.primary : colors.card, borderColor: colors.muted, maxWidth: '80%' }]}> 
-                  <Text style={{ color: m.sender==='user' ? '#fff' : colors.text }}>{m.text}</Text>
+                <View style={{ maxWidth: '82%' }}>
+                  <View style={[styles.msgBubble, { backgroundColor: m.sender==='user' ? colors.primary : colors.card, borderColor: colors.muted }]}>
+                    <Text style={{ color: m.sender==='user' ? '#fff' : colors.text }}>{m.text}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start', marginTop: 4 }}>
+                    {m.sender==='bot' ? (
+                      <TouchableOpacity onPress={() => saveTip(m.id, m.text)} accessibilityLabel='Tipp speichern' style={{ paddingHorizontal: 4, paddingVertical: 2, marginRight: 6 }}>
+                        <Ionicons name={saved[m.id] ? 'bookmark' : 'bookmark-outline'} size={14} color={saved[m.id] ? colors.primary : colors.muted} />
+                      </TouchableOpacity>
+                    ) : null}
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>{fmtTime(m.createdAt, state.language)}</Text>
+                  </View>
                 </View>
               </View>
             ))}
@@ -93,7 +128,7 @@ export default function ChatScreen() {
             style={[styles.input, { color: colors.text, backgroundColor: colors.input, borderColor: colors.muted }]}
             multiline
           />
-          <TouchableOpacity onPress={send} style={[styles.sendBtn, { backgroundColor: colors.primary }]} accessibilityLabel={state.language==='de'?'Senden':'Send'}>
+          <TouchableOpacity disabled={!canSend} onPress={send} style={[styles.sendBtn, { backgroundColor: canSend ? colors.primary : colors.muted }]} accessibilityLabel={state.language==='de'?'Senden':'Send'}>
             <Ionicons name='send' size={18} color={'#fff'} />
           </TouchableOpacity>
         </View>
