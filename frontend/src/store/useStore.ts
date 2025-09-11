@@ -21,6 +21,8 @@ export type Reminder = { id: string; type: string; time: string; enabled: boolea
 export type ChatMessage = { id: string; sender: "user" | "bot"; text: string; createdAt: number };
 export type SavedMessage = { id: string; title: string; category?: string; tags?: string[]; text: string; createdAt: number };
 
+export type RewardsSeen = { golden?: boolean; extStats?: boolean; vip?: boolean; insights?: boolean; legend?: boolean };
+
 export type AppState = {
   days: Record<string, DayData>;
   goal?: Goal;
@@ -39,6 +41,7 @@ export type AppState = {
   showOnboarding: boolean;
   eventHistory: Record<string, { id: string; completed: boolean; xp: number } | undefined>;
   legendShown?: boolean;
+  rewardsSeen?: RewardsSeen;
 
   setLanguage: (lng: Language) => void;
   setTheme: (t: ThemeName) => void;
@@ -64,6 +67,7 @@ export type AppState = {
   setShowOnboarding: (v: boolean) => void;
   completeEvent: (weekKey: string, entry: { id: string; xp: number }) => void;
   setLegendShown: (v: boolean) => void;
+  setRewardSeen: (key: keyof RewardsSeen, v: boolean) => void;
 
   recalcAchievements: () => void;
 };
@@ -75,12 +79,21 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.0.0",
-      currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false,
+      currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {},
 
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
-      setTheme: (t) => { set({ theme: t }); get().recalcAchievements(); },
+      setTheme: (t) => {
+        // Gate Golden Pink theme to Level >= 10
+        const lvl = Math.floor(get().xp / 100) + 1;
+        if (t === 'golden_pink' &amp;&amp; lvl &lt; 10) {
+          // ignore attempt to set locked theme
+          return;
+        }
+        set({ theme: t });
+        get().recalcAchievements();
+      },
       goPrevDay: () => { const cur = new Date(get().currentDate); const prev = new Date(cur); prev.setDate(cur.getDate() - 1); set({ currentDate: toKey(prev) }); },
-      goNextDay: () => { const cur = new Date(get().currentDate); const next = new Date(cur); next.setDate(cur.getDate() + 1); const todayKey = toKey(new Date()); const nextKey = toKey(next); if (nextKey > todayKey) return; set({ currentDate: nextKey }); },
+      goNextDay: () => { const cur = new Date(get().currentDate); const next = new Date(cur); next.setDate(cur.getDate() + 1); const todayKey = toKey(new Date()); const nextKey = toKey(next); if (nextKey &gt; todayKey) return; set({ currentDate: nextKey }); },
       goToday: () => set({ currentDate: toKey(new Date()) }),
       ensureDay: (key) => { const days = get().days; if (!days[key]) set({ days: { ...days, [key]: defaultDay(key) } }); },
       togglePill: (key, time) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); d.pills = { ...d.pills, [time]: !d.pills[time] } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
@@ -102,10 +115,19 @@ export const useAppStore = create<AppState>()(
       completeEvent: (weekKey, entry) => {
         const existing = get().eventHistory[weekKey];
         if (existing?.completed) return;
-        const xpBonus = get().xpBonus + entry.xp;
-        set({ eventHistory: { ...get().eventHistory, [weekKey]: { id: entry.id, completed: true, xp: entry.xp } }, xpBonus, xp: get().xp + entry.xp });
+        // Apply event bonus percent if we can find it from the id
+        let bonus = 0;
+        try {
+          const { EVENTS } = require('../gamification/events');
+          const evt = (EVENTS as any[]).find((e) =&gt; e.id === entry.id);
+          if (evt) bonus = Math.round(entry.xp * (evt.bonusPercent || 0));
+        } catch {}
+        const total = entry.xp + bonus;
+        const xpBonus = get().xpBonus + total;
+        set({ eventHistory: { ...get().eventHistory, [weekKey]: { id: entry.id, completed: true, xp: total } }, xpBonus, xp: get().xp + total });
       },
       setLegendShown: (v) => set({ legendShown: v }),
+      setRewardSeen: (key, v) => set({ rewardsSeen: { ...(get().rewardsSeen||{}), [key]: v } }),
 
       recalcAchievements: () => {
         const state = get();
@@ -113,11 +135,11 @@ export const useAppStore = create<AppState>()(
         const prevSet = new Set(state.achievementsUnlocked);
         const newUnlocks = base.unlocked.filter((id) => !prevSet.has(id));
         let xpBonus = state.xpBonus;
-        if (newUnlocks.length >= 2) xpBonus += (newUnlocks.length - 1) * 50;
+        if (newUnlocks.length &gt;= 2) xpBonus += (newUnlocks.length - 1) * 50; // combo bonus
         set({ achievementsUnlocked: base.unlocked, xpBonus, xp: base.xp + xpBonus });
       },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 6, onRehydrateStorage: () => (state) => {
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 7, onRehydrateStorage: () => (state) => {
       if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; }
     } }
   )

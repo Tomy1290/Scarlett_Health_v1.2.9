@@ -34,7 +34,7 @@ export default function Home() {
   const evCompleted = evProg.completed || !!eventHistory[weekKey]?.completed;
 
   useEffect(() => {
-    if (evProg.completed && !eventHistory[weekKey]?.completed) {
+    if (evProg.completed &amp;&amp; !eventHistory[weekKey]?.completed) {
       completeEvent(weekKey, { id: weeklyEvent.id, xp: weeklyEvent.xp });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
@@ -42,7 +42,7 @@ export default function Home() {
 
   // Legend badge overlay at Level 100
   useEffect(() => {
-    if (level >= 100 && !legendShown) {
+    if (level &gt;= 100 &amp;&amp; !legendShown) {
       setLegendShown(true);
     }
   }, [level, legendShown]);
@@ -50,7 +50,7 @@ export default function Home() {
   // UI will include: Events card, Gated theme, Extended stats (Lv25), VIP chat (Lv50), Insights (Lv75)
 
   // Chat gating
-  const chatMaxLen = level < 50 ? 120 : 10000;
+  const chatMaxLen = level &lt; 50 ? 120 : 10000;
 
   // Insights (offline, simple heuristics)
   function computeInsights() {
@@ -63,7 +63,7 @@ export default function Home() {
       weekdayWater[w].n += 1;
     });
     const avg = weekdayWater.map((x) => (x.n ? x.sum / x.n : 0));
-    let minIdx = 0; for (let i=1;i<7;i++){ if (avg[i] < avg[minIdx]) minIdx = i; }
+    let minIdx = 0; for (let i=1;i&lt;7;i++){ if (avg[i] &lt; avg[minIdx]) minIdx = i; }
     const dayNamesDe = ['So','Mo','Di','Mi','Do','Fr','Sa'];
     const dayNamesEn = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const lowDay = language==='de'? dayNamesDe[minIdx] : dayNamesEn[minIdx];
@@ -73,8 +73,8 @@ export default function Home() {
     const today = days[toKey(new Date())];
     const scoreParts: number[] = [];
     if (today) {
-      scoreParts.push(today.pills?.morning && today.pills?.evening ? 30 : 0);
-      scoreParts.push((today.drinks?.water ?? 0) >= 6 ? 30 : Math.min(30, (today.drinks?.water ?? 0) * 5));
+      scoreParts.push(today.pills?.morning &amp;&amp; today.pills?.evening ? 30 : 0);
+      scoreParts.push((today.drinks?.water ?? 0) &gt;= 6 ? 30 : Math.min(30, (today.drinks?.water ?? 0) * 5));
       scoreParts.push(typeof today.weight === 'number' ? 20 : 0);
       scoreParts.push(today.drinks?.sport ? 20 : 0);
     }
@@ -84,9 +84,9 @@ export default function Home() {
   }
 
   // In settings theme gating for Golden Pink
-  function canUseGoldenPink() { return level >= 10; }
+  function canUseGoldenPink() { return level &gt;= 10; }
 
-  // Extended stats gating (Lv25) we add additional text in Analysis modal when level>=25
+  // Extended stats gating (Lv25) we add additional text in Analysis modal when level&gt;=25
 
   // ... rest of component UI below
 }
