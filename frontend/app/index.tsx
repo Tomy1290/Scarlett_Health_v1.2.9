@@ -438,6 +438,35 @@ export default function Home() {
           </View>
         </View>
       ) : null}
+
+      {/* Goal Modal */}
+      {showGoalModal ? (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{t("goals")} ({displayDate(new Date(currentDate))})</Text>
+            <TextInput
+              keyboardType="decimal-pad"
+              value={goalWeight}
+              onChangeText={setGoalWeight}
+              placeholder={language === 'de' ? 'Zielgewicht (kg)' : 'Target weight (kg)'}
+              placeholderTextColor={colors.muted}
+              style={[styles.input, { borderColor: colors.muted, color: colors.text, marginBottom: 8 }]}
+            />
+            <TextInput
+              keyboardType="numbers-and-punctuation"
+              value={goalDate}
+              onChangeText={setGoalDate}
+              placeholder={language === 'de' ? 'Zieldatum (TT.MM.JJJJ)' : 'Target date (DD.MM.YYYY)'}
+              placeholderTextColor={colors.muted}
+              style={[styles.input, { borderColor: colors.muted, color: colors.text }]}
+            />
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+              <PrimaryButton label="Abbrechen" icon="close" onPress={() => setShowGoalModal(false)} colors={colors} outline />
+              <PrimaryButton label="Ziel erstellen" icon="flag" onPress={handleSaveGoal} colors={colors} />
+            </View>
+          </View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 
