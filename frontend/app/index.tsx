@@ -195,28 +195,28 @@ export default function Home() {
   );
 
   const drinkRow = (
-    &lt;View style={{ gap: 12 }}&gt;
-      &lt;CounterRow
+    <View style={{ gap: 12 }}>
+      <CounterRow
         icon="water"
         label={t("water")}
         value={d?.drinks.water ?? 0}
-        onAdd={() =&gt; incDrink(currentDate, "water", +1)}
-        onSub={() =&gt; incDrink(currentDate, "water", -1)}
+        onAdd={() => incDrink(currentDate, "water", +1)}
+        onSub={() => incDrink(currentDate, "water", -1)}
         colors={colors}
-      /&gt;
-      &lt;CounterRow
+      />
+      <CounterRow
         icon="cafe"
         label={t("coffee")}
         value={d?.drinks.coffee ?? 0}
-        onAdd={() =&gt; incDrink(currentDate, "coffee", +1)}
-        onSub={() =&gt; incDrink(currentDate, "coffee", -1)}
+        onAdd={() => incDrink(currentDate, "coffee", +1)}
+        onSub={() => incDrink(currentDate, "coffee", -1)}
         colors={colors}
-      /&gt;
-      &lt;ToggleRow icon="flame" label={t("slimCoffee")} active={!!d?.drinks.slimCoffee} onPress={() =&gt; toggleFlag(currentDate, "slimCoffee")} colors={colors} /&gt;
-      &lt;ToggleRow icon="leaf" label={t("gingerGarlicTea")} active={!!d?.drinks.gingerGarlicTea} onPress={() =&gt; toggleFlag(currentDate, "gingerGarlicTea")} colors={colors} /&gt;
-      &lt;ToggleRow icon="water" label={t("waterCure")} active={!!d?.drinks.waterCure} onPress={() =&gt; toggleFlag(currentDate, "waterCure")} colors={colors} /&gt;
-      &lt;ToggleRow icon="barbell" label={t("sport")} active={!!d?.drinks.sport} onPress={() =&gt; toggleFlag(currentDate, "sport")} colors={colors} /&gt;
-    &lt;/View&gt;
+      />
+      <ToggleRow icon="flame" label={t("slimCoffee")} active={!!d?.drinks.slimCoffee} onPress={() => toggleFlag(currentDate, "slimCoffee")} colors={colors} />
+      <ToggleRow icon="leaf" label={t("gingerGarlicTea")} active={!!d?.drinks.gingerGarlicTea} onPress={() => toggleFlag(currentDate, "gingerGarlicTea")} colors={colors} />
+      <ToggleRow icon="water" label={t("waterCure")} active={!!d?.drinks.waterCure} onPress={() => toggleFlag(currentDate, "waterCure")} colors={colors} />
+      <ToggleRow icon="barbell" label={t("sport")} active={!!d?.drinks.sport} onPress={() => toggleFlag(currentDate, "sport")} colors={colors} />
+    </View>
   );
 
   const weightCard = (
