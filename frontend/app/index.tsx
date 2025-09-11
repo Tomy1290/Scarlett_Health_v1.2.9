@@ -97,7 +97,7 @@ export default function Home() {
         pills: "Tabletten",
         morning: "Morgens",
         evening: "Abends",
-        drinks: "Getränke &amp; Sport",
+        drinks: "Getränke & Sport",
         water: "Wasser",
         coffee: "Kaffee",
         slimCoffee: "Abnehmkaffee",
