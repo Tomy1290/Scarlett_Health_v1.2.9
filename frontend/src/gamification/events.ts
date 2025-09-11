@@ -242,5 +242,5 @@ export const EVENTS: WeeklyEvent[] = [
   {
     id: 'early_bird', title:(l)=> l==='de'? 'Frühaufsteher' : 'Early Bird', description:(l)=> l==='de'? '3× vor 8:00 wiegen.' : 'Weigh before 8:00 three times.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> typeof d?.weightTime==='number' &amp;&amp; new Date(d.weightTime).getHours() < 8)/3)*100)), xp: 150, bonusPercent: 0.08 },
   {
-    id: 'night_tracker', title:(l)=> l==='de'? 'Nacht-Tracker' : 'Night Tracker', description:(l)=> l==='de'? '3× nach 22:00 tracken.' : 'Track after 22:00 three times.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> typeof d?.weightTime==='number' &amp;&amp; new Date(d.weightTime).getHours() &gt;= 22)/3)*100)), xp: 110, bonusPercent: 0.05 },
+    id: 'night_tracker', title:(l)=> l==='de'? 'Nacht-Tracker' : 'Night Tracker', description:(l)=> l==='de'? '3× nach 22:00 tracken.' : 'Track after 22:00 three times.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> typeof d?.weightTime==='number' && new Date(d.weightTime).getHours() >= 22)/3)*100)), xp: 110, bonusPercent: 0.05 },
 ];
