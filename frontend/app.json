@@ -23,6 +23,7 @@
       "expo-notifications",
       ["expo-splash-screen", { "image": "./assets/images/icon.png", "imageWidth": 220, "resizeMode": "contain", "backgroundColor": "#fde7ef", "dark": { "image": "./assets/images/icon.png", "backgroundColor": "#1b0b12" } }]
     ],
+    "assetBundlePatterns": ["assets/images/*"],
     "experiments": { "typedRoutes": true }
   }
 }
