@@ -354,6 +354,15 @@ export default function Home() {
           <SectionCard title={t("achievements")}>
             <AchievementPreview />
           </SectionCard>
+          <SectionCard title={t("reminders")}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="alarm" size={18} color={colors.text} />
+                <Text style={{ color: colors.text }}>{reminders.length} {language === 'de' ? 'Erinnerungen' : 'reminders'}</Text>
+              </View>
+              <PrimaryButton icon="create" label={language === 'de' ? 'Verwalten' : 'Manage'} onPress={() => setShowRemindersModal(true)} colors={colors} />
+            </View>
+          </SectionCard>
           <SectionCard title={t("chat")}>
             <View style={{ gap: 8 }}>
               {chat.slice(-5).map((m) => (
