@@ -51,6 +51,7 @@ export default function SavedManager() {
   }
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[styles.header, { backgroundColor: colors.card }]}> 
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel={state.language==='de'?'Zurück':'Back'}>
           <Ionicons name='chevron-back' size={24} color={colors.text} />
@@ -61,9 +62,6 @@ export default function SavedManager() {
         </View>
         <View style={{ width: 40 }} />
       </View>
-
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
           <Ionicons name='chevron-back' size={24} color={colors.text} />
         </TouchableOpacity>
