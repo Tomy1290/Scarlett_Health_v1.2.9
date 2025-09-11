@@ -1,0 +1,137 @@
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useAppStore } from '../../src/store/useStore';
+import * as Haptics from 'expo-haptics';
+
+function useThemeColors(theme: string) {
+  if (theme === 'pink_pastel') return { bg: '#fff0f5', card: '#ffe4ef', primary: '#d81b60', text: '#3a2f33', muted: '#8a6b75' };
+  if (theme === 'pink_vibrant') return { bg: '#1b0b12', card: '#2a0f1b', primary: '#ff2d87', text: '#ffffff', muted: '#e59ab8' };
+  return { bg: '#fde7ef', card: '#ffd0e0', primary: '#e91e63', text: '#2a1e22', muted: '#7c5866' };
+}
+
+const PRESET_CATEGORIES = ['Motivation', 'Ernährung', 'Trinken', 'Sport', 'Allgemein'];
+
+export default function SavedManager() {
+  const router = useRouter();
+  const state = useAppStore();
+  const colors = useThemeColors(state.theme);
+
+  const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [newTitle, setNewTitle] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [newTags, setNewTags] = useState('');
+  const [newText, setNewText] = useState('');
+
+  const categories = useMemo(() => {
+    const fromSaved = Array.from(new Set((state.saved || []).map(s => s.category).filter(Boolean) as string[]));
+    return Array.from(new Set([...PRESET_CATEGORIES, ...fromSaved]));
+  }, [state.saved]);
+
+  const filtered = useMemo(() => {
+    let arr = state.saved || [];
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      arr = arr.filter(s => (s.title?.toLowerCase().includes(q) || s.text.toLowerCase().includes(q) || (s.tags||[]).some(t => t.toLowerCase().includes(q))));
+    }
+    if (categoryFilter) {
+      arr = arr.filter(s => (s.category || '') === categoryFilter);
+    }
+    return arr;
+  }, [state.saved, query, categoryFilter]);
+
+  function addItem() {
+    if (!newText.trim()) return;
+    state.addSaved({ id: String(Date.now()), title: newTitle || 'Notiz', category: newCategory || undefined, tags: newTags ? newTags.split(',').map(t => t.trim()).filter(Boolean) : undefined, text: newText.trim(), createdAt: Date.now() });
+    setNewTitle(''); setNewCategory(''); setNewTags(''); setNewText('');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View style={[styles.header, { backgroundColor: colors.card }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+          <Ionicons name='chevron-back' size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.title, { color: colors.text }]}>Gespeicherte Nachrichten</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <View style={{ padding: 16, gap: 8 }}>
+        <TextInput value={query} onChangeText={setQuery} placeholder='Suchen (Titel, Text, Tags)…' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
+        <ScrollView horizontal contentContainerStyle={{ gap: 8 }} showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity onPress={() => setCategoryFilter('')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: categoryFilter===''?colors.primary:'transparent' }]}>
+            <Text style={{ color: categoryFilter===''?'#fff':colors.text }}>Alle</Text>
+          </TouchableOpacity>
+          {categories.map((c) => (
+            <TouchableOpacity key={c} onPress={() => setCategoryFilter(c)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: categoryFilter===c?colors.primary:'transparent' }]}>
+              <Text style={{ color: categoryFilter===c?'#fff':colors.text }}>{c}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+        {filtered.map((s) => (
+          <View key={s.id} style={[styles.card, { backgroundColor: colors.card }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>{s.title || 'Notiz'}</Text>
+                {s.category ? <Text style={{ color: colors.muted, marginTop: 2 }}>{s.category}</Text> : null}
+              </View>
+              <TouchableOpacity onPress={() => useAppStore.getState().deleteSaved(s.id)}>
+                <Ionicons name='trash' size={18} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ color: colors.text, marginTop: 8 }}>{s.text}</Text>
+            {s.tags?.length ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                {s.tags.map((t, i) => (
+                  <View key={i} style={[styles.tag, { borderColor: colors.muted }]}>
+                    <Text style={{ color: colors.muted }}>#{t}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ))}
+      </ScrollView>
+
+      <View style={[styles.card, { backgroundColor: colors.card, margin: 16 }]}>
+        <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Neu anlegen</Text>
+        <TextInput value={newTitle} onChangeText={setNewTitle} placeholder='Titel (optional)' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, marginBottom: 8 }]} />
+        <ScrollView horizontal contentContainerStyle={{ gap: 8 }} showsHorizontalScrollIndicator={false}>
+          {PRESET_CATEGORIES.map((c) => (
+            <TouchableOpacity key={c} onPress={() => setNewCategory(c)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: newCategory===c?colors.primary:'transparent' }]}>
+              <Text style={{ color: newCategory===c?'#fff':colors.text }}>{c}</Text>
+            </TouchableOpacity>
+          ))}
+          <View style={{ width: 8 }} />
+          <TextInput value={newCategory} onChangeText={setNewCategory} placeholder='Eigene Kategorie…' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, width: 180 }]} />
+        </ScrollView>
+        <TextInput value={newTags} onChangeText={setNewTags} placeholder='Tags (kommagetrennt)' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, marginTop: 8 }]} />
+        <TextInput value={newText} onChangeText={setNewText} placeholder='Text…' placeholderTextColor={colors.muted} multiline style={[styles.input, { borderColor: colors.muted, color: colors.text, marginTop: 8, minHeight: 80 }]} />
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+          <TouchableOpacity onPress={addItem} style={[styles.primaryBtn, { backgroundColor: colors.primary }]}>
+            <Ionicons name='save' size={16} color='#fff' />
+            <Text style={{ color: '#fff', marginLeft: 8 }}>Speichern</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { fontSize: 16, fontWeight: '700' },
+  iconBtn: { padding: 8 },
+  badge: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
+  card: { borderRadius: 12, padding: 12 },
+  input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
+  tag: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  primaryBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8 },
+});

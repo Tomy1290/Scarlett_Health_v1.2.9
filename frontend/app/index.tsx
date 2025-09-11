@@ -8,6 +8,7 @@ import { LineChart } from "react-native-gifted-charts";
 import { useWindowDimensions } from "react-native";
 import { computeAchievements } from "../src/achievements";
 import { useRouter } from "expo-router";
+import * as Haptics from 'expo-haptics';
 
 function useThemeColors(theme: string) {
   const { width } = useWindowDimensions();
@@ -97,8 +98,8 @@ export default function Home() {
 
   const t = (k: string) => {
     const dict: Record<string, Record<string, string>> = {
-      de: { today: "Heute", pills: "Tabletten", morning: "Morgens", evening: "Abends", drinks: "Getränke & Sport", water: "Wasser", coffee: "Kaffee", slimCoffee: "Abnehmkaffee", gingerGarlicTea: "Ingwer-Knoblauch-Tee", waterCure: "Wasserkur", sport: "Sport", weight: "Gewicht", enterWeight: "Gewicht eingeben", setGoal: "Ziel festlegen", goals: "Gewichtsziele", reminders: "Erinnerungen", achievements: "Nächste Erfolge", chat: "Gugi – Gesundheitschat", savedMessages: "Gespeicherte Nachrichten", settings: "Einstellungen", themes: "Themes", export: "Daten exportieren", import: "Daten importieren", version: "Version", language: "Sprache", },
-      en: { today: "Today", pills: "Pills", morning: "Morning", evening: "Evening", drinks: "Drinks & Sport", water: "Water", coffee: "Coffee", slimCoffee: "Slim coffee", gingerGarlicTea: "Ginger-garlic tea", waterCure: "Water cure", sport: "Sport", weight: "Weight", enterWeight: "Enter weight", setGoal: "Set goal", goals: "Weight goals", reminders: "Reminders", achievements: "Next achievements", chat: "Gugi – Health chat", savedMessages: "Saved messages", settings: "Settings", themes: "Themes", export: "Export data", import: "Import data", version: "Version", language: "Language", },
+      de: { today: "Heute", pills: "Tabletten", morning: "Morgens", evening: "Abends", drinks: "Getränke & Sport", water: "Wasser", coffee: "Kaffee", slimCoffee: "Abnehmkaffee", gingerGarlicTea: "Ingwer-Knoblauch-Tee", waterCure: "Wasserkur", sport: "Sport", weight: "Gewicht", enterWeight: "Gewicht eingeben", setGoal: "Ziel festlegen", goals: "Gewichtsziele", reminders: "Erinnerungen", achievements: "Nächste Erfolge", chat: "Gugi – Gesundheitschat", savedMessages: "Gespeicherte Nachrichten", settings: "Einstellungen", themes: "Themes", export: "Daten exportieren", import: "Daten importieren", version: "Version", language: "Sprache", savedManager: "Gespeicherte verwalten" },
+      en: { today: "Today", pills: "Pills", morning: "Morning", evening: "Evening", drinks: "Drinks & Sport", water: "Water", coffee: "Coffee", slimCoffee: "Slim coffee", gingerGarlicTea: "Ginger-garlic tea", waterCure: "Water cure", sport: "Sport", weight: "Weight", enterWeight: "Enter weight", setGoal: "Set goal", goals: "Weight goals", reminders: "Reminders", achievements: "Next achievements", chat: "Gugi – Health chat", savedMessages: "Saved messages", settings: "Settings", themes: "Themes", export: "Export data", import: "Import data", version: "Version", language: "Language", savedManager: "Manage saved" },
     };
     return dict[language]?.[k] ?? k;
   };
@@ -149,8 +150,8 @@ export default function Home() {
     <View>
       <Text style={{ color: colors.text, marginBottom: 8 }}>{t("weight")}: {d?.weight != null ? `${d?.weight.toFixed(1)} kg` : "–"}</Text>
       <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
-        <PrimaryButton icon="fitness" label={t("enterWeight")} onPress={() => setShowWeightModal(true)} colors={colors} />
-        <PrimaryButton icon="flag" label={t("setGoal")} onPress={() => setShowGoalModal(true)} colors={colors} />
+        <PrimaryButton icon="fitness" label={t("enterWeight")} onPress={() => {Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowWeightModal(true);}} colors={colors} />
+        <PrimaryButton icon="flag" label={t("setGoal")} onPress={() => {Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowGoalModal(true);}} colors={colors} />
       </View>
       <View style={{ height: 180 }}>
         <LineChart data={last7} thickness={3} color={colors.primary} hideDataPoints noOfSections={4} yAxisTextStyle={{ color: colors.muted }} xAxisLabelTextStyle={{ color: colors.muted }} rulesColor={colors.muted} yAxisColor={colors.muted} xAxisColor={colors.muted} curved />
@@ -216,9 +217,7 @@ export default function Home() {
       const { default: FileSystem } = await import("expo-file-system");
       const content = await FileSystem.readAsStringAsync(res.assets[0].uri, { encoding: FileSystem.EncodingType.UTF8 });
       const parsed = JSON.parse(content);
-      useAppStore.setState({
-        days: parsed.days ?? {}, goal: parsed.goal, reminders: parsed.reminders ?? [], chat: parsed.chat ?? [], saved: parsed.saved ?? [], achievementsUnlocked: parsed.achievementsUnlocked ?? [], xp: parsed.xp ?? 0, language: parsed.language ?? language, theme: parsed.theme ?? theme, appVersion: parsed.appVersion ?? appVersion, currentDate: toKey(new Date()),
-      });
+      useAppStore.setState({ days: parsed.days ?? {}, goal: parsed.goal, reminders: parsed.reminders ?? [], chat: parsed.chat ?? [], saved: parsed.saved ?? [], achievementsUnlocked: parsed.achievementsUnlocked ?? [], xp: parsed.xp ?? 0, language: parsed.language ?? language, theme: parsed.theme ?? theme, appVersion: parsed.appVersion ?? appVersion, currentDate: toKey(new Date()) });
       useAppStore.getState().recalcAchievements();
       Alert.alert(language === "de" ? "Import erfolgreich" : "Import successful");
     } catch (e) { Alert.alert("Fehler", String(e)); }
@@ -233,7 +232,7 @@ export default function Home() {
           <SectionCard title={t("drinks")}>{drinkRow}</SectionCard>
           <SectionCard title={t("weight")}>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
-              <PrimaryButton icon="analytics" label={language==='de'?'Analyse':'Analysis'} onPress={() => setShowAnalysisModal(true)} colors={colors} />
+              <PrimaryButton icon="analytics" label={language==='de'?'Analyse':'Analysis'} onPress={() => {Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowAnalysisModal(true);}} colors={colors} />
             </View>
             {weightCard}
           </SectionCard>
@@ -267,26 +266,35 @@ export default function Home() {
               ))}
               <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                 <TextInput value={chatInput} onChangeText={setChatInput} placeholder={language === "de" ? "Nachricht…" : "Message…"} placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
-                <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => { if (!chatInput.trim()) return; const userMsg = { id: String(Date.now()), sender: "user" as const, text: chatInput.trim(), createdAt: Date.now() }; addChat(userMsg); setChatInput(""); botRespond(userMsg.text); }}>
+                <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => { if (!chatInput.trim()) return; const userMsg = { id: String(Date.now()), sender: "user" as const, text: chatInput.trim(), createdAt: Date.now() }; addChat(userMsg); setChatInput(""); botRespond(userMsg.text); Haptics.selectionAsync(); }}>
                   <Ionicons name="send" size={18} color="#fff" />
                 </TouchableOpacity>
               </View>
             </View>
           </SectionCard>
-          <SectionCard title={t("savedMessages")}> {saved.length === 0 ? (<Text style={{ color: colors.muted }}>–</Text>) : ( saved.slice(0, 5).map((s) => (
+          <SectionCard title={t("savedMessages")}> 
+            {saved.length === 0 ? (<Text style={{ color: colors.muted }}>–</Text>) : ( saved.slice(0, 5).map((s) => (
               <View key={s.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
                   <Ionicons name="bookmark" size={16} color={colors.primary} />
                   <Text style={{ color: colors.text, flex: 1 }} numberOfLines={1}>{s.text}</Text>
                 </View>
-                <TouchableOpacity onPress={() => useAppStore.getState().deleteSaved(s.id)}>
-                  <Ionicons name="trash" size={18} color={colors.muted} />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity onPress={() => router.push('/saved')}>
+                    <Ionicons name="create" size={18} color={colors.muted} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => useAppStore.getState().deleteSaved(s.id)}>
+                    <Ionicons name="trash" size={18} color={colors.muted} />
+                  </TouchableOpacity>
+                </View>
               </View>
             )) )}
+            <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
+              <PrimaryButton icon="create" label={t('savedManager')} onPress={() => router.push('/saved')} colors={colors} />
+            </View>
           </SectionCard>
           <SectionCard title={t("settings")}> <View style={{ gap: 12 }}>
-              <RowButton icon="color-palette" label={`${t("themes")}: ` + theme} onPress={() => cycleTheme()} colors={colors} />
+              <RowButton icon="color-palette" label={`${t("themes")}: ` + theme} onPress={() => {Haptics.selectionAsync(); cycleTheme();}} colors={colors} />
               <RowButton icon="language" label={`${t("language")}: ` + (language === "de" ? "Deutsch" : "English")} onPress={() => setLanguage(language === "de" ? "en" : "de")} colors={colors} />
               <RowButton icon="cloud-download" label={t("export")} onPress={handleExport} colors={colors} />
               <RowButton icon="cloud-upload" label={t("import")} onPress={handleImport} colors={colors} />
@@ -355,7 +363,7 @@ export default function Home() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
               <TextInput value={newRemType} onChangeText={setNewRemType} placeholder={language === 'de' ? 'Typ (z. B. pills_morning)' : 'Type (e.g. pills_morning)'} placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
               <TextInput value={newRemTime} onChangeText={setNewRemTime} placeholder="HH:MM" placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, width: 96 }]} />
-              <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => { if (!/^\d{2}:\d{2}$/.test(newRemTime)) { Alert.alert('Fehler', 'Zeit bitte als HH:MM angeben'); return; } const r = { id: String(Date.now()), type: newRemType || 'custom', time: newRemTime, enabled: true } as any; addReminder(r); setNewRemType(''); setNewRemTime(''); }}>
+              <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => { if (!/^\d{2}:\d{2}$/.test(newRemTime)) { Alert.alert('Fehler', 'Zeit bitte als HH:MM angeben'); return; } const r = { id: String(Date.now()), type: newRemType || 'custom', time: newRemTime, enabled: true } as any; addReminder(r); setNewRemType(''); setNewRemTime(''); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); }}>
                 <Ionicons name="add" size={18} color="#fff" />
               </TouchableOpacity>
             </View>
