@@ -90,8 +90,8 @@ export default function Home() {
   }, [currentDate, days]);
 
   // i18n minimal
-  const t = (k: string) =&gt; {
-    const dict: Record&lt;string, Record&lt;string, string&gt;&gt; = {
+  const t = (k: string) => {
+    const dict: Record<string, Record<string, string>> = {
       de: {
         today: "Heute",
         pills: "Tabletten",
