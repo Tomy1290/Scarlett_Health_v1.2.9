@@ -374,7 +374,7 @@ export default function Home() {
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
               {(['7','14','30','custom'] as const).map((tab) => (
                 <TouchableOpacity key={tab} onPress={() => setAnalysisTab(tab)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: analysisTab===tab ? colors.primary : 'transparent' }]}>
-                  <Text style={{ color: analysisTab===tab ? '#fff' : colors.text }}>{language==='de' ? (tab==='week'?'Woche':tab==='month'?'Monat':'Benutzerdefiniert') : (tab==='week'?'Week':tab==='month'?'Month':'Custom')}</Text>
+                  <Text style={{ color: analysisTab===tab ? '#fff' : colors.text }}>{tab==='7' ? (language==='de'?'7 Tage':'7 days') : tab==='14' ? (language==='de'?'14 Tage':'14 days') : tab==='30' ? (language==='de'?'30 Tage':'30 days') : (language==='de'?'Benutzerdefiniert':'Custom')}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -388,6 +388,23 @@ export default function Home() {
               <LineChart data={analysisData} thickness={3} color={colors.primary} hideDataPoints noOfSections={4} yAxisTextStyle={{ color: colors.muted }} xAxisLabelTextStyle={{ color: colors.muted }} rulesColor={colors.muted} yAxisColor={colors.muted} xAxisColor={colors.muted} curved />
             </View>
             <Text style={{ color: colors.text }}>{`${analysisSummary.delta >= 0 ? '+' : ''}${analysisSummary.delta} kg gesamt, ${analysisSummary.perDay >= 0 ? '+' : ''}${analysisSummary.perDay} kg/Tag`}</Text>
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 6 }}>{language==='de'?'Tagesdifferenzen':'Daily deltas'}</Text>
+              {analysisSeries.map((s, idx) => {
+                if (idx === 0) return null;
+                const prev = analysisSeries[idx-1];
+                const has = typeof s.weight === 'number' && typeof prev.weight === 'number';
+                const delta = has ? +(s.weight! - prev.weight!).toFixed(1) : NaN;
+                return (
+                  <View key={s.date} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
+                    <Text style={{ color: colors.muted }}>{s.date}</Text>
+                    <Text style={{ color: has ? (delta < 0 ? '#2e7d32' : delta > 0 ? '#c62828' : colors.text) : colors.muted }}>
+                      {has ? `${delta > 0 ? '+' : ''}${delta} kg` : '–'}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
               <PrimaryButton label={language==='de'?'Schließen':'Close'} icon="close" onPress={() => setShowAnalysisModal(false)} colors={colors} outline />
             </View>
