@@ -60,7 +60,7 @@ export default function Home() {
   const colors = useThemeColors(theme);
 
   // Ensure day exists
-  React.useEffect(() =&gt; {
+  React.useEffect(() => {
     ensureDay(currentDate);
   }, [currentDate]);
 
