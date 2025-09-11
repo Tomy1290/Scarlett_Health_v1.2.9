@@ -467,6 +467,36 @@ export default function Home() {
               keyboardType="decimal-pad"
               value={weightInput}
               onChangeText={setWeightInput}
+
+      {/* Analysis Modal */}
+      {showAnalysisModal ? (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}> 
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{language==='de'?'Gewichtsverlauf':'Weight analysis'}</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+              {(['week','month','custom'] as const).map((tab) => (
+                <TouchableOpacity key={tab} onPress={() => setAnalysisTab(tab)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: analysisTab===tab ? colors.primary : 'transparent' }]}>
+                  <Text style={{ color: analysisTab===tab ? '#fff' : colors.text }}>{language==='de' ? (tab==='week'?'Woche':tab==='month'?'Monat':'Benutzerdefiniert') : (tab==='week'?'Week':tab==='month'?'Month':'Custom')}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {analysisTab==='custom' ? (
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                <TextInput value={customStart} onChangeText={setCustomStart} placeholder="Start: TT.MM.JJJJ" placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
+                <TextInput value={customEnd} onChangeText={setCustomEnd} placeholder="Ende: TT.MM.JJJJ" placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
+              </View>
+            ) : null}
+            <View style={{ height: 200, marginBottom: 8 }}>
+              {renderAnalysisChart()}
+            </View>
+            <Text style={{ color: colors.text }}>{renderAnalysisStats()}</Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+              <PrimaryButton label={language==='de'?'Schließen':'Close'} icon="close" onPress={() => setShowAnalysisModal(false)} colors={colors} outline />
+            </View>
+          </View>
+        </View>
+      ) : null}
+
               placeholder="72.4"
               placeholderTextColor={colors.muted}
               style={[styles.input, { borderColor: colors.muted, color: colors.text }]}
