@@ -350,42 +350,42 @@ export default function Home() {
           <SectionCard title={t("achievements")}>
             <AchievementPreview />
           </SectionCard>
-          &lt;SectionCard title={t("chat")}&gt;
-            &lt;View style={{ gap: 8 }}&gt;
-              {chat.slice(-5).map((m) =&gt; (
-                &lt;View key={m.id} style={{ flexDirection: "row", gap: 8, alignItems: "center" }}&gt;
-                  &lt;Ionicons name={m.sender === "user" ? "person-circle" : "chatbubble-ellipses"} size={18} color={colors.muted} /&gt;
-                  &lt;Text style={{ color: colors.text, flex: 1 }}&gt;{m.text}&lt;/Text&gt;
+          <SectionCard title={t("chat")}>
+            <View style={{ gap: 8 }}>
+              {chat.slice(-5).map((m) => (
+                <View key={m.id} style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                  <Ionicons name={m.sender === "user" ? "person-circle" : "chatbubble-ellipses"} size={18} color={colors.muted} />
+                  <Text style={{ color: colors.text, flex: 1 }}>{m.text}</Text>
                   {m.sender === "bot" ? (
-                    &lt;TouchableOpacity onPress={() =&gt; addSaved({ id: String(Date.now()), title: "Tipp", text: m.text, createdAt: Date.now() })}&gt;
-                      &lt;Ionicons name="bookmark" size={18} color={colors.primary} /&gt;
-                    &lt;/TouchableOpacity&gt;
+                    <TouchableOpacity onPress={() => addSaved({ id: String(Date.now()), title: "Tipp", text: m.text, createdAt: Date.now() })}>
+                      <Ionicons name="bookmark" size={18} color={colors.primary} />
+                    </TouchableOpacity>
                   ) : null}
-                &lt;/View&gt;
+                </View>
               ))}
-              &lt;View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}&gt;
-                &lt;TextInput
+              <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                <TextInput
                   value={chatInput}
                   onChangeText={setChatInput}
                   placeholder={language === "de" ? "Nachricht…" : "Message…"}
                   placeholderTextColor={colors.muted}
                   style={[styles.input, { borderColor: colors.muted, color: colors.text }]}
-                /&gt;
-                &lt;TouchableOpacity
+                />
+                <TouchableOpacity
                   style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-                  onPress={() =&gt; {
+                  onPress={() => {
                     if (!chatInput.trim()) return;
                     const userMsg = { id: String(Date.now()), sender: "user" as const, text: chatInput.trim(), createdAt: Date.now() };
                     addChat(userMsg);
                     setChatInput("");
                     botRespond(userMsg.text);
                   }}
-                &gt;
-                  &lt;Ionicons name="send" size={18} color="#fff" /&gt;
-                &lt;/TouchableOpacity&gt;
-              &lt;/View&gt;
-            &lt;/View&gt;
-          &lt;/SectionCard&gt;
+                >
+                  <Ionicons name="send" size={18} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </SectionCard>
           &lt;SectionCard title={t("savedMessages")}&gt;
             {saved.length === 0 ? (
               &lt;Text style={{ color: colors.muted }}&gt;–&lt;/Text&gt;
