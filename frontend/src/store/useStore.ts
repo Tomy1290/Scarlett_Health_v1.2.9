@@ -22,44 +22,19 @@ export type DayData = {
   weight?: number;
 };
 
-export type Goal = {
-  targetWeight: number;
-  targetDate: string; // yyyy-MM-dd
-  startWeight: number;
-  active: boolean;
-};
+export type Goal = { targetWeight: number; targetDate: string; startWeight: number; active: boolean };
 
 export type Reminder = {
   id: string;
-  type: string;
+  type: string; // pills_morning, pills_evening, water, coffee, slimCoffee, gingerGarlicTea, waterCure, sport, weight
   time: string; // HH:MM 24h
   enabled: boolean;
 };
 
-export type ChatMessage = {
-  id: string;
-  sender: "user" | "bot";
-  text: string;
-  createdAt: number;
-};
+export type ChatMessage = { id: string; sender: "user" | "bot"; text: string; createdAt: number };
+export type SavedMessage = { id: string; title: string; category?: string; tags?: string[]; text: string; createdAt: number };
 
-export type SavedMessage = {
-  id: string;
-  title: string;
-  category?: string;
-  tags?: string[];
-  text: string;
-  createdAt: number;
-};
-
-export type AchievementProgress = {
-  id: string;
-  title: string;
-  description: string;
-  percent: number; // 0-100
-  xp: number;
-  completed: boolean;
-};
+export type AchievementProgress = { id: string; title: string; description: string; percent: number; xp: number; completed: boolean };
 
 export type AppState = {
   days: Record<string, DayData>;
@@ -73,12 +48,9 @@ export type AppState = {
   theme: ThemeName;
   appVersion: string;
   currentDate: string; // yyyy-MM-dd
-
-  // Notifications
   notificationIds: Record<string, string | undefined>; // reminderId -> notifId
   hasSeededReminders: boolean;
 
-  // Actions
   setLanguage: (lng: Language) => void;
   setTheme: (t: ThemeName) => void;
   goPrevDay: () => void;
@@ -101,7 +73,6 @@ export type AppState = {
   setNotificationId: (remId: string, notifId?: string) => void;
   setHasSeededReminders: (v: boolean) => void;
 
-  // Achievements
   recalcAchievements: () => void;
 };
 
@@ -161,7 +132,7 @@ export const useAppStore = create<AppState>()(
       name: "scarlett-app-state",
       storage: createJSONStorage(() => mmkvAdapter),
       partialize: (s) => s,
-      version: 2,
+      version: 3,
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         const days = state.days || {};
