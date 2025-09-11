@@ -106,26 +106,32 @@ user_problem_statement: "Scarletts Gesundheitstracking – Offline-first Android
 backend:
   - task: "API: GET /api/"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Endpoint vorhanden; erwartet {message:'Hello World'}"
+      - working: true
+        agent: "testing"
+        comment: "✅ GET /api/ test PASSED - Returns correct {message:'Hello World'} response. Status code 200. Tested via backend_test.py using public URL."
   - task: "API: POST/GET /api/status"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Mongo Insert/Find via motor; prüfen ob DB erreichbar ist."
+      - working: true
+        agent: "testing"
+        comment: "✅ POST/GET /api/status tests PASSED - POST creates status check with UUID, client_name, timestamp. GET retrieves all status checks as list. MongoDB connection working properly. All services running (mongodb, backend confirmed via supervisorctl). Tested with real data client_name='qa'."
 frontend:
   - task: "Achievements + Chains + Rewards"
     implemented: true
