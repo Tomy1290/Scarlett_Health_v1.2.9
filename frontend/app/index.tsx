@@ -482,15 +482,15 @@ function CounterRow({ icon, label, value, onAdd, onSub, colors }: any) {
 
 function ToggleRow({ icon, label, active, onPress, colors }: any) {
   return (
-    &lt;TouchableOpacity onPress={onPress} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 }}&gt;
-      &lt;View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}&gt;
-        &lt;Ionicons name={icon} size={18} color={colors.text} /&gt;
-        &lt;Text style={{ color: colors.text }}&gt;{label}&lt;/Text&gt;
-      &lt;/View&gt;
-      &lt;View style={[styles.badge, { backgroundColor: active ? colors.primary : "transparent", borderColor: colors.muted }]}&gt;
-        &lt;Text style={{ color: active ? "#fff" : colors.text }}&gt;{active ? "On" : "Off"}&lt;/Text&gt;
-      &lt;/View&gt;
-    &lt;/TouchableOpacity&gt;
+    <TouchableOpacity onPress={onPress} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Ionicons name={icon} size={18} color={colors.text} />
+        <Text style={{ color: colors.text }}>{label}</Text>
+      </View>
+      <View style={[styles.badge, { backgroundColor: active ? colors.primary : "transparent", borderColor: colors.muted }]}>
+        <Text style={{ color: active ? "#fff" : colors.text }}>{active ? "On" : "Off"}</Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
