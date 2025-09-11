@@ -1,0 +1,46 @@
+workflows:
+  android-apk:
+    name: Android APK (Expo prebuild)
+    max_build_duration: 60
+    environment:
+      vars:
+        NODE_VERSION: 20
+      node: 20
+      java: 17
+      android: true
+      xcode: 15.1
+    cache:
+      cache_paths:
+        - ~/.gradle/caches
+        - ~/.gradle/wrapper
+        - $CM_BUILD_DIR/frontend/node_modules
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: ".*"
+          include: true
+          source: true
+    scripts:
+      - name: Install dependencies
+        script: |
+          cd frontend
+          yarn install --frozen-lockfile
+      - name: Expo prebuild (Android)
+        script: |
+          cd frontend
+          npx expo prebuild --platform android --non-interactive --clean
+      - name: Build APK
+        script: |
+          cd frontend/android
+          ./gradlew assembleRelease --no-daemon
+    artifacts:
+      - frontend/android/app/build/outputs/apk/release/*.apk
+    publishing:
+      email:
+        recipients:
+          - your@email.here
+        notify:
+          success: true
+          failure: true
