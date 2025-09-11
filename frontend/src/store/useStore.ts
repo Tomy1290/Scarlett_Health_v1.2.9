@@ -72,8 +72,11 @@ export type AppState = {
   language: Language;
   theme: ThemeName;
   appVersion: string;
-  // UI state
   currentDate: string; // yyyy-MM-dd
+
+  // Notifications
+  notificationIds: Record<string, string | undefined>; // reminderId -> notifId
+  hasSeededReminders: boolean;
 
   // Actions
   setLanguage: (lng: Language) => void;
@@ -95,6 +98,9 @@ export type AppState = {
   addSaved: (s: SavedMessage) => void;
   deleteSaved: (id: string) => void;
 
+  setNotificationId: (remId: string, notifId?: string) => void;
+  setHasSeededReminders: (v: boolean) => void;
+
   // Achievements
   recalcAchievements: () => void;
 };
@@ -102,19 +108,10 @@ export type AppState = {
 const defaultDay = (dateKey: string): DayData => ({
   date: dateKey,
   pills: { morning: false, evening: false },
-  drinks: {
-    water: 0,
-    coffee: 0,
-    slimCoffee: false,
-    gingerGarlicTea: false,
-    waterCure: false,
-    sport: false,
-  },
+  drinks: { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false },
 });
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
+function clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -129,99 +126,42 @@ export const useAppStore = create<AppState>()(
       theme: "pink_default",
       appVersion: "1.0.0",
       currentDate: toKey(new Date()),
+      notificationIds: {},
+      hasSeededReminders: false,
 
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
       setTheme: (t) => { set({ theme: t }); get().recalcAchievements(); },
-      goPrevDay: () => {
-        const cur = new Date(get().currentDate);
-        const prev = new Date(cur);
-        prev.setDate(cur.getDate() - 1);
-        set({ currentDate: toKey(prev) });
-      },
-      goNextDay: () => {
-        const cur = new Date(get().currentDate);
-        const next = new Date(cur);
-        next.setDate(cur.getDate() + 1);
-        const todayKey = toKey(new Date());
-        const nextKey = toKey(next);
-        if (nextKey > todayKey) return; // block future
-        set({ currentDate: nextKey });
-      },
+      goPrevDay: () => { const cur = new Date(get().currentDate); const prev = new Date(cur); prev.setDate(cur.getDate() - 1); set({ currentDate: toKey(prev) }); },
+      goNextDay: () => { const cur = new Date(get().currentDate); const next = new Date(cur); next.setDate(cur.getDate() + 1); const todayKey = toKey(new Date()); const nextKey = toKey(next); if (nextKey > todayKey) return; set({ currentDate: nextKey }); },
       goToday: () => set({ currentDate: toKey(new Date()) }),
-      ensureDay: (key: string) => {
-        const days = get().days;
-        if (!days[key]) {
-          set({ days: { ...days, [key]: defaultDay(key) } });
-        }
-      },
-      togglePill: (key, time) => {
-        const days = { ...get().days };
-        const d = days[key] ?? defaultDay(key);
-        d.pills = { ...d.pills, [time]: !d.pills[time] } as any;
-        days[key] = d;
-        set({ days });
-        get().recalcAchievements();
-      },
-      incDrink: (key, type, delta) => {
-        const days = { ...get().days };
-        const d = days[key] ?? defaultDay(key);
-        const val = d.drinks[type] as number;
-        const next = clamp(val + delta, 0, 999);
-        d.drinks = { ...d.drinks, [type]: next } as any;
-        days[key] = d;
-        set({ days });
-        get().recalcAchievements();
-      },
-      toggleFlag: (key, type) => {
-        const days = { ...get().days };
-        const d = days[key] ?? defaultDay(key);
-        const cur = d.drinks[type] as boolean;
-        d.drinks = { ...d.drinks, [type]: !cur } as any;
-        days[key] = d;
-        set({ days });
-        get().recalcAchievements();
-      },
-      setWeight: (key, weight) => {
-        const days = { ...get().days };
-        const d = days[key] ?? defaultDay(key);
-        d.weight = weight;
-        days[key] = d;
-        set({ days });
-        get().recalcAchievements();
-      },
+      ensureDay: (key: string) => { const days = get().days; if (!days[key]) { set({ days: { ...days, [key]: defaultDay(key) } }); } },
+      togglePill: (key, time) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); d.pills = { ...d.pills, [time]: !d.pills[time] } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
+      incDrink: (key, type, delta) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const val = d.drinks[type] as number; const next = clamp(val + delta, 0, 999); d.drinks = { ...d.drinks, [type]: next } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
+      toggleFlag: (key, type) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const cur = d.drinks[type] as boolean; d.drinks = { ...d.drinks, [type]: !cur } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
+      setWeight: (key, weight) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); d.weight = weight; days[key] = d; set({ days }); get().recalcAchievements(); },
       setGoal: (goal) => { set({ goal }); get().recalcAchievements(); },
       removeGoal: () => { set({ goal: undefined }); get().recalcAchievements(); },
       addReminder: (r) => { set({ reminders: [r, ...get().reminders] }); get().recalcAchievements(); },
-      updateReminder: (id, patch) =>
-        set({
-          reminders: get().reminders.map((r) => (r.id === id ? { ...r, ...patch } : r)),
-        }),
+      updateReminder: (id, patch) => set({ reminders: get().reminders.map((r) => (r.id === id ? { ...r, ...patch } : r)) }),
       deleteReminder: (id) => { set({ reminders: get().reminders.filter((r) => r.id !== id) }); get().recalcAchievements(); },
       addChat: (m) => { set({ chat: [...get().chat, m] }); get().recalcAchievements(); },
       addSaved: (s) => { set({ saved: [s, ...get().saved] }); get().recalcAchievements(); },
       deleteSaved: (id) => { set({ saved: get().saved.filter((s) => s.id !== id) }); get().recalcAchievements(); },
 
+      setNotificationId: (remId, notifId) => set({ notificationIds: { ...get().notificationIds, [remId]: notifId } }),
+      setHasSeededReminders: (v) => set({ hasSeededReminders: v }),
+
       recalcAchievements: () => {
         const state = get();
-        const { list, unlocked, xp } = computeAchievements({
-          days: state.days,
-          goal: state.goal,
-          reminders: state.reminders,
-          chat: state.chat,
-          saved: state.saved,
-          achievementsUnlocked: state.achievementsUnlocked,
-          xp: state.xp,
-          language: state.language,
-          theme: state.theme,
-        });
+        const { list, unlocked, xp } = computeAchievements({ days: state.days, goal: state.goal, reminders: state.reminders, chat: state.chat, saved: state.saved, achievementsUnlocked: state.achievementsUnlocked, xp: state.xp, language: state.language, theme: state.theme });
         set({ achievementsUnlocked: unlocked, xp });
       },
     }),
     {
       name: "scarlett-app-state",
       storage: createJSONStorage(() => mmkvAdapter),
-      partialize: (s) => s, // persist all
-      version: 1,
+      partialize: (s) => s,
+      version: 2,
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         const days = state.days || {};
@@ -235,8 +175,4 @@ export const useAppStore = create<AppState>()(
   )
 );
 
-export function useLevel() {
-  const xp = useAppStore((s) => s.xp);
-  const level = Math.floor(xp / 100) + 1; // offen, kein Cap
-  return { level, xp };
-}
+export function useLevel() { const xp = useAppStore((s) => s.xp); const level = Math.floor(xp / 100) + 1; return { level, xp }; }
