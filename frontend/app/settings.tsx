@@ -5,12 +5,29 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../src/store/useStore';
 import { ensureAndroidChannel, ensureNotificationPermissions, scheduleDailyReminder, cancelNotification, parseHHMM } from '../src/utils/notifications';
+import Constants from 'expo-constants';
 
 function useThemeColors(theme: string) {
   if (theme === 'pink_pastel') return { bg: '#fff0f5', card: '#ffe4ef', primary: '#d81b60', text: '#3a2f33', muted: '#8a6b75', input: '#ffffff' };
   if (theme === 'pink_vibrant') return { bg: '#1b0b12', card: '#2a0f1b', primary: '#ff2d87', text: '#ffffff', muted: '#e59ab8', input: '#1f1520' };
   if (theme === 'golden_pink') return { bg: '#fff8f0', card: '#ffe9c7', primary: '#dba514', text: '#2a1e22', muted: '#9b7d4e', input: '#fff' };
   return { bg: '#fde7ef', card: '#ffd0e0', primary: '#e91e63', text: '#2a1e22', muted: '#7c5866', input: '#ffffff' };
+}
+
+function themeLabel(key: 'pink_default'|'pink_pastel'|'pink_vibrant'|'golden_pink', lang: 'de'|'en') {
+  const mapDe: Record<string,string> = {
+    pink_default: 'Rosa – Standard',
+    pink_pastel: 'Rosa – Pastell',
+    pink_vibrant: 'Rosa – Kräftig',
+    golden_pink: 'Goldenes Rosa',
+  };
+  const mapEn: Record<string,string> = {
+    pink_default: 'Pink – Default',
+    pink_pastel: 'Pink – Pastel',
+    pink_vibrant: 'Pink – Vibrant',
+    golden_pink: 'Golden Pink',
+  };
+  return (lang==='en'?mapEn:mapDe)[key] || key;
 }
 
 export default function SettingsScreen() {
@@ -20,6 +37,7 @@ export default function SettingsScreen() {
   const [newTime, setNewTime] = useState('08:00');
 
   const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
+  const version = Constants?.expoConfig?.version || '—';
 
   async function seedDefaults() {
     await ensureNotificationPermissions();
@@ -78,9 +96,9 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[styles.header, { backgroundColor: colors.card }]}> 
+      <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel='Zurück'>
-          <Ionicons name='chevron-back' size={24} color={colors.text} />
+          <Ionicons name='chevron-back' size={26} color={colors.text} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
           <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
@@ -89,7 +107,7 @@ export default function SettingsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.IS==='ios'?'padding':'height' as any} style={{ flex: 1 }}>
         <View style={{ padding: 16, gap: 12 }}>
           {/* Language */}
           <View style={[styles.card, { backgroundColor: colors.card }]}> 
@@ -110,10 +128,10 @@ export default function SettingsScreen() {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {(['pink_default','pink_pastel','pink_vibrant','golden_pink'] as const).map((t) => (
                 <TouchableOpacity key={t} onPress={() => state.setTheme(t)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: state.theme===t?colors.primary:'transparent' }]}> 
-                  <Text style={{ color: state.theme===t?'#fff':colors.text }}>{t}</Text>
+                  <Text style={{ color: state.theme===t?'#fff':colors.text }}>{themeLabel(t, state.language)}</Text>
                 </TouchableOpacity>
               ))}
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Hinweis: Golden Pink ab Level 75.':'Note: Golden pink at level 75.'}</Text>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Hinweis: Goldenes Rosa ab Level 75.':'Note: Golden pink at level 75.'}</Text>
             </View>
           </View>
 
@@ -161,6 +179,13 @@ export default function SettingsScreen() {
             </View>
             <Switch value={state.eventsEnabled} onValueChange={state.setEventsEnabled} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
           </View>
+
+          {/* App info */}
+          <View style={[styles.card, { backgroundColor: colors.card }]}> 
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'App':'App'}</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Version':'Version'}: {version}</Text>
+            <Text style={{ color: colors.muted, marginTop: 2 }}>created by Gugi</Text>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -168,9 +193,9 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  appTitle: { fontSize: 14, fontWeight: '800' },
-  title: { fontSize: 12, fontWeight: '600' },
+  header: { paddingHorizontal: 12, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  appTitle: { fontSize: 18, fontWeight: '800' },
+  title: { fontSize: 14, fontWeight: '600' },
   iconBtn: { padding: 8 },
   card: { borderRadius: 12, padding: 12 },
   badge: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
