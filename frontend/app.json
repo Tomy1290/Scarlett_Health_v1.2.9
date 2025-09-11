@@ -11,7 +11,8 @@
     "ios": { "supportsTablet": true },
     "android": {
       "package": "de.scarlett.gesundheitstracking",
-      "adaptiveIcon": { "foregroundImage": "./assets/images/adaptive-icon.png", "backgroundColor": "#000" },
+      "adaptiveIcon": { "foregroundImage": "./assets/images/adaptive-icon.png", "backgroundColor": "#ffffff" },
+      "enableProguardInReleaseBuilds": true,
       "edgeToEdgeEnabled": true
     },
     "web": { "bundler": "metro", "output": "static", "favicon": "./assets/images/favicon.png" },
