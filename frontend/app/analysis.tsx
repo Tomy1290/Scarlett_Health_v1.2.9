@@ -22,13 +22,24 @@ export default function AnalysisScreen() {
 
   const [showExtHelp, setShowExtHelp] = useState(false);
   const [showInsightsHelp, setShowInsightsHelp] = useState(false);
+  const [showWeightHelp, setShowWeightHelp] = useState(false);
+  const [showWeightScale, setShowWeightScale] = useState(false);
 
-  const weightSeries = useMemo(() => {
-    const arr = Object.values(state.days)
-      .filter((d) => typeof d.weight === 'number')
-      .sort((a, b) => a.date.localeCompare(b.date));
-    return arr.map((d, i) => ({ value: d.weight as number, label: i % 5 === 0 ? d.date.slice(5) : '' }));
-  }, [state.days]);
+  const weightArr = useMemo(() => Object.values(state.days)
+    .filter((d) => typeof d.weight === 'number')
+    .sort((a, b) => a.date.localeCompare(b.date)), [state.days]);
+
+  const weightSeries = useMemo(() => weightArr.map((d, i) => ({ value: d.weight as number, label: i % 5 === 0 ? d.date.slice(5) : '' })), [weightArr]);
+
+  const yMinMax = useMemo(() => {
+    if (weightArr.length < 2) return undefined;
+    const vals = weightArr.map(d => d.weight as number);
+    let min = Math.min(...vals);
+    let max = Math.max(...vals);
+    if (min === max) { min -= 1; max += 1; }
+    else { const pad = (max - min) * 0.1; min -= pad; max += pad; }
+    return { min, max };
+  }, [weightArr]);
 
   const ext = useMemo(() => computeExtendedStats(state.days), [state.days]);
   const insights = useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]);
@@ -42,6 +53,12 @@ export default function AnalysisScreen() {
       insights_title: 'Premium Insights',
       insights_locked: 'Ab Level 75 verfügbar.',
       help: 'Hilfe',
+      too_few: 'Zu wenige Daten',
+      scale: 'Skala',
+      // Weight tips
+      w_hint1: 'Wiege dich möglichst täglich zur gleichen Zeit (z. B. morgens).',
+      w_hint2: 'Nutze dieselbe Waage, barfuß, auf festem Untergrund.',
+      w_hint3: 'Tagesrauschen ist normal – bewerte Trends über mehrere Tage.',
       // Extended explanations
       ext_hint1: 'Ø Wasser 7/30T: Durchschnittliche Anzahl an Wassereinheiten pro Tag (Ziel ≥ 6).',
       ext_hint2: 'Gewichts-Trend/Tag: Negativ = Abnahme, Positiv = Zunahme (kg/Tag).',
@@ -53,7 +70,6 @@ export default function AnalysisScreen() {
       ins_hint3: 'Ausreißer Wasser: Erkennung deutlich über/unter Median (14 Tage).',
       ins_hint4: 'Adhärenz (7T): Tageswerte aus Pillen, Wasser, Gewicht, Sport.',
       ins_hint5: 'Datenschutz: Alles offline lokal berechnet und gespeichert.',
-      too_few: 'Zu wenige Daten',
     };
     const en: Record<string, string> = {
       analysis: 'Analysis',
@@ -63,6 +79,11 @@ export default function AnalysisScreen() {
       insights_title: 'Premium insights',
       insights_locked: 'Available from level 75.',
       help: 'Help',
+      too_few: 'Not enough data',
+      scale: 'Scale',
+      w_hint1: 'Weigh at the same time daily (e.g., mornings).',
+      w_hint2: 'Use the same scale, barefoot, on hard floor.',
+      w_hint3: 'Daily noise is normal – assess multi-day trends.',
       ext_hint1: 'Avg water 7/30d: Average water units per day (goal ≥ 6).',
       ext_hint2: 'Weight trend/day: Negative = loss, Positive = gain (kg/day).',
       ext_hint3: 'Compliance: Share of days with both morning AND evening pill.',
@@ -72,7 +93,6 @@ export default function AnalysisScreen() {
       ins_hint3: 'Water outliers: Detects days far above/below 14-day median.',
       ins_hint4: 'Adherence (7d): Daily points from pills, water, weight, sport.',
       ins_hint5: 'Privacy: All analytics computed offline and stored locally.',
-      too_few: 'Not enough data',
     };
     return (state.language === 'de' ? de : en)[key] || key;
   };
@@ -90,22 +110,44 @@ export default function AnalysisScreen() {
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>{t('weight')}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity onPress={() => setShowWeightScale(v=>!v)} accessibilityLabel={t('scale')} style={{ padding: 6 }}>
+                <Ionicons name='grid' size={18} color={showWeightScale ? colors.primary : colors.muted} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowWeightHelp(v=>!v)} accessibilityLabel={t('help')} style={{ padding: 6 }}>
+                <Ionicons name={showWeightHelp ? 'information-circle' : 'information-circle-outline'} size={18} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
           </View>
           {weightSeries.length > 1 ? (
             <LineChart
               data={weightSeries}
               color={colors.primary}
               thickness={2}
-              hideRules
+              hideRules={!showWeightScale}
+              showYAxisText={showWeightScale}
+              yAxisTextStyle={{ color: colors.muted }}
+              yAxisColor={colors.muted}
+              xAxisColor={colors.muted}
+              noOfSections={showWeightScale ? 4 : 0}
               areaChart
               startFillColor={colors.primary}
               endFillColor={colors.primary}
               startOpacity={0.15}
               endOpacity={0.01}
+              yAxisOffset={yMinMax ? yMinMax.min : undefined}
+              yAxisMaxValue={yMinMax ? yMinMax.max : undefined}
             />
           ) : (
             <Text style={{ color: colors.muted }}>{t('too_few')}</Text>
           )}
+          {showWeightHelp ? (
+            <View style={{ gap: 4, marginTop: 8 }}>
+              <Text style={{ color: colors.muted }}>• {t('w_hint1')}</Text>
+              <Text style={{ color: colors.muted }}>• {t('w_hint2')}</Text>
+              <Text style={{ color: colors.muted }}>• {t('w_hint3')}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* L10 Erweiterte Statistiken */}
