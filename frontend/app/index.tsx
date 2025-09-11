@@ -386,37 +386,37 @@ export default function Home() {
               </View>
             </View>
           </SectionCard>
-          &lt;SectionCard title={t("savedMessages")}&gt;
+          <SectionCard title={t("savedMessages")}>
             {saved.length === 0 ? (
-              &lt;Text style={{ color: colors.muted }}&gt;–&lt;/Text&gt;
+              <Text style={{ color: colors.muted }}>–</Text>
             ) : (
-              saved.slice(0, 5).map((s) =&gt; (
-                &lt;View key={s.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 }}&gt;
-                  &lt;View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}&gt;
-                    &lt;Ionicons name="bookmark" size={16} color={colors.primary} /&gt;
-                    &lt;Text style={{ color: colors.text, flex: 1 }} numberOfLines={1}&gt;{s.text}&lt;/Text&gt;
-                  &lt;/View&gt;
-                  &lt;TouchableOpacity onPress={() =&gt; useAppStore.getState().deleteSaved(s.id)}&gt;
-                    &lt;Ionicons name="trash" size={18} color={colors.muted} /&gt;
-                  &lt;/TouchableOpacity&gt;
-                &lt;/View&gt;
+              saved.slice(0, 5).map((s) => (
+                <View key={s.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+                    <Ionicons name="bookmark" size={16} color={colors.primary} />
+                    <Text style={{ color: colors.text, flex: 1 }} numberOfLines={1}>{s.text}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => useAppStore.getState().deleteSaved(s.id)}>
+                    <Ionicons name="trash" size={18} color={colors.muted} />
+                  </TouchableOpacity>
+                </View>
               ))
             )}
-          &lt;/SectionCard&gt;
-          &lt;SectionCard title={t("settings")}&gt;
-            &lt;View style={{ gap: 12 }}&gt;
-              &lt;RowButton icon="color-palette" label={`${t("themes")}: ` + theme} onPress={() =&gt; cycleTheme()} colors={colors} /&gt;
-              &lt;RowButton icon="language" label={`${t("language")}: ` + (language === "de" ? "Deutsch" : "English")} onPress={() =&gt; setLanguage(language === "de" ? "en" : "de")} colors={colors} /&gt;
-              &lt;RowButton icon="cloud-download" label={t("export")} onPress={handleExport} colors={colors} /&gt;
-              &lt;RowButton icon="cloud-upload" label={t("import")} onPress={handleImport} colors={colors} /&gt;
-              &lt;View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}&gt;
-                &lt;Ionicons name="information-circle" size={18} color={colors.muted} /&gt;
-                &lt;Text style={{ color: colors.muted }}&gt;{t("version")}: {appVersion}&lt;/Text&gt;
-              &lt;/View&gt;
-            &lt;/View&gt;
-          &lt;/SectionCard&gt;
-        &lt;/ScrollView&gt;
-      &lt;/KeyboardAvoidingView&gt;
+          </SectionCard>
+          <SectionCard title={t("settings")}>
+            <View style={{ gap: 12 }}>
+              <RowButton icon="color-palette" label={`${t("themes")}: ` + theme} onPress={() => cycleTheme()} colors={colors} />
+              <RowButton icon="language" label={`${t("language")}: ` + (language === "de" ? "Deutsch" : "English")} onPress={() => setLanguage(language === "de" ? "en" : "de")} colors={colors} />
+              <RowButton icon="cloud-download" label={t("export")} onPress={handleExport} colors={colors} />
+              <RowButton icon="cloud-upload" label={t("import")} onPress={handleImport} colors={colors} />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Ionicons name="information-circle" size={18} color={colors.muted} />
+                <Text style={{ color: colors.muted }}>{t("version")}: {appVersion}</Text>
+              </View>
+            </View>
+          </SectionCard>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Weight Modal */}
       {showWeightModal ? (
