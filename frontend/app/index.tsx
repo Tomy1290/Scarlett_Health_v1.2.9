@@ -447,7 +447,7 @@ function RowButton({ icon, label, onPress, colors }: any) { return (
   </TouchableOpacity>
 ); }
 
-function buildRange(days: any, mode: 'week'|'month'|'custom', customStart?: string, customEnd?: string) {
+function buildRange(days: any, mode: '7'|'14'|'30'|'custom', customStart?: string, customEnd?: string) {
   const today = new Date();
   let start: Date; let end: Date;
   if (mode === 'week') { start = new Date(today); start.setDate(today.getDate() - 6); end = today; }
