@@ -80,18 +80,20 @@ export default function Home() {
 
   const rewardList = [
     { lvl: 10, title: 'Erweiterte Statistiken' },
-    { lvl: 25, title: 'Golden Pink Theme' },
+    { lvl: 25, title: 'Premium Insights' },
     { lvl: 50, title: 'VIP-Chat' },
-    { lvl: 75, title: 'Premium Insights' },
+    { lvl: 75, title: 'Golden Pink Theme' },
     { lvl: 100, title: 'Legendärer Status' },
   ];
-  const nextReward = rewardList.find(r => level &lt; r.lvl);
+  const nextReward = rewardList.find(r => level < r.lvl);
 
-  const canGoNext = currentDate &lt;= todayKey; // goNextDay itself blocks future
+  const canGoNext = currentDate <= todayKey; // goNextDay itself blocks future
 
-  const t = (de: string, en: string) =&gt; (language === 'en' ? en : de);
+  const t = (de: string, en: string) => (language === 'en' ? en : de);
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {/* Top bar with app title and Level/XP */}
         <View style={[styles.card, { backgroundColor: colors.card, paddingVertical: 10 }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -104,8 +106,6 @@ export default function Home() {
           </View>
         </View>
 
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {/* Date navigation */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -353,7 +353,7 @@ export default function Home() {
                 <TouchableOpacity onPress={() => {
                   const normalized = (weightInput || '').replace(',', '.');
                   const val = parseFloat(normalized);
-                  if (!isNaN(val) && val &gt; 0) {
+                  if (!isNaN(val) && val > 0) {
                     setWeight(currentDate, val);
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setWeightModal(false);
