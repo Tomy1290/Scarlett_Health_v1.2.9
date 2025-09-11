@@ -220,16 +220,16 @@ export default function Home() {
   );
 
   const weightCard = (
-    &lt;View&gt;
-      &lt;Text style={{ color: colors.text, marginBottom: 8 }}&gt;
+    <View>
+      <Text style={{ color: colors.text, marginBottom: 8 }}>
         {t("weight")}: {d?.weight != null ? `${d?.weight.toFixed(1)} kg` : "–"}
-      &lt;/Text&gt;
-      &lt;View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}&gt;
-        &lt;PrimaryButton icon="fitness" label={t("enterWeight")} onPress={() =&gt; setShowWeightModal(true)} colors={colors} /&gt;
-        &lt;PrimaryButton icon="flag" label={t("setGoal")} onPress={() =&gt; setShowGoalModal(true)} colors={colors} /&gt;
-      &lt;/View&gt;
-      &lt;View style={{ height: 180 }}&gt;
-        &lt;LineChart
+      </Text>
+      <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+        <PrimaryButton icon="fitness" label={t("enterWeight")} onPress={() => setShowWeightModal(true)} colors={colors} />
+        <PrimaryButton icon="flag" label={t("setGoal")} onPress={() => setShowGoalModal(true)} colors={colors} />
+      </View>
+      <View style={{ height: 180 }}>
+        <LineChart
           data={last7}
           thickness={3}
           color={colors.primary}
@@ -241,9 +241,9 @@ export default function Home() {
           yAxisColor={colors.muted}
           xAxisColor={colors.muted}
           curved
-        /&gt;
-      &lt;/View&gt;
-    &lt;/View&gt;
+        />
+      </View>
+    </View>
   );
 
   function handleSaveGoal() {
