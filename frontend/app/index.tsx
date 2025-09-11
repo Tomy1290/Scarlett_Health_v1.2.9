@@ -420,25 +420,25 @@ export default function Home() {
 
       {/* Weight Modal */}
       {showWeightModal ? (
-        &lt;View style={styles.modalOverlay}&gt;
-          &lt;View style={[styles.modalCard, { backgroundColor: colors.card }]}&gt;
-            &lt;Text style={[styles.cardTitle, { color: colors.text }]}&gt;{t("enterWeight")} ({displayDate(new Date(currentDate))})&lt;/Text&gt;
-            &lt;TextInput
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{t("enterWeight")} ({displayDate(new Date(currentDate))})</Text>
+            <TextInput
               keyboardType="decimal-pad"
               value={weightInput}
               onChangeText={setWeightInput}
               placeholder="72.4"
               placeholderTextColor={colors.muted}
               style={[styles.input, { borderColor: colors.muted, color: colors.text }]}
-            /&gt;
-            &lt;View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}&gt;
-              &lt;PrimaryButton label="Abbrechen" icon="close" onPress={() =&gt; setShowWeightModal(false)} colors={colors} outline /&gt;
-              &lt;PrimaryButton label="Speichern" icon="save" onPress={handleSaveWeight} colors={colors} /&gt;
-            &lt;/View&gt;
-          &lt;/View&gt;
-        &lt;/View&gt;
+            />
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+              <PrimaryButton label="Abbrechen" icon="close" onPress={() => setShowWeightModal(false)} colors={colors} outline />
+              <PrimaryButton label="Speichern" icon="save" onPress={handleSaveWeight} colors={colors} />
+            </View>
+          </View>
+        </View>
       ) : null}
-    &lt;/SafeAreaView&gt;
+    </SafeAreaView>
   );
 
   function cycleTheme() {
