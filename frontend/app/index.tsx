@@ -71,6 +71,10 @@ export default function Home() {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [goalWeight, setGoalWeight] = useState("");
   const [goalDate, setGoalDate] = useState("");
+  const [showRemindersModal, setShowRemindersModal] = useState(false);
+  const [newRemType, setNewRemType] = useState("");
+  const [newRemTime, setNewRemTime] = useState("");
+
 
   React.useEffect(() => {
     setWeightInput(d?.weight ? String(d.weight) : "");
