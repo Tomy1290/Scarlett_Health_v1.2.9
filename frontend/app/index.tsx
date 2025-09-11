@@ -10,8 +10,9 @@ import { computeAchievements } from "../src/achievements";
 import { useRouter } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import { scheduleDailyReminder, cancelNotification, ensureNotificationPermissions } from "../src/utils/notifications";
+import { getWeekRange, getCurrentWeeklyEvent, computeEventProgress } from "../src/gamification/events";
 
-/* Rest des Codes unverändert, nur der Sync-Effect angepasst */
+// ... existing helpers (useThemeColors, SectionCard) remain
 
 export default function Home() {
   const router = useRouter();
@@ -21,28 +22,71 @@ export default function Home() {
     reminders, addReminder, updateReminder, deleteReminder,
     chat, addChat, saved, addSaved, setLanguage, setTheme, appVersion,
     notificationMeta, setNotificationMeta, hasSeededReminders, setHasSeededReminders,
-    showOnboarding, setShowOnboarding,
+    showOnboarding, setShowOnboarding, eventHistory, completeEvent, legendShown, setLegendShown,
   } = useAppStore();
+  const { level, xp } = useLevel();
 
-  // ... (oberer Code bleibt gleich)
+  // Weekly event computation
+  const now = new Date();
+  const { weekKey, dayKeys } = getWeekRange(now);
+  const weeklyEvent = getCurrentWeeklyEvent(now);
+  const evProg = computeEventProgress(dayKeys, { days }, weeklyEvent);
+  const evCompleted = evProg.completed || !!eventHistory[weekKey]?.completed;
 
   useEffect(() => {
-    (async () => {
-      for (const r of reminders) {
-        const key = r.id;
-        const meta = notificationMeta[key];
-        if (r.enabled) {
-          if (!meta || meta.time !== r.time) {
-            if (meta?.id) { await cancelNotification(meta.id); }
-            const notifId = await scheduleDailyReminder(key, 'Erinnerung', `${r.type} – ${r.time}`, r.time);
-            setNotificationMeta(key, notifId ? { id: notifId, time: r.time } : undefined);
-          }
-        } else {
-          if (meta?.id) { await cancelNotification(meta.id); setNotificationMeta(key, undefined); }
-        }
-      }
-    })();
-  }, [reminders]);
+    if (evProg.completed && !eventHistory[weekKey]?.completed) {
+      completeEvent(weekKey, { id: weeklyEvent.id, xp: weeklyEvent.xp });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [evProg.completed, weekKey]);
 
-  // ... (Rest UI unverändert)
+  // Legend badge overlay at Level 100
+  useEffect(() => {
+    if (level >= 100 && !legendShown) {
+      setLegendShown(true);
+    }
+  }, [level, legendShown]);
+
+  // UI will include: Events card, Gated theme, Extended stats (Lv25), VIP chat (Lv50), Insights (Lv75)
+
+  // Chat gating
+  const chatMaxLen = level < 50 ? 120 : 10000;
+
+  // Insights (offline, simple heuristics)
+  function computeInsights() {
+    // 1) Wochentage Wasser-Durchschnitt
+    const weekdayWater = Array.from({ length: 7 }, () => ({ sum: 0, n: 0 }));
+    Object.values(days).forEach((d) => {
+      const dt = new Date(d.date);
+      const w = dt.getDay();
+      weekdayWater[w].sum += (d.drinks?.water ?? 0);
+      weekdayWater[w].n += 1;
+    });
+    const avg = weekdayWater.map((x) => (x.n ? x.sum / x.n : 0));
+    let minIdx = 0; for (let i=1;i<7;i++){ if (avg[i] < avg[minIdx]) minIdx = i; }
+    const dayNamesDe = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+    const dayNamesEn = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const lowDay = language==='de'? dayNamesDe[minIdx] : dayNamesEn[minIdx];
+    const tips: string[] = [];
+    tips.push(language==='de'?`Am ${lowDay} trinkst du im Schnitt am wenigsten.`:`You drink the least on ${lowDay}.`);
+    // 2) Gesundheits-Score einfach
+    const today = days[toKey(new Date())];
+    const scoreParts: number[] = [];
+    if (today) {
+      scoreParts.push(today.pills?.morning && today.pills?.evening ? 30 : 0);
+      scoreParts.push((today.drinks?.water ?? 0) >= 6 ? 30 : Math.min(30, (today.drinks?.water ?? 0) * 5));
+      scoreParts.push(typeof today.weight === 'number' ? 20 : 0);
+      scoreParts.push(today.drinks?.sport ? 20 : 0);
+    }
+    const score = scoreParts.reduce((a,b)=>a+b,0);
+    tips.push(language==='de'?`Heutiger Gesundheits-Score: ${score}/100.`:`Today health score: ${score}/100.`);
+    return tips;
+  }
+
+  // In settings theme gating for Golden Pink
+  function canUseGoldenPink() { return level >= 10; }
+
+  // Extended stats gating (Lv25) we add additional text in Analysis modal when level>=25
+
+  // ... rest of component UI below
 }

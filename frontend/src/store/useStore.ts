@@ -9,33 +9,17 @@ export type Language = "de" | "en";
 export type ThemeName = "pink_default" | "pink_pastel" | "pink_vibrant" | "golden_pink";
 
 export type DayData = {
-  date: string; // yyyy-MM-dd
+  date: string;
   pills: { morning: boolean; evening: boolean };
-  drinks: {
-    water: number;
-    coffee: number;
-    slimCoffee: boolean;
-    gingerGarlicTea: boolean;
-    waterCure: boolean;
-    sport: boolean;
-  };
+  drinks: { water: number; coffee: number; slimCoffee: boolean; gingerGarlicTea: boolean; waterCure: boolean; sport: boolean };
   weight?: number;
-  weightTime?: number; // epoch ms when weight last set
+  weightTime?: number;
 };
 
 export type Goal = { targetWeight: number; targetDate: string; startWeight: number; active: boolean };
-
-export type Reminder = {
-  id: string;
-  type: string; // pills_morning, pills_evening, water, coffee, slimCoffee, gingerGarlicTea, waterCure, sport, weight
-  time: string; // HH:MM 24h
-  enabled: boolean;
-};
-
+export type Reminder = { id: string; type: string; time: string; enabled: boolean };
 export type ChatMessage = { id: string; sender: "user" | "bot"; text: string; createdAt: number };
 export type SavedMessage = { id: string; title: string; category?: string; tags?: string[]; text: string; createdAt: number };
-
-export type AchievementProgress = { id: string; title: string; description: string; percent: number; xp: number; completed: boolean };
 
 export type AppState = {
   days: Record<string, DayData>;
@@ -45,14 +29,16 @@ export type AppState = {
   saved: SavedMessage[];
   achievementsUnlocked: string[];
   xp: number;
-  xpBonus: number; // combo bonuses etc.
+  xpBonus: number;
   language: Language;
   theme: ThemeName;
   appVersion: string;
-  currentDate: string; // yyyy-MM-dd
+  currentDate: string;
   notificationMeta: Record<string, { id: string; time: string } | undefined>;
   hasSeededReminders: boolean;
   showOnboarding: boolean;
+  eventHistory: Record<string, { id: string; completed: boolean; xp: number } | undefined>;
+  legendShown?: boolean;
 
   setLanguage: (lng: Language) => void;
   setTheme: (t: ThemeName) => void;
@@ -76,42 +62,27 @@ export type AppState = {
   setNotificationMeta: (remId: string, meta?: { id: string; time: string }) => void;
   setHasSeededReminders: (v: boolean) => void;
   setShowOnboarding: (v: boolean) => void;
+  completeEvent: (weekKey: string, entry: { id: string; xp: number }) => void;
+  setLegendShown: (v: boolean) => void;
 
   recalcAchievements: () => void;
 };
 
-const defaultDay = (dateKey: string): DayData => ({
-  date: dateKey,
-  pills: { morning: false, evening: false },
-  drinks: { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false },
-});
-
+const defaultDay = (dateKey: string): DayData => ({ date: dateKey, pills: { morning: false, evening: false }, drinks: { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } });
 function clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      days: {},
-      reminders: [],
-      chat: [],
-      saved: [],
-      achievementsUnlocked: [],
-      xp: 0,
-      xpBonus: 0,
-      language: "de",
-      theme: "pink_default",
-      appVersion: "1.0.0",
-      currentDate: toKey(new Date()),
-      notificationMeta: {},
-      hasSeededReminders: false,
-      showOnboarding: true,
+      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.0.0",
+      currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false,
 
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
       setTheme: (t) => { set({ theme: t }); get().recalcAchievements(); },
       goPrevDay: () => { const cur = new Date(get().currentDate); const prev = new Date(cur); prev.setDate(cur.getDate() - 1); set({ currentDate: toKey(prev) }); },
       goNextDay: () => { const cur = new Date(get().currentDate); const next = new Date(cur); next.setDate(cur.getDate() + 1); const todayKey = toKey(new Date()); const nextKey = toKey(next); if (nextKey > todayKey) return; set({ currentDate: nextKey }); },
       goToday: () => set({ currentDate: toKey(new Date()) }),
-      ensureDay: (key: string) => { const days = get().days; if (!days[key]) { set({ days: { ...days, [key]: defaultDay(key) } }); } },
+      ensureDay: (key) => { const days = get().days; if (!days[key]) set({ days: { ...days, [key]: defaultDay(key) } }); },
       togglePill: (key, time) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); d.pills = { ...d.pills, [time]: !d.pills[time] } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
       incDrink: (key, type, delta) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const val = d.drinks[type] as number; const next = clamp(val + delta, 0, 999); d.drinks = { ...d.drinks, [type]: next } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
       toggleFlag: (key, type) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const cur = d.drinks[type] as boolean; d.drinks = { ...d.drinks, [type]: !cur } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
@@ -128,35 +99,27 @@ export const useAppStore = create<AppState>()(
       setNotificationMeta: (remId, meta) => set({ notificationMeta: { ...get().notificationMeta, [remId]: meta } }),
       setHasSeededReminders: (v) => set({ hasSeededReminders: v }),
       setShowOnboarding: (v) => set({ showOnboarding: v }),
+      completeEvent: (weekKey, entry) => {
+        const existing = get().eventHistory[weekKey];
+        if (existing?.completed) return;
+        const xpBonus = get().xpBonus + entry.xp;
+        set({ eventHistory: { ...get().eventHistory, [weekKey]: { id: entry.id, completed: true, xp: entry.xp } }, xpBonus, xp: get().xp + entry.xp });
+      },
+      setLegendShown: (v) => set({ legendShown: v }),
 
       recalcAchievements: () => {
         const state = get();
         const base = computeAchievements({ days: state.days, goal: state.goal, reminders: state.reminders, chat: state.chat, saved: state.saved, achievementsUnlocked: state.achievementsUnlocked, xp: state.xp, language: state.language, theme: state.theme });
-        // combo bonus: detect new unlocks
         const prevSet = new Set(state.achievementsUnlocked);
         const newUnlocks = base.unlocked.filter((id) => !prevSet.has(id));
         let xpBonus = state.xpBonus;
-        if (newUnlocks.length >= 2) {
-          xpBonus += (newUnlocks.length - 1) * 50; // +50 XP je zusätzlichem Unlock im selben Recalc
-        }
+        if (newUnlocks.length >= 2) xpBonus += (newUnlocks.length - 1) * 50;
         set({ achievementsUnlocked: base.unlocked, xpBonus, xp: base.xp + xpBonus });
       },
     }),
-    {
-      name: "scarlett-app-state",
-      storage: createJSONStorage(() => mmkvAdapter),
-      partialize: (s) => s,
-      version: 5,
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
-        const days = state.days || {};
-        for (const k of Object.keys(days)) {
-          const d = days[k];
-          if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any;
-          if (typeof d.drinks.sport !== "boolean") d.drinks.sport = false as any;
-        }
-      },
-    }
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 6, onRehydrateStorage: () => (state) => {
+      if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; }
+    } }
   )
 );
 
