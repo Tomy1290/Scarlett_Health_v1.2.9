@@ -240,7 +240,7 @@ export const EVENTS: WeeklyEvent[] = [
   {
     id: 'coffee_3max', title:(l)=> l==='de'? 'Kaffee ≤3' : 'Coffee ≤3', description:(l)=> l==='de'? 'Mind. 4 Tage mit ≤3 Kaffees.' : 'At least 4 days with ≤3 coffees.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> (d?.drinks?.coffee ?? 0) <= 3)/4)*100)), xp: 140, bonusPercent: 0.10 },
   {
-    id: 'early_bird', title:(l)=> l==='de'? 'Frühaufsteher' : 'Early Bird', description:(l)=> l==='de'? '3× vor 8:00 wiegen.' : 'Weigh before 8:00 three times.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> typeof d?.weightTime==='number' &amp;&amp; new Date(d.weightTime).getHours() &lt; 8)/3)*100)), xp: 150, bonusPercent: 0.08 },
+    id: 'early_bird', title:(l)=> l==='de'? 'Frühaufsteher' : 'Early Bird', description:(l)=> l==='de'? '3× vor 8:00 wiegen.' : 'Weigh before 8:00 three times.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> typeof d?.weightTime==='number' &amp;&amp; new Date(d.weightTime).getHours() < 8)/3)*100)), xp: 150, bonusPercent: 0.08 },
   {
     id: 'night_tracker', title:(l)=> l==='de'? 'Nacht-Tracker' : 'Night Tracker', description:(l)=> l==='de'? '3× nach 22:00 tracken.' : 'Track after 22:00 three times.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> typeof d?.weightTime==='number' &amp;&amp; new Date(d.weightTime).getHours() &gt;= 22)/3)*100)), xp: 110, bonusPercent: 0.05 },
 ];
