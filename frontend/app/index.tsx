@@ -369,6 +369,11 @@ export default function Home() {
     }
   }
 
+  // Analysis memoized data
+  const analysisSeries = useMemo(() => buildRange(days, analysisTab, customStart, customEnd), [days, analysisTab, customStart, customEnd]);
+  const analysisData = useMemo(() => analysisSeries.map((s) => ({ value: typeof s.weight === 'number' ? s.weight : 0, label: s.date.slice(5) })), [analysisSeries]);
+  const analysisSummary = useMemo(() => computeStats(analysisSeries), [analysisSeries]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
       {header}
