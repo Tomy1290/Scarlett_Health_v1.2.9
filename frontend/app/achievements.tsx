@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,6 +7,7 @@ import { useAppStore } from "../src/store/useStore";
 import { computeAchievements, getAchievementConfigById } from "../src/achievements";
 import { BadgeIcon } from "../src/components/BadgeIcon";
 import { getWeekRange, getCurrentWeeklyEvent, computeEventProgress } from "../src/gamification/events";
+import { computeExtendedStats, computePremiumInsights } from "../src/analytics/stats";
 
 function useThemeColors(theme: string) {
   if (theme === "pink_pastel") return { bg: "#fff0f5", card: "#ffe4ef", primary: "#d81b60", text: "#3a2f33", muted: "#8a6b75" };
@@ -49,6 +50,16 @@ export default function AchievementsScreen() {
     { id: 'leg', lvl: 100, title: 'Legendärer Status' },
   ];
 
+  // Legend Celebration once
+  useEffect(() => {
+    if (level >= 100 && !state.rewardsSeen?.legend) {
+      state.setRewardSeen('legend', true);
+    }
+  }, [level]);
+
+  const ext = useMemo(() => computeExtendedStats(state.days), [state.days]);
+  const premium = useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[styles.header, { backgroundColor: colors.card }]}>
@@ -76,6 +87,61 @@ export default function AchievementsScreen() {
           </View>
         </View>
 
+        {/* Unlock previews */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
+          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Freischaltungen</Text>
+
+          {/* L25 Extended Stats */}
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Erweiterte Statistiken (L25)</Text>
+            {level >= 25 ? (
+              <View style={{ marginTop: 6 }}>
+                <Text style={{ color: colors.muted }}>Ø Wasser 7T: {ext.waterAvg7.toFixed(1)}</Text>
+                <Text style={{ color: colors.muted }}>Ø Wasser 30T: {ext.waterAvg30.toFixed(1)}</Text>
+                <Text style={{ color: colors.muted }}>Gewichts-Trend/Tag: {ext.weightTrendPerDay.toFixed(2)} kg</Text>
+                <Text style={{ color: colors.muted }}>Compliance: {(ext.complianceRate*100).toFixed(0)}%</Text>
+                <Text style={{ color: colors.muted }}>Bester Perfekt-Streak: {ext.bestPerfectStreak} Tage</Text>
+              </View>
+            ) : (
+              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 25 verfügbar.</Text>
+            )}
+          </View>
+
+          {/* L50 VIP Chat */}
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>VIP-Chat (L50)</Text>
+            {level >= 50 ? (
+              <Text style={{ color: colors.muted, marginTop: 4 }}>Aktiv. Längere Nachrichten und Erweiterungen freigeschaltet.</Text>
+            ) : (
+              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 50 verfügbar.</Text>
+            )}
+          </View>
+
+          {/* L75 Premium Insights */}
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Premium Insights (L75)</Text>
+            {level >= 75 ? (
+              <View style={{ marginTop: 4, gap: 4 }}>
+                {premium.slice(0, 3).map((t, i) => (
+                  <Text key={i} style={{ color: colors.muted }}>• {t}</Text>
+                ))}
+              </View>
+            ) : (
+              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 75 verfügbar.</Text>
+            )}
+          </View>
+
+          {/* L100 Legend */}
+          <View>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Legendärer Status (L100)</Text>
+            {level >= 100 ? (
+              <Text style={{ color: colors.muted, marginTop: 4 }}>Aktiv! Danke für deine Ausdauer. 🏆</Text>
+            ) : (
+              <Text style={{ color: colors.muted, marginTop: 4 }}>Ab Level 100 verfügbar.</Text>
+            )}
+          </View>
+        </View>
+
         {/* Weekly event */}
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 4 }}>{weeklyEvent.title(state.language)}</Text>
@@ -89,7 +155,7 @@ export default function AchievementsScreen() {
         {/* Filters & search */}
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {(['all','progress','done'] as const).map((f) => (
-            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: filter===f ? colors.primary : 'transparent' }]}
+            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: filter===f ? colors.primary : 'transparent' }]} 
               accessibilityLabel={`Filter ${f}`}>
               <Text style={{ color: filter===f ? '#fff' : colors.text }}>{f==='all'?'Alle':f==='progress'?'In Arbeit':'Erreicht'}</Text>
             </TouchableOpacity>
