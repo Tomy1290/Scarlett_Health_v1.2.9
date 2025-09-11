@@ -277,14 +277,14 @@ export default function Home() {
     const msgs: string[] = [];
     const today = days[currentDate];
     const water = today?.drinks.water ?? 0;
-    if (water &lt; 6) msgs.push(language === "de" ? "Trinke heute noch etwas mehr Wasser – Ziel 6+ Gläser." : "Try to drink a bit more water today – aim for 6+ glasses.");
+    if (water < 6) msgs.push(language === "de" ? "Trinke heute noch etwas mehr Wasser – Ziel 6+ Gläser." : "Try to drink a bit more water today – aim for 6+ glasses.");
     const weights = Object.values(days)
-      .filter((x) =&gt; x.weight != null)
-      .sort((a, b) =&gt; a.date.localeCompare(b.date));
-    if (weights.length &gt;= 2) {
+      .filter((x) => x.weight != null)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (weights.length >= 2) {
       const delta = (weights[weights.length - 1].weight! - weights[0].weight!);
-      if (delta &lt; 0) msgs.push(language === "de" ? "Starke Arbeit – dein Gewicht geht nach unten!" : "Great job – your weight trend is down!");
-      else if (delta &gt; 0.2) msgs.push(language === "de" ? "Gewicht leicht gestiegen – bleib dran mit Ernährung und Bewegung." : "Weight slightly up – keep focusing on nutrition and activity.");
+      if (delta < 0) msgs.push(language === "de" ? "Starke Arbeit – dein Gewicht geht nach unten!" : "Great job – your weight trend is down!");
+      else if (delta > 0.2) msgs.push(language === "de" ? "Gewicht leicht gestiegen – bleib dran mit Ernährung und Bewegung." : "Weight slightly up – keep focusing on nutrition and activity.");
     }
     if (today?.drinks.sport) msgs.push(language === "de" ? "Sport heute abgehakt – super!" : "Sport done today – awesome!");
     if (msgs.length === 0) msgs.push(language === "de" ? "Ich bin für dich da – was möchtest du verbessern?" : "I'm here for you – what would you like to improve?");
