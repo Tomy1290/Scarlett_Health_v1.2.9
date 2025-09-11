@@ -92,6 +92,18 @@ export default function Home() {
   const t = (de: string, en: string) =&gt; (language === 'en' ? en : de);
 
   return (
+        {/* Top bar with app title and Level/XP */}
+        <View style={[styles.card, { backgroundColor: colors.card, paddingVertical: 10 }]}> 
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 16 }}>Scarletts Gesundheitstracking</Text>
+            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/settings'); }} accessibilityLabel={t('Einstellungen', 'Settings')} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="star" size={16} color={colors.primary} />
+              <Text style={{ color: colors.text, marginLeft: 6 }}>L{level} · {xp} XP</Text>
+              <Ionicons name="settings" size={16} color={colors.text} style={{ marginLeft: 10 }} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {/* Date navigation */}
