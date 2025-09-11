@@ -532,6 +532,15 @@ function PrimaryButton({ icon, label, onPress, colors, outline }: any) {
   );
 }
 
+function RowButton({ icon, label, onPress, colors }: any) {
+  return (
+    <TouchableOpacity onPress={onPress} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8 }}>
+      <Ionicons name={icon} size={18} color={colors.text} />
+      <Text style={{ color: colors.text, marginLeft: 8 }}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 function AchievementPreview() {
   const { achievementsUnlocked, xp } = useAppStore();
   const next = useMemo(() => {
