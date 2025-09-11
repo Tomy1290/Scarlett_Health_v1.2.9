@@ -176,22 +176,22 @@ export default function Home() {
   );
 
   const pillRow = (
-    &lt;View style={{ flexDirection: "row", gap: 12 }}&gt;
-      &lt;ToggleButton
+    <View style={{ flexDirection: "row", gap: 12 }}>
+      <ToggleButton
         icon="sunny"
         label={t("morning")}
         active={!!d?.pills.morning}
-        onPress={() =&gt; togglePill(currentDate, "morning")}
+        onPress={() => togglePill(currentDate, "morning")}
         colors={colors}
-      /&gt;
-      &lt;ToggleButton
+      />
+      <ToggleButton
         icon="moon"
         label={t("evening")}
         active={!!d?.pills.evening}
-        onPress={() =&gt; togglePill(currentDate, "evening")}
+        onPress={() => togglePill(currentDate, "evening")}
         colors={colors}
-      /&gt;
-    &lt;/View&gt;
+      />
+    </View>
   );
 
   const drinkRow = (
