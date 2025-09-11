@@ -496,10 +496,10 @@ function ToggleRow({ icon, label, active, onPress, colors }: any) {
 
 function PrimaryButton({ icon, label, onPress, colors, outline }: any) {
   return (
-    &lt;TouchableOpacity onPress={onPress} style={[styles.primaryBtn, outline ? { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.primary } : { backgroundColor: colors.primary }]}&gt;
-      {icon ? &lt;Ionicons name={icon} size={16} color={outline ? colors.primary : "#fff"} /&gt; : null}
-      {label ? &lt;Text style={{ color: outline ? colors.primary : "#fff", marginLeft: 8 }}&gt;{label}&lt;/Text&gt; : null}
-    &lt;/TouchableOpacity&gt;
+    <TouchableOpacity onPress={onPress} style={[styles.primaryBtn, outline ? { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.primary } : { backgroundColor: colors.primary }]}>
+      {icon ? <Ionicons name={icon} size={16} color={outline ? colors.primary : "#fff"} /> : null}
+      {label ? <Text style={{ color: outline ? colors.primary : "#fff", marginLeft: 8 }}>{label}</Text> : null}
+    </TouchableOpacity>
   );
 }
 
