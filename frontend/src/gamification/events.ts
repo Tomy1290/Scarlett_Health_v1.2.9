@@ -236,7 +236,7 @@ export const EVENTS: WeeklyEvent[] = [
   {
     id: 'slim_coffee_plus', title:(l)=> l==='de'? 'Abnehmkaffee +' : 'Slim Coffee +', description:(l)=> l==='de'? '4 Tage Abnehmkaffee.' : 'Slim Coffee 4 days.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> !!d?.drinks?.slimCoffee)/4)*100)), xp: 120, bonusPercent: 0.07 },
   {
-    id: 'perfect_triple', title:(l)=> l==='de'? 'Perfekt x3' : 'Perfect x3', description:(l)=> l==='de'? '3 perfekte Tage.' : '3 perfect days.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> { if(!d) return false; const p=!!d?.pills?.morning &amp;&amp; !!d?.pills?.evening; const w=(d?.drinks?.water ?? 0) &gt;= 6; const g=typeof d?.weight==='number'; return p &amp;&amp; w &amp;&amp; g; })/3)*100)), xp: 180, bonusPercent: 0.15 },
+    id: 'perfect_triple', title:(l)=> l==='de'? 'Perfekt x3' : 'Perfect x3', description:(l)=> l==='de'? '3 perfekte Tage.' : '3 perfect days.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> { if(!d) return false; const p=!!d?.pills?.morning && !!d?.pills?.evening; const w=(d?.drinks?.water ?? 0) >= 6; const g=typeof d?.weight==='number'; return p && w && g; })/3)*100)), xp: 180, bonusPercent: 0.15 },
   {
     id: 'coffee_3max', title:(l)=> l==='de'? 'Kaffee ≤3' : 'Coffee ≤3', description:(l)=> l==='de'? 'Mind. 4 Tage mit ≤3 Kaffees.' : 'At least 4 days with ≤3 coffees.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> (d?.drinks?.coffee ?? 0) <= 3)/4)*100)), xp: 140, bonusPercent: 0.10 },
   {
