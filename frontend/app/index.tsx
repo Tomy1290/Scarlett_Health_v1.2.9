@@ -450,10 +450,11 @@ function RowButton({ icon, label, onPress, colors }: any) { return (
 function buildRange(days: any, mode: '7'|'14'|'30'|'custom', customStart?: string, customEnd?: string) {
   const today = new Date();
   let start: Date; let end: Date;
-  if (mode === 'week') { start = new Date(today); start.setDate(today.getDate() - 6); end = today; }
-  else if (mode === 'month') { start = new Date(today); start.setDate(today.getDate() - 29); end = today; }
+  if (mode === '7') { start = new Date(today); start.setDate(today.getDate() - 6); end = today; }
+  else if (mode === '14') { start = new Date(today); start.setDate(today.getDate() - 13); end = today; }
+  else if (mode === '30') { start = new Date(today); start.setDate(today.getDate() - 29); end = today; }
   else {
-    const { parseGermanOrShort, toKey } = require('../src/utils/date');
+    const { parseGermanOrShort } = require('../src/utils/date');
     const s = parseGermanOrShort(customStart || '');
     const e = parseGermanOrShort(customEnd || '');
     start = s || new Date(today.getFullYear(), today.getMonth(), today.getDate());
