@@ -87,6 +87,10 @@ export default function Home() {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [goalWeight, setGoalWeight] = useState("");
   const [goalDate, setGoalDate] = useState("");
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [analysisTab, setAnalysisTab] = useState<'week'|'month'|'custom'>('week');
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [showRemindersModal, setShowRemindersModal] = useState(false);
   const [newRemType, setNewRemType] = useState("");
   const [newRemTime, setNewRemTime] = useState("");
