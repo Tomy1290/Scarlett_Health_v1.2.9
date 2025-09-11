@@ -62,12 +62,7 @@ export default function SavedManager() {
         </View>
         <View style={{ width: 40 }} />
       </View>
-        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
-          <Ionicons name='chevron-back' size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Gespeicherte Nachrichten</Text>
-        <View style={{ width: 40 }} />
-      </View>
+
 
       <View style={{ padding: 16, gap: 8 }}>
         <TextInput value={query} onChangeText={setQuery} placeholder='Suchen (Titel, Text, Tags)…' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
