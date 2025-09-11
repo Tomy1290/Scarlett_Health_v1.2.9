@@ -228,7 +228,7 @@ export const EVENTS: WeeklyEvent[] = [
   {
     id: 'tea_plus', title:(l)=> l==='de'? 'Mehr Tee' : 'More Tea', description:(l)=> l==='de'? '4× Ingwer-Knoblauch-Tee.' : 'Tea 4 times.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> !!d?.drinks?.gingerGarlicTea)/4)*100)), xp: 120, bonusPercent: 0.07 },
   {
-    id: 'coffee_cut', title:(l)=> l==='de'? 'Kaffee reduzieren' : 'Cut Coffee', description:(l)=> l==='de'? 'Keine Tage ≥6 Kaffee.' : 'No days with ≥6 coffees.', progress:(k,s)=> { const hi = countDays(k,s,(d)=> (d?.drinks?.coffee ?? 0) &gt;= 6); return hi===0 ? 100 : 0; }, xp: 150, bonusPercent: 0.15 },
+    id: 'coffee_cut', title:(l)=> l==='de'? 'Kaffee reduzieren' : 'Cut Coffee', description:(l)=> l==='de'? 'Keine Tage ≥6 Kaffee.' : 'No days with ≥6 coffees.', progress:(k,s)=> { const hi = countDays(k,s,(d)=> (d?.drinks?.coffee ?? 0) >= 6); return hi===0 ? 100 : 0; }, xp: 150, bonusPercent: 0.15 },
   {
     id: 'weigh_5', title:(l)=> l==='de'? 'Wiegen 5' : 'Weigh 5', description:(l)=> l==='de'? '5 Tage wiegen.' : 'Weigh on 5 days.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> typeof d?.weight === 'number')/5)*100)), xp: 130, bonusPercent: 0.06 },
   {
