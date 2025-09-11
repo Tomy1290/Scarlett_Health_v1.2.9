@@ -1,0 +1,100 @@
+<analysis>
+The previous AI engineer meticulously followed the user's iterative development requests for Scarletts Gesundheitstracking, an offline-first Android application. Initially, the core application structure, dashboard, and essential modules like Pills, Drinks, Weight, Goals, Chat, and Settings were established. Key decisions included using  for navigation,  with  for state management, and  for data visualization.
+
+Subsequent phases focused on enhancing existing features and introducing new ones. The reminders system was fully implemented with local management and later upgraded to native OS notifications with auto-rescheduling and default times. The weight analysis gained daily delta views. A significant effort was dedicated to the gamification aspect, expanding achievements to over 40 distinct goals, removing the XP cap for open-ended leveling, and developing dedicated achievement list and detail pages with visual badges.
+
+UX/Accessibility improvements, including adaptive themes, haptics, hit-slops, and an onboarding guide, were progressively integrated. The work concluded with the implementation of a comprehensive Saved Messages Manager and the initial setup for local notifications and extended achievement logic, including a basic combo system. The current focus is on finalizing gamification features like level rewards and offline seasonal events, and addressing offline AI features.
+</analysis>
+
+<product_requirements>
+The user requires an offline-first Android health tracking application named Scarletts Gesundheitstracking, which will be built with Codemagic for APK generation. All data must be stored locally using MMKV. The app needs to support German and English, with a toggle in settings.
+
+Core functionalities include:
+-   **Dashboard & Navigation**: Day-wise navigation (back/forward arrows, Today button), future days locked, XP/Level displayed in the header.
+-   **Modules**:
+    -   **Pills**: Morning/Evening toggles for daily intake.
+    -   **Drinks & Sport**: Counters for Water/Coffee, toggles for special drinks (Abnehmkaffee, Ingwer-Knoblauch-Tee, Wasserkur) and Sport.
+    -   **Weight & Goals**: Display current weight, full-screen modal for weight input, full-screen modal for setting weight goals (target weight/date), validation for entering weight first.
+    -   **Weight Progress**: Overview with 7/14/30-day and custom date range analysis, line charts, total/average daily change, and daily weight differences.
+    -   **Reminders**: Full-screen modal to manage (CRUD) local reminders (type, time HH:MM, status ON/OFF), with native OS notifications, standard seed times (pills, water, sport, ginger-garlic-tea), and auto-rescheduling.
+    -   **Achievements & Level (Gamification)**: Over 40 achievements across categories (Basic, Intermediate, Advanced, Expert, Legendary, Special) with XP, an open-ended leveling system (no cap), a dashboard preview of the next 3 achievements, a dedicated list page (filter/search), and a detail page with badges/tips. A basic combo system for bonus XP.
+    -   **Chat (Gugi)**: Offline rule-based chat offering contextual health tips based on user behavior, displaying the last 5 messages.
+    -   **Saved Messages**: Save bot tips with title, category (preset + custom), tags, search, filter, and delete.
+    -   **Settings**: Theme selection (3 Rosa variants with adaptive display), data export (.json) and import (.json), language toggle, app version display.
+-   **UX/UI**: Minimal touch areas (44/48pt), 8pt grid spacing, full-screen modals, adaptive themes, haptic feedback, accessibility labels, and a 4-card onboarding miniguide.
+-   **Release**: Codemagic workflow for APK, Android package ID, and custom app icon.
+</product_requirements>
+
+<key_technical_concepts>
+-   **Expo Router**: File-based routing for navigation.
+-   **Zustand**: Lightweight, TypeScript-first state management.
+-   **MMKV**: High-performance, persistent local storage.
+-   **React Native**: Core UI components.
+-   **React Native Gifted Charts**: Charting library for data visualization.
+-   **Expo Notifications**: For local push notifications.
+-   **Expo Haptics**: For haptic feedback.
+-   **React Native SVG**: For vector graphics, specifically badges.
+-   **Internationalization**: DE/EN language support.
+</key_technical_concepts>
+
+<code_architecture>
+
+
+
+-   
+    -   **Importance**: This is the root layout for Expo Router, handling global UI aspects like , notification handlers, and initial permissions.
+    -   **Changes**: Setup , , .
+-   
+    -   **Importance**: The main dashboard screen, containing all feature cards, modals (Weight, Goals, Reminders, Analysis, Saved Messages, Settings), and core UI logic.
+    -   **Changes**: Implemented adaptive theme logic, all dashboard cards (Pills, Drinks/Sport, Weight, Achievements, Chat, Saved, Settings), navigation logic, modals for weight/goal input, reminder management, weight analysis (7/14/30/Custom with daily deltas), language/theme switching, data export/import. Integrated onboarding overlay, quick-add buttons for reminders, and scheduling sync for notifications.
+-   
+    -   **Importance**: Dedicated screen to list all achievements with filter and search functionalities.
+    -   **Changes**: Created to display a filterable and searchable list of all achievements, their progress, XP, and . Tapping an entry navigates to the detail page.
+-   
+    -   **Importance**: Detail screen for a specific achievement, showing progress, XP, badge, and contextual tips.
+    -   **Changes**: Created to display a large , title, description, percentage progress, XP, and dynamically generated tips based on the achievement category.
+-   
+    -   **Importance**: Manager for saved chat messages, enabling CRUD operations, categories, tags, search, and filtering.
+    -   **Changes**: Created for managing saved messages, including predefined and custom categories, comma-separated tags, full-text search, category filters, and CRUD operations.
+-   
+    -   **Importance**: Zentralized Zustand store for application state, including daily data, goals, reminders, achievements, language, theme, and utility functions like .
+    -   **Changes**: Incorporated MMKV for persistence. Extended data models for , , , , , , , , , . Integrated  mapping, ,  states. Added auto-rescheduling logic for notifications on reminder changes, and the new achievement computation logic.
+-   
+    -   **Importance**: Defines all achievement configurations (ID, XP, title/description, progress functions) and the core logic for computing achievement progress and XP.
+    -   **Changes**: Expanded significantly to include over 40 achievements across various categories, detailed progress functions, and logic for an open-ended level system. Integrated basic combo system for bonus XP.
+-   
+    -   **Importance**: Reusable React Native component for displaying achievement badges with an SVG progress ring and an embedded Ionicons.
+    -   **Changes**: Created to render visual achievement badges, showing progress as a circular bar.
+-   
+    -   **Importance**: Utility functions for managing Expo notifications, including permissions, Android channels, scheduling, and cancellation.
+    -   **Changes**: Added , , , ,  functions.
+-   
+    -   **Importance**: Adapter for MMKV, providing synchronous key-value storage.
+    -   **Changes**: Implemented MMKV integration for faster and more reliable local data persistence compared to AsyncStorage.
+-   
+    -   **Importance**: Expo app configuration file, defining app name, slug, plugins, and platform-specific settings.
+    -   **Changes**: Updated with  ID,  plugin, and asset paths for the custom app icon.
+-   
+    -   **Importance**: Codemagic CI/CD configuration for building the Android APK.
+    -   **Changes**: Configured to run  and  to generate an APK artifact.
+
+</code_architecture>
+
+<pending_tasks>
+-   **Achievements**:
+    -   Implement Achievement Chains.
+    -   Implement Level Rewards (Theme Golden Pink at L10, Extended Stats at L25, VIP Chat at L50, Premium Insights at L75, Legend Badge/Confetti at L100).
+    -   Prepare 15-26 weekly repeating offline Seasonal Events (Sunday to Saturday).
+    -   Implement Leaderboard (offline-grundlegend vorbereiten, if possible).
+-   **Advanced AI Features (offline-first)**: Implement Pattern Recognition, Predictive Analytics, Personalized Insights, Learning Algorithms based on user data.
+</pending_tasks>
+
+<current_work>
+The application currently features a robust health tracking system. Phase 1, 2, and 3 have been completed. The core dashboard, daily navigation, and data persistence via MMKV are in place. Users can log pills, track drinks and sport activities, input and set goals for their weight, and view a 7/14/30-day or custom weight analysis with daily deltas. Reminders are fully functional with native OS notifications, including default times for pills, water, sport, and ginger-garlic-tea, and support for auto-rescheduling upon changes.
+
+The gamification system is significantly advanced, with over 40 achievements across various categories, an open-ended XP/leveling system, a dashboard preview of the next 3 achievements, and dedicated list and detail pages with visual badge icons. A basic combo system provides bonus XP for simultaneous unlocks. The Saved Messages feature allows users to manage (CRUD) chat tips, with predefined and custom categories, tags, search, and filter capabilities. UX and accessibility improvements like adaptive themes, haptic feedback on key interactions, larger hit-slops for touch targets, and a 4-card onboarding miniguide have been integrated. The  version has been set to  (SDK 53 expected). The immediate work requested by the user is to finalize the gamification extras (Level Reward Gating, Seasonal Events, and offline Advanced AI features), which is currently in progress.
+</current_work>
+
+<optional_next_step>
+I will implement Level Reward Gating and prepare 15-26 weekly repeating offline Seasonal Events, as well as the offline Advanced AI features.
+</optional_next_step>
