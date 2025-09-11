@@ -225,7 +225,7 @@ export default function Home() {
       &lt;/Text&gt;
       &lt;View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}&gt;
         &lt;PrimaryButton icon="fitness" label={t("enterWeight")} onPress={() =&gt; setShowWeightModal(true)} colors={colors} /&gt;
-        &lt;PrimaryButton icon="flag" label={t("setGoal")} onPress={() =&gt; setShowGoalPrompt()} colors={colors} /&gt;
+        &lt;PrimaryButton icon="flag" label={t("setGoal")} onPress={() =&gt; setShowGoalModal(true)} colors={colors} /&gt;
       &lt;/View&gt;
       &lt;View style={{ height: 180 }}&gt;
         &lt;LineChart
