@@ -53,6 +53,8 @@ const A: AchievementConfig[] = [
 
 export type AchievementProgress = { id: string; title: string; description: string; percent: number; xp: number; completed: boolean };
 
+export function getAchievementConfigById(id: string) { return A.find((x) => x.id === id); }
+
 export function computeAchievements(state: AchState) {
   const unlockedSet = new Set(state.achievementsUnlocked);
   const list: AchievementProgress[] = A.map((cfg) => {
