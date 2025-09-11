@@ -51,6 +51,17 @@ export default function SavedManager() {
   }
 
   return (
+      <View style={[styles.header, { backgroundColor: colors.card }]}> 
+        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel={state.language==='de'?'Zurück':'Back'}>
+          <Ionicons name='chevron-back' size={24} color={colors.text} />
+        </TouchableOpacity>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[styles.appTitle, { color: colors.text }]}>{state.language==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking'}</Text>
+          <Text style={[styles.title, { color: colors.muted }]}>{state.language==='de'?'Gespeicherte Nachrichten':'Saved messages'}</Text>
+        </View>
+        <View style={{ width: 40 }} />
+      </View>
+
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[styles.header, { backgroundColor: colors.card }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
