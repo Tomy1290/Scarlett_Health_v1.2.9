@@ -14,7 +14,8 @@
       "versionCode": 1,
       "adaptiveIcon": { "foregroundImage": "./assets/images/adaptive-icon.png", "backgroundColor": "#ffffff" },
       "enableProguardInReleaseBuilds": true,
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "allowBackup": false
     },
     "web": { "bundler": "metro", "output": "static", "favicon": "./assets/images/favicon.png" },
     "plugins": [
