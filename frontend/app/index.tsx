@@ -451,12 +451,12 @@ export default function Home() {
 
 function ToggleButton({ icon, label, active, onPress, colors }: any) {
   return (
-    &lt;TouchableOpacity
+    <TouchableOpacity
       onPress={onPress}
-      style={[styles.toggle, { borderColor: active ? colors.primary : colors.muted, backgroundColor: active ? colors.primary : "transparent" }]}&gt;
-      &lt;Ionicons name={icon} size={16} color={active ? "#fff" : colors.text} /&gt;
-      &lt;Text style={{ color: active ? "#fff" : colors.text, marginLeft: 8 }}&gt;{label}&lt;/Text&gt;
-    &lt;/TouchableOpacity&gt;
+      style={[styles.toggle, { borderColor: active ? colors.primary : colors.muted, backgroundColor: active ? colors.primary : "transparent" }]}>
+      <Ionicons name={icon} size={16} color={active ? "#fff" : colors.text} />
+      <Text style={{ color: active ? "#fff" : colors.text, marginLeft: 8 }}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
