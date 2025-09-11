@@ -54,7 +54,6 @@ export default function Home() {
     setLanguage,
     setTheme,
     appVersion,
-    reminders,
   } = useAppStore();
   const { level } = useLevel();
   const colors = useThemeColors(theme);
