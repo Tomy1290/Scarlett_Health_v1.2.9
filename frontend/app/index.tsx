@@ -73,7 +73,7 @@ export default function Home() {
   const [goalWeight, setGoalWeight] = useState("");
   const [goalDate, setGoalDate] = useState("");
 
-  React.useEffect(() =&gt; {
+  React.useEffect(() => {
     setWeightInput(d?.weight ? String(d.weight) : "");
   }, [currentDate, d?.weight]);
 
