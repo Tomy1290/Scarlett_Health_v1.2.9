@@ -77,7 +77,7 @@ export default function Home() {
   const [newRemType, setNewRemType] = useState("");
   const [newRemTime, setNewRemTime] = useState("");
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-  const [analysisTab, setAnalysisTab] = useState<'week'|'month'|'custom'>('week');
+  const [analysisTab, setAnalysisTab] = useState<'7'|'14'|'30'|'custom'>('7');
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
