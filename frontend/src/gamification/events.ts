@@ -220,7 +220,7 @@ export const EVENTS: WeeklyEvent[] = [
   },
   // The rest mirror health actions with small variations to reach 26 total
   {
-    id: 'water_plus', title:(l)=> l==='de'? 'Mehr Wasser' : 'More Water', description:(l)=> l==='de'? 'Wasserziel an 5 Tagen.' : 'Hit water goal 5 days.', progress:(keys,s)=> Math.min(100, Math.round((countDays(keys,s,(d)=> (d?.drinks?.water ?? 0) &gt;= 6)/5)*100)), xp: 140, bonusPercent: 0.10 },
+    id: 'water_plus', title:(l)=> l==='de'? 'Mehr Wasser' : 'More Water', description:(l)=> l==='de'? 'Wasserziel an 5 Tagen.' : 'Hit water goal 5 days.', progress:(keys,s)=> Math.min(100, Math.round((countDays(keys,s,(d)=> (d?.drinks?.water ?? 0) >= 6)/5)*100)), xp: 140, bonusPercent: 0.10 },
   {
     id: 'pills_4', title:(l)=> l==='de'? 'Pillen 4' : 'Pills 4', description:(l)=> l==='de'? '4 Tage beide Pillen.' : '4 days both pills.', progress:(k,s)=> Math.min(100, Math.round((countDays(k,s,(d)=> !!d?.pills?.morning &amp;&amp; !!d?.pills?.evening)/4)*100)), xp: 120, bonusPercent: 0.06 },
   {
