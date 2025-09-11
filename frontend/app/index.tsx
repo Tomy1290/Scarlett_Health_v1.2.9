@@ -95,7 +95,7 @@ export default function Home() {
         {/* Top bar with app title and Level/XP */}
         <View style={[styles.card, { backgroundColor: colors.card, paddingVertical: 10 }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 16 }}>Scarletts Gesundheitstracking</Text>
+            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 16 }}>{t('Scarletts Gesundheitstracking', "Scarlett’s Health Tracking")}</Text>
             <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/settings'); }} accessibilityLabel={t('Einstellungen', 'Settings')} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="star" size={16} color={colors.primary} />
               <Text style={{ color: colors.text, marginLeft: 6 }}>L{level} · {xp} XP</Text>
