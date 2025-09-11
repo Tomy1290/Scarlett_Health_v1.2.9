@@ -65,6 +65,15 @@ export default function AchievementsScreen() {
     .filter(c => c.completed < c.total)
     .sort((a,b) => b.nextPercent - a.nextPercent)
     .slice(0, 3), [chains]);
+  const topIds = new Set(topChains.map(c=>c.id));
+  const otherChains = useMemo(() => chains.filter(c=>!topIds.has(c.id)).sort((a,b)=>{
+    // Sort: nicht fertig zuerst, dann nach Fortschritt absteigend
+    const aDone = a.completed >= a.total; const bDone = b.completed >= b.total;
+    if (aDone !== bDone) return aDone ? 1 : -1;
+    const ap = a.completed >= a.total ? 100 : a.nextPercent;
+    const bp = b.completed >= b.total ? 100 : b.nextPercent;
+    return bp - ap;
+  }), [chains, topIds]);
 
   const ext = useMemo(() => computeExtendedStats(state.days), [state.days]);
   const premium = useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]);
@@ -106,6 +115,28 @@ export default function AchievementsScreen() {
           )) : (
             <Text style={{ color: colors.muted, marginTop: 6 }}>Alle Ketten abgeschlossen oder keine vorhanden.</Text>
           )}
+
+          {/* All Chains under Top 3 */}
+          <View style={{ height: 12 }} />
+          <Text style={{ color: colors.text, fontWeight: '700' }}>Alle Ketten</Text>
+          {otherChains.length ? otherChains.map((c) => {
+            const done = c.completed >= c.total;
+            const pct = done ? 100 : Math.round(c.nextPercent);
+            return (
+              <View key={c.id} style={{ marginTop: 8 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ color: colors.text }}>{c.title} {done ? '· Abgeschlossen' : `· Schritt ${c.completed+1}/${c.total}`}</Text>
+                  <Text style={{ color: colors.muted }}>{pct}%</Text>
+                </View>
+                <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 4 }}>
+                  <View style={{ width: `${pct}%`, height: 6, backgroundColor: done ? '#2bb673' : colors.primary }} />
+                </View>
+                {!done && c.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>Als Nächstes: {c.nextTitle}</Text> : null}
+              </View>
+            );
+          }) : (
+            <Text style={{ color: colors.muted, marginTop: 6 }}>Keine weiteren Ketten.</Text>
+          )}
         </View>
 
         {/* Rewards summary */}
@@ -124,7 +155,7 @@ export default function AchievementsScreen() {
           </View>
         </View>
 
-        {/* Unlock previews (unchanged details omitted for brevity) */}
+        {/* Unlock previews (unchanged core) */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Freischaltungen</Text>
           <View style={{ marginBottom: 8 }}>
