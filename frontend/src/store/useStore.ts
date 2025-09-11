@@ -45,6 +45,8 @@ export type AppState = {
   rewardsSeen?: RewardsSeen;
   profileAlias?: string;
   xpLog?: XpLogEntry[];
+  aiInsightsEnabled: boolean;
+  aiFeedback?: Record<string, number>;
 
   setLanguage: (lng: Language) => void;
   setTheme: (t: ThemeName) => void;
@@ -72,6 +74,8 @@ export type AppState = {
   setLegendShown: (v: boolean) => void;
   setRewardSeen: (key: keyof RewardsSeen, v: boolean) => void;
   setProfileAlias: (alias: string) => void;
+  setAiInsightsEnabled: (v: boolean) => void;
+  feedbackAI: (id: string, delta: 1 | -1) => void;
 
   recalcAchievements: () => void;
 };
@@ -84,13 +88,10 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.0.0",
       currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {}, profileAlias: '', xpLog: [],
+      aiInsightsEnabled: true, aiFeedback: {},
 
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
-      setTheme: (t) => {
-        const lvl = Math.floor(get().xp / 100) + 1;
-        if (t === 'golden_pink' && lvl < 25) { return; }
-        set({ theme: t }); get().recalcAchievements();
-      },
+      setTheme: (t) => { const lvl = Math.floor(get().xp / 100) + 1; if (t === 'golden_pink' && lvl < 25) { return; } set({ theme: t }); get().recalcAchievements(); },
       goPrevDay: () => { const cur = new Date(get().currentDate); const prev = new Date(cur); prev.setDate(cur.getDate() - 1); set({ currentDate: toKey(prev) }); },
       goNextDay: () => { const cur = new Date(get().currentDate); const next = new Date(cur); next.setDate(cur.getDate() + 1); const todayKey = toKey(new Date()); const nextKey = toKey(next); if (nextKey > todayKey) return; set({ currentDate: nextKey }); },
       goToday: () => set({ currentDate: toKey(new Date()) }),
@@ -104,35 +105,19 @@ export const useAppStore = create<AppState>()(
       addReminder: (r) => { set({ reminders: [r, ...get().reminders] }); get().recalcAchievements(); },
       updateReminder: (id, patch) => set({ reminders: get().reminders.map((r) => (r.id === id ? { ...r, ...patch } : r)) }),
       deleteReminder: (id) => { set({ reminders: get().reminders.filter((r) => r.id !== id) }); get().recalcAchievements(); },
-      addChat: (m) => {
-        const lvl = Math.floor(get().xp / 100) + 1;
-        let msg = m;
-        if (m.sender === 'user' && lvl < 50 && typeof m.text === 'string' && m.text.length > 120) { msg = { ...m, text: m.text.slice(0, 120) }; }
-        set({ chat: [...get().chat, msg] }); get().recalcAchievements();
-      },
+      addChat: (m) => { const lvl = Math.floor(get().xp / 100) + 1; let msg = m; if (m.sender === 'user' && lvl < 50 && typeof m.text === 'string' && m.text.length > 120) { msg = { ...m, text: m.text.slice(0, 120) }; } set({ chat: [...get().chat, msg] }); get().recalcAchievements(); },
       addSaved: (s) => { set({ saved: [s, ...get().saved] }); get().recalcAchievements(); },
       deleteSaved: (id) => { set({ saved: get().saved.filter((s) => s.id !== id) }); get().recalcAchievements(); },
 
       setNotificationMeta: (remId, meta) => set({ notificationMeta: { ...get().notificationMeta, [remId]: meta } }),
       setHasSeededReminders: (v) => set({ hasSeededReminders: v }),
       setShowOnboarding: (v) => set({ showOnboarding: v }),
-      completeEvent: (weekKey, entry) => {
-        const existing = get().eventHistory[weekKey];
-        if (existing?.completed) return;
-        let bonus = 0;
-        try {
-          const { EVENTS } = require('../gamification/events');
-          const evt = (EVENTS as any[]).find((e) => e.id === entry.id);
-          if (evt) bonus = Math.round(entry.xp * (evt.bonusPercent || 0));
-        } catch {}
-        const total = entry.xp + bonus;
-        const xpBonus = get().xpBonus + total;
-        const log = [...(get().xpLog||[]), { id: `${weekKey}:${Date.now()}`, ts: Date.now(), amount: total, source: 'event', note: entry.id }];
-        set({ eventHistory: { ...get().eventHistory, [weekKey]: { id: entry.id, completed: true, xp: total } }, xpBonus, xp: get().xp + total, xpLog: log });
-      },
+      completeEvent: (weekKey, entry) => { const existing = get().eventHistory[weekKey]; if (existing?.completed) return; let bonus = 0; try { const { EVENTS } = require('../gamification/events'); const evt = (EVENTS as any[]).find((e) => e.id === entry.id); if (evt) bonus = Math.round(entry.xp * (evt.bonusPercent || 0)); } catch {} const total = entry.xp + bonus; const xpBonus = get().xpBonus + total; const log = [...(get().xpLog||[]), { id: `${weekKey}:${Date.now()}`, ts: Date.now(), amount: total, source: 'event', note: entry.id }]; set({ eventHistory: { ...get().eventHistory, [weekKey]: { id: entry.id, completed: true, xp: total } }, xpBonus, xp: get().xp + total, xpLog: log }); },
       setLegendShown: (v) => set({ legendShown: v }),
       setRewardSeen: (key, v) => set({ rewardsSeen: { ...(get().rewardsSeen||{}), [key]: v } }),
       setProfileAlias: (alias) => set({ profileAlias: alias }),
+      setAiInsightsEnabled: (v) => set({ aiInsightsEnabled: v }),
+      feedbackAI: (id, delta) => { const map = { ...(get().aiFeedback||{}) }; map[id] = (map[id]||0) + delta; set({ aiFeedback: map }); },
 
       recalcAchievements: () => {
         const state = get();
@@ -141,7 +126,6 @@ export const useAppStore = create<AppState>()(
         const newUnlocks = base.unlocked.filter((id) => !prevSet.has(id));
         let xpBonus = state.xpBonus;
         if (newUnlocks.length >= 2) xpBonus += (newUnlocks.length - 1) * 50;
-        // log newly unlocked achievements XP
         let addLog: XpLogEntry[] = [];
         if (newUnlocks.length > 0) {
           try {
@@ -153,7 +137,7 @@ export const useAppStore = create<AppState>()(
         set({ achievementsUnlocked: base.unlocked, xpBonus, xp: base.xp + xpBonus, xpLog: [...(state.xpLog||[]), ...addLog] });
       },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 10, onRehydrateStorage: () => (state) => {
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 11, onRehydrateStorage: () => (state) => {
       if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; }
     } }
   )

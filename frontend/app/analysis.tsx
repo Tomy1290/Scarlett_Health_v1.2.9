@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppStore, useLevel } from '../src/store/useStore';
 import { LineChart } from 'react-native-gifted-charts';
-import { computeExtendedStats, computePremiumInsights } from '../src/analytics/stats';
+import { computeExtendedStats } from '../src/analytics/stats';
+import { computeAIv1 } from '../src/ai/insights';
 
 function useThemeColors(theme: string) {
   if (theme === 'pink_pastel') return { bg: '#fff0f5', card: '#ffe4ef', primary: '#d81b60', text: '#3a2f33', muted: '#8a6b75' };
@@ -42,57 +43,22 @@ export default function AnalysisScreen() {
   }, [weightArr]);
 
   const ext = useMemo(() => computeExtendedStats(state.days), [state.days]);
-  const insights = useMemo(() => computePremiumInsights(state.days, state.language), [state.days, state.language]);
+  const ai = useMemo(() => computeAIv1({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled }), [state.days, state.language, state.aiFeedback, state.aiInsightsEnabled]);
 
   const t = (key: string) => {
     const de: Record<string, string> = {
-      analysis: 'Analyse',
-      weight: 'Gewicht',
-      ext_stats: 'Erweiterte Statistiken',
-      ext_locked: 'Ab Level 10 verfügbar.',
-      insights_title: 'Premium Insights',
-      insights_locked: 'Ab Level 75 verfügbar.',
-      help: 'Hilfe',
-      too_few: 'Zu wenige Daten',
-      scale: 'Skala',
-      // Weight tips
-      w_hint1: 'Wiege dich möglichst täglich zur gleichen Zeit (z. B. morgens).',
-      w_hint2: 'Nutze dieselbe Waage, barfuß, auf festem Untergrund.',
-      w_hint3: 'Tagesrauschen ist normal – bewerte Trends über mehrere Tage.',
-      // Extended explanations
-      ext_hint1: 'Ø Wasser 7/30T: Durchschnittliche Anzahl an Wassereinheiten pro Tag (Ziel ≥ 6).',
-      ext_hint2: 'Gewichts-Trend/Tag: Negativ = Abnahme, Positiv = Zunahme (kg/Tag).',
-      ext_hint3: 'Compliance: Anteil der Tage mit Morgen- UND Abendpille.',
-      ext_hint4: 'Perfekter Tag: Pillen (mo+ab), Wasserziel erreicht (≥6), Gewicht eingetragen.',
-      // Insights explanations
-      ins_hint1: 'EWMA: Geglätteter Durchschnitt der letzten Messungen (robust gegen Ausreißer).',
-      ins_hint2: 'Prognose (3 Tage): Einfache Trendfortschreibung, nur als Orientierung.',
-      ins_hint3: 'Ausreißer Wasser: Erkennung deutlich über/unter Median (14 Tage).',
-      ins_hint4: 'Adhärenz (7T): Tageswerte aus Pillen, Wasser, Gewicht, Sport.',
-      ins_hint5: 'Datenschutz: Alles offline lokal berechnet und gespeichert.',
+      analysis: 'Analyse', weight: 'Gewicht', ext_stats: 'Erweiterte Statistiken', ext_locked: 'Ab Level 10 verfügbar.', insights_title: 'Premium Insights', insights_locked: 'Ab Level 75 verfügbar.', help: 'Hilfe', too_few: 'Zu wenige Daten', scale: 'Skala',
+      w_hint1: 'Wiege dich möglichst täglich zur gleichen Zeit (z. B. morgens).', w_hint2: 'Nutze dieselbe Waage, barfuß, auf festem Untergrund.', w_hint3: 'Tagesrauschen ist normal – bewerte Trends über mehrere Tage.',
+      ext_hint1: 'Ø Wasser 7/30T: Durchschnittliche Anzahl an Wassereinheiten pro Tag (Ziel ≥ 6).', ext_hint2: 'Gewichts-Trend/Tag: Negativ = Abnahme, Positiv = Zunahme (kg/Tag).', ext_hint3: 'Compliance: Anteil der Tage mit Morgen- UND Abendpille.', ext_hint4: 'Perfekter Tag: Pillen (mo+ab), Wasserziel erreicht (≥6), Gewicht eingetragen.',
+      ins_hint1: 'AI v1 nutzt Trends, Ausreißer, Prognosen und Routinen – alles offline.', ins_hint2: 'Bewerte Tipps (Daumen hoch/runter) – so lernt die Priorisierung.', ins_hint3: 'Datenschutz: Keine Cloud, nur lokale Berechnung.',
+      ai_disabled: 'Insights sind in den Einstellungen deaktiviert.',
     };
     const en: Record<string, string> = {
-      analysis: 'Analysis',
-      weight: 'Weight',
-      ext_stats: 'Extended stats',
-      ext_locked: 'Available from level 10.',
-      insights_title: 'Premium insights',
-      insights_locked: 'Available from level 75.',
-      help: 'Help',
-      too_few: 'Not enough data',
-      scale: 'Scale',
-      w_hint1: 'Weigh at the same time daily (e.g., mornings).',
-      w_hint2: 'Use the same scale, barefoot, on hard floor.',
-      w_hint3: 'Daily noise is normal – assess multi-day trends.',
-      ext_hint1: 'Avg water 7/30d: Average water units per day (goal ≥ 6).',
-      ext_hint2: 'Weight trend/day: Negative = loss, Positive = gain (kg/day).',
-      ext_hint3: 'Compliance: Share of days with both morning AND evening pill.',
-      ext_hint4: 'Perfect day: Pills (am+pm), water goal (≥6), weight logged.',
-      ins_hint1: 'EWMA: Smoothed average of recent measurements (robust to outliers).',
-      ins_hint2: 'Forecast (3 days): Simple trend extension, for orientation only.',
-      ins_hint3: 'Water outliers: Detects days far above/below 14-day median.',
-      ins_hint4: 'Adherence (7d): Daily points from pills, water, weight, sport.',
-      ins_hint5: 'Privacy: All analytics computed offline and stored locally.',
+      analysis: 'Analysis', weight: 'Weight', ext_stats: 'Extended stats', ext_locked: 'Available from level 10.', insights_title: 'Premium insights', insights_locked: 'Available from level 75.', help: 'Help', too_few: 'Not enough data', scale: 'Scale',
+      w_hint1: 'Weigh at the same time daily (e.g., mornings).', w_hint2: 'Use the same scale, barefoot, on hard floor.', w_hint3: 'Daily noise is normal – assess multi-day trends.',
+      ext_hint1: 'Avg water 7/30d: Average water units per day (goal ≥ 6).', ext_hint2: 'Weight trend/day: Negative = loss, Positive = gain (kg/day).', ext_hint3: 'Compliance: Share of days with both morning AND evening pill.', ext_hint4: 'Perfect day: Pills (am+pm), water goal (≥6), weight logged.',
+      ins_hint1: 'AI v1 uses trends, outliers, forecasts and routines – all offline.', ins_hint2: 'Rate tips (thumbs up/down) to personalize priority.', ins_hint3: 'Privacy: No cloud, all local.',
+      ai_disabled: 'Insights are disabled in settings.',
     };
     return (state.language === 'de' ? de : en)[key] || key;
   };
@@ -160,26 +126,18 @@ export default function AnalysisScreen() {
           </View>
           {showExtHelp ? (
             <View style={{ gap: 4, marginTop: 6 }}>
-              <Text style={{ color: colors.muted }}>• {t('ext_hint1')}</Text>
-              <Text style={{ color: colors.muted }}>• {t('ext_hint2')}</Text>
-              <Text style={{ color: colors.muted }}>• {t('ext_hint3')}</Text>
-              <Text style={{ color: colors.muted }}>• {t('ext_hint4')}</Text>
+              <Text style={{ color: colors.muted }}>• Ø Wasser 7/30T: {ext.waterAvg7.toFixed(1)} / {ext.waterAvg30.toFixed(1)}</Text>
+              <Text style={{ color: colors.muted }}>• Gewichts-Trend/Tag: {ext.weightTrendPerDay.toFixed(2)} kg</Text>
+              <Text style={{ color: colors.muted }}>• Compliance: {(ext.complianceRate*100).toFixed(0)}%</Text>
+              <Text style={{ color: colors.muted }}>• Perfekt‑Streak: {ext.bestPerfectStreak}</Text>
             </View>
           ) : null}
-          {level >= 10 ? (
-            <View style={{ gap: 4, marginTop: 8 }}>
-              <Text style={{ color: colors.muted }}>Ø Wasser 7T: {ext.waterAvg7.toFixed(1)}</Text>
-              <Text style={{ color: colors.muted }}>Ø Wasser 30T: {ext.waterAvg30.toFixed(1)}</Text>
-              <Text style={{ color: colors.muted }}>Gewichts-Trend/Tag: {ext.weightTrendPerDay.toFixed(2)} kg</Text>
-              <Text style={{ color: colors.muted }}>Compliance: {(ext.complianceRate*100).toFixed(0)}%</Text>
-              <Text style={{ color: colors.muted }}>Bester Perfekt-Streak: {ext.bestPerfectStreak} Tage</Text>
-            </View>
-          ) : (
+          {level >= 10 ? null : (
             <Text style={{ color: colors.muted, marginTop: 6 }}>{t('ext_locked')}</Text>
           )}
         </View>
 
-        {/* L75 Premium Insights */}
+        {/* L75 Premium Insights (AI v1) */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>{t('insights_title')}</Text>
@@ -192,19 +150,29 @@ export default function AnalysisScreen() {
               <Text style={{ color: colors.muted }}>• {t('ins_hint1')}</Text>
               <Text style={{ color: colors.muted }}>• {t('ins_hint2')}</Text>
               <Text style={{ color: colors.muted }}>• {t('ins_hint3')}</Text>
-              <Text style={{ color: colors.muted }}>• {t('ins_hint4')}</Text>
-              <Text style={{ color: colors.muted }}>• {t('ins_hint5')}</Text>
             </View>
           ) : null}
           {level >= 75 ? (
-            insights.length ? insights.slice(0, 5).map((t, i) => (
-              <View key={i} style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginTop: i === 0 ? 8 : 4 }}>
-                <Ionicons name='bulb' size={16} color={colors.muted} />
-                <Text style={{ color: colors.text, flex: 1 }}>{t}</Text>
-              </View>
-            )) : <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Noch keine Insights.':'No insights yet.'}</Text>
+            state.aiInsightsEnabled ? (
+              ai.length ? ai.slice(0,5).map((item, i) => (
+                <View key={item.id+String(i)} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: i===0?8:4 }}>
+                  <Ionicons name='sparkles' size={16} color={colors.muted} />
+                  <Text style={{ color: colors.text, flex: 1 }}>{item.text}</Text>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <TouchableOpacity onPress={() => state.feedbackAI(item.id, +1)} accessibilityLabel='Gefällt mir'>
+                      <Ionicons name='thumbs-up' size={16} color={colors.muted} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => state.feedbackAI(item.id, -1)} accessibilityLabel='Gefällt mir nicht'>
+                      <Ionicons name='thumbs-down' size={16} color={colors.muted} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )) : <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Noch keine Insights.':'No insights yet.'}</Text>
+            ) : (
+              <Text style={{ color: colors.muted, marginTop: 6 }}>{t('ai_disabled')}</Text>
+            )
           ) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('insights_locked')}</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Ab Level 75 verfügbar.':'Available from level 75.'}</Text>
           )}
         </View>
       </ScrollView>
@@ -212,8 +180,4 @@ export default function AnalysisScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 16, fontWeight: '700' },
-  card: { borderRadius: 12, padding: 12 },
-});
+const styles = StyleSheet.create({ header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, title: { fontSize: 16, fontWeight: '700' }, card: { borderRadius: 12, padding: 12 }, });

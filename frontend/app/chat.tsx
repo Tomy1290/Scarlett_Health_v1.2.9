@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAppStore, useLevel } from '../src/store/useStore';
-import { computePremiumInsights } from '../src/analytics/stats';
+import { computeAIv1 } from '../src/ai/insights';
 
 function useThemeColors(theme: string) {
   if (theme === 'pink_pastel') return { bg: '#fff0f5', card: '#ffe4ef', primary: '#d81b60', text: '#3a2f33', muted: '#8a6b75', input: '#ffffff' };
@@ -20,26 +20,19 @@ export default function ChatScreen() {
   const { level } = useLevel();
   const colors = useThemeColors(state.theme);
   const inputRef = useRef<TextInput>(null);
-
   const [text, setText] = useState('');
 
   const maxVisible = level >= 50 ? 20 : 5;
-  const visibleChat = useMemo(() => {
-    const arr = state.chat || [];
-    return arr.slice(Math.max(0, arr.length - maxVisible));
-  }, [state.chat, maxVisible]);
+  const visibleChat = useMemo(() => { const arr = state.chat || []; return arr.slice(Math.max(0, arr.length - maxVisible)); }, [state.chat, maxVisible]);
 
   function send() {
-    const t = text.trim();
-    if (!t) return;
+    const t = text.trim(); if (!t) return;
     const msg = { id: String(Date.now()), sender: 'user' as const, text: t, createdAt: Date.now() };
-    state.addChat(msg);
-    setText('');
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    state.addChat(msg); setText(''); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Simple offline reply using premium insights as knowledge base
-    const tips = computePremiumInsights(state.days, state.language);
-    const replyText = (tips[0] || (state.language==='de' ? 'Bleib dran – kleine Schritte zählen.' : 'Keep going – small steps add up.'));
+    // AI v1 suggestion as reply (if enabled)
+    const ai = state.aiInsightsEnabled ? computeAIv1({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled }) : [];
+    const replyText = ai[0]?.text || (state.language==='de' ? 'Bleib dran – kleine Schritte zählen.' : 'Keep going – small steps add up.');
     const bot = { id: String(Date.now()+1), sender: 'bot' as const, text: replyText, createdAt: Date.now()+1 };
     state.addChat(bot);
   }
@@ -66,7 +59,9 @@ export default function ChatScreen() {
             )}
           </View>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={() => router.push('/settings')} style={styles.iconBtn} accessibilityLabel='Einstellungen'>
+          <Ionicons name='settings' size={20} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
