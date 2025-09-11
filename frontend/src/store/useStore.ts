@@ -16,6 +16,8 @@ export type DayData = {
   weightTime?: number;
 };
 
+export type Cycle = { start: string; end?: string };
+
 export type Goal = { targetWeight: number; targetDate: string; startWeight: number; active: boolean };
 export type Reminder = { id: string; type: string; time: string; enabled: boolean };
 export type ChatMessage = { id: string; sender: "user" | "bot"; text: string; createdAt: number };
@@ -48,6 +50,7 @@ export type AppState = {
   aiInsightsEnabled: boolean;
   aiFeedback?: Record<string, number>;
   eventsEnabled: boolean;
+  cycles: Cycle[];
 
   setLanguage: (lng: Language) => void;
   setTheme: (t: ThemeName) => void;
@@ -79,6 +82,9 @@ export type AppState = {
   feedbackAI: (id: string, delta: 1 | -1) => void;
   setEventsEnabled: (v: boolean) => void;
 
+  startCycle: (dateKey: string) => void;
+  endCycle: (dateKey: string) => void;
+
   recalcAchievements: () => void;
 };
 
@@ -88,9 +94,9 @@ function clamp(n: number, min: number, max: number) { return Math.max(min, Math.
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.0.0",
+      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.0.3",
       currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {}, profileAlias: '', xpLog: [],
-      aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true,
+      aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true, cycles: [],
 
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
       setTheme: (t) => { const lvl = Math.floor(get().xp / 100) + 1; if (t === 'golden_pink' && lvl < 75) { return; } set({ theme: t }); get().recalcAchievements(); },
@@ -98,9 +104,9 @@ export const useAppStore = create<AppState>()(
       goNextDay: () => { const cur = new Date(get().currentDate); const next = new Date(cur); next.setDate(cur.getDate() + 1); const todayKey = toKey(new Date()); const nextKey = toKey(next); if (nextKey > todayKey) return; set({ currentDate: nextKey }); },
       goToday: () => set({ currentDate: toKey(new Date()) }),
       ensureDay: (key) => { const days = get().days; if (!days[key]) set({ days: { ...days, [key]: defaultDay(key) } }); },
-      togglePill: (key, time) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); d.pills = { ...d.pills, [time]: !d.pills[time] } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
-      incDrink: (key, type, delta) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const val = d.drinks[type] as number; const next = clamp(val + delta, 0, 999); d.drinks = { ...d.drinks, [type]: next } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
-      toggleFlag: (key, type) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const cur = d.drinks[type] as boolean; d.drinks = { ...d.drinks, [type]: !cur } as any; days[key] = d; set({ days }); get().recalcAchievements(); },
+      togglePill: (key, time) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const before = d.pills[time]; d.pills = { ...d.pills, [time]: !before } as any; days[key] = d; let xpDelta = 0; if (!before && d.pills[time]) xpDelta += 10; set({ days, xp: get().xp + xpDelta, xpLog: xpDelta ? [...(get().xpLog||[]), { id: `xp:${Date.now()}`, ts: Date.now(), amount: xpDelta, source: 'other', note: `pill_${time}` }] : get().xpLog }); get().recalcAchievements(); },
+      incDrink: (key, type, delta) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const oldVal = d.drinks[type] as number; const next = clamp(oldVal + delta, 0, 999); d.drinks = { ...d.drinks, [type]: next } as any; days[key] = d; let xpDelta = 0; if (type === 'water' && delta > 0) { xpDelta += 10 * delta; } if (type === 'coffee' && delta > 0) { for (let i = oldVal + 1; i <= next; i++) { if (i > 6) xpDelta -= 10; } } set({ days, xp: get().xp + xpDelta, xpLog: xpDelta ? [...(get().xpLog||[]), { id: `xp:${Date.now()}`, ts: Date.now(), amount: xpDelta, source: 'other', note: type }] : get().xpLog }); get().recalcAchievements(); },
+      toggleFlag: (key, type) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const before = d.drinks[type] as boolean; d.drinks = { ...d.drinks, [type]: !before } as any; days[key] = d; let xpDelta = 0; if (!before && (d.drinks[type] as boolean)) xpDelta += 10; set({ days, xp: get().xp + xpDelta, xpLog: xpDelta ? [...(get().xpLog||[]), { id: `xp:${Date.now()}`, ts: Date.now(), amount: xpDelta, source: 'other', note: type }] : get().xpLog }); get().recalcAchievements(); },
       setWeight: (key, weight) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); d.weight = weight; d.weightTime = Date.now(); days[key] = d; set({ days }); get().recalcAchievements(); },
       setGoal: (goal) => { set({ goal }); get().recalcAchievements(); },
       removeGoal: () => { set({ goal: undefined }); get().recalcAchievements(); },
@@ -122,6 +128,9 @@ export const useAppStore = create<AppState>()(
       feedbackAI: (id, delta) => { const map = { ...(get().aiFeedback||{}) }; map[id] = (map[id]||0) + delta; set({ aiFeedback: map }); },
       setEventsEnabled: (v) => set({ eventsEnabled: v }),
 
+      startCycle: (dateKey) => { const cycles = [...get().cycles]; const active = cycles.find(c => !c.end); if (active) return; cycles.push({ start: dateKey }); set({ cycles }); },
+      endCycle: (dateKey) => { const cycles = [...get().cycles]; const activeIdx = cycles.findIndex(c => !c.end); if (activeIdx === -1) return; cycles[activeIdx] = { ...cycles[activeIdx], end: dateKey }; set({ cycles }); },
+
       recalcAchievements: () => {
         const state = get();
         const base = computeAchievements({ days: state.days, goal: state.goal, reminders: state.reminders, chat: state.chat, saved: state.saved, achievementsUnlocked: state.achievementsUnlocked, xp: state.xp, language: state.language, theme: state.theme });
@@ -140,10 +149,25 @@ export const useAppStore = create<AppState>()(
         set({ achievementsUnlocked: base.unlocked, xpBonus, xp: base.xp + xpBonus, xpLog: [...(state.xpLog||[]), ...addLog] });
       },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 12, onRehydrateStorage: () => (state) => {
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 13, onRehydrateStorage: () => (state) => {
       if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; }
     } }
   )
 );
 
 export function useLevel() { const xp = useAppStore((s) => s.xp); const level = Math.floor(xp / 100) + 1; return { level, xp }; }
+
+export function getAverageCycleLengthDays(cycles: Cycle[]): number {
+  const starts = cycles.filter(c => c.start).map(c => c.start).sort();
+  if (starts.length < 2) return 28;
+  const diffs: number[] = [];
+  for (let i = 1; i < starts.length; i++) {
+    const a = new Date(starts[i-1]); const b = new Date(starts[i]);
+    const diff = Math.round((+b - +a)/(24*60*60*1000));
+    if (diff > 0) diffs.push(diff);
+  }
+  if (diffs.length === 0) return 28;
+  const last3 = diffs.slice(-3);
+  const avg = Math.round(last3.reduce((a,b)=>a+b,0)/last3.length);
+  return avg || 28;
+}
