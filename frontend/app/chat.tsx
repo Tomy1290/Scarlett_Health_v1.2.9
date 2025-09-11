@@ -18,6 +18,36 @@ function fmtTime(ts: number, lang: 'de'|'en') {
   try { return new Date(ts).toLocaleTimeString(lang==='de'?'de-DE':'en-US', { hour: '2-digit', minute: '2-digit' }); } catch { return ''; }
 }
 
+function generateOfflineReply(state: ReturnType<typeof useAppStore.getState>, userText: string) {
+  const lang = state.language;
+  const lower = userText.toLowerCase();
+  const t = (de: string, en: string) => (lang==='en'?en:de);
+  // Simple domain heuristics
+  if (lower.includes('wasser') || lower.includes('water')) {
+    const avg = (() => {
+      const days = Object.values(state.days);
+      const count = days.length || 1;
+      const sum = days.reduce((a,d)=>a+(d.drinks?.water||0),0);
+      return (sum/count).toFixed(1);
+    })();
+    return t(`Trinkziel Tipp: Ø Wasser aktuell ${avg}/Tag. Versuche über den Tag verteilt 6+ Einheiten zu erreichen.`, `Hydration tip: Current avg water is ${avg}/day. Try to reach 6+ units spread across the day.`);
+  }
+  if (lower.includes('kaffee') || lower.includes('coffee')) {
+    return t('Kaffee-Kontrolle: Ersetze eine Tasse durch Wasser oder Tee, um Koffein zu reduzieren.', 'Coffee control: Swap one cup for water or tea to reduce caffeine.');
+  }
+  if (lower.includes('gewicht') || lower.includes('weight')) {
+    return t('Gewichts-Tipp: Beurteile Trends über mehrere Tage. Tägliche Schwankungen sind normal.', 'Weight tip: Assess multi-day trends. Daily fluctuations are normal.');
+  }
+  if (lower.includes('pille') || lower.includes('pills') || lower.includes('med')) {
+    return t('Pillen-Routine: Verknüpfe die Einnahme mit festen Ritualen (z. B. nach dem Zähneputzen).', 'Pill routine: Tie intake to fixed rituals (e.g., after brushing teeth).');
+  }
+  if (lower.includes('sport') || lower.includes('workout') || lower.includes('exercise')) {
+    return t('Sport-Streak: Starte mit 10–15 Minuten und erhöhe schrittweise – Kontinuität gewinnt.', 'Workout streak: Start with 10–15 minutes and ramp up – consistency wins.');
+  }
+  // Default with small empathy
+  return t('Verstanden. Erzähl mir mehr – was ist dein Ziel diese Woche?', 'Got it. Tell me more – what’s your goal this week?');
+}
+
 export default function ChatScreen() {
   const router = useRouter();
   const state = useAppStore();
@@ -45,8 +75,14 @@ export default function ChatScreen() {
     state.addChat(msg); setText(''); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     // AI v1 suggestion as reply (if enabled)
-    const ai = state.aiInsightsEnabled ? computeAIv1({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled }) : [];
-    const replyText = ai[0]?.text || (state.language==='de' ? 'Bleib dran – kleine Schritte zählen.' : 'Keep going – small steps add up.');
+    let replyText = '';
+    if (state.aiInsightsEnabled) {
+      const ai = computeAIv1({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled });
+      replyText = ai[0]?.text || '';
+    }
+    if (!replyText) {
+      replyText = generateOfflineReply(state, t);
+    }
     const bot = { id: String(Date.now()+1), sender: 'bot' as const, text: replyText, createdAt: Date.now()+1 };
     state.addChat(bot);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
