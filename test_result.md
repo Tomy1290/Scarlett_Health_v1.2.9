@@ -101,3 +101,112 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Scarletts Gesundheitstracking – Offline-first Android-App mit Gamification, Saisonevents, VIP-Chat, lokalen Insights; Phase 5 Build-Härtung und QA. Teste Backend-API und Haupt-Frontend-Flows ausführlich."
+backend:
+  - task: "API: GET /api/"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Endpoint vorhanden; erwartet {message:'Hello World'}"
+  - task: "API: POST/GET /api/status"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Mongo Insert/Find via motor; prüfen ob DB erreichbar ist."
+frontend:
+  - task: "Achievements + Chains + Rewards"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/achievements.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Top-3 und Alle Ketten, Belohnungen, Legend-Modal."
+  - task: "Weekly Events (Dashboard, Detail, Archiv)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/index.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Event-Karte mit Fortschritt, Detail-Modal, /events Archiv, Opt-out Toggle."
+  - task: "Analysis (Extended Stats L10, AI Insights L75)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/analysis.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "LineChart, Skala toggle, Hilfetexte, AI v1 Tipps mit Feedback."
+  - task: "Chat VIP + Quick-Action Save"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/chat.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "VIP-Verlauf 30, Tipp speichern, Zeitstempel, smooth scroll."
+  - task: "Settings Toggles (Insights, Events)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/settings.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Switches für Insights & Events."
+  - task: "Leaderboard lokal"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/leaderboard.tsx"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Alias, Wochen-XP aus xpLog, Gesamt-XP."
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Backend API health + DB ops"
+    - "Gamification + Events + Analysis + Chat"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Bitte zuerst Backend /api Endpoints testen (GET, POST/GET status). Danach Frontend E2E (Navigation, Modals, VIP-Chat, Events, Analysis). Bei Fehlern bitte genaue Repro + Logs zurückgeben."
