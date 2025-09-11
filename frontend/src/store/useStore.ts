@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { mmkvAdapter } from "../utils/storage";
 import { toKey } from "../utils/date";
+import { computeAchievements } from "../achievements";
 
 export type Language = "de" | "en";
 export type ThemeName = "pink_default" | "pink_pastel" | "pink_vibrant";
@@ -143,7 +144,7 @@ export const useAppStore = create<AppState>()(
         next.setDate(cur.getDate() + 1);
         const todayKey = toKey(new Date());
         const nextKey = toKey(next);
-        if (nextKey &gt; todayKey) return; // block future
+        if (nextKey > todayKey) return; // block future
         set({ currentDate: nextKey });
       },
       goToday: () => set({ currentDate: toKey(new Date()) }),
@@ -188,80 +189,42 @@ export const useAppStore = create<AppState>()(
         set({ days });
         get().recalcAchievements();
       },
-      setGoal: (goal) => set({ goal }),
-      removeGoal: () => set({ goal: undefined }),
-      addReminder: (r) => set({ reminders: [r, ...get().reminders] }),
+      setGoal: (goal) => { set({ goal }); get().recalcAchievements(); },
+      removeGoal: () => { set({ goal: undefined }); get().recalcAchievements(); },
+      addReminder: (r) => { set({ reminders: [r, ...get().reminders] }); get().recalcAchievements(); },
       updateReminder: (id, patch) =>
         set({
           reminders: get().reminders.map((r) => (r.id === id ? { ...r, ...patch } : r)),
         }),
-      deleteReminder: (id) => set({ reminders: get().reminders.filter((r) => r.id !== id) }),
+      deleteReminder: (id) => { set({ reminders: get().reminders.filter((r) => r.id !== id) }); get().recalcAchievements(); },
       addChat: (m) => set({ chat: [...get().chat, m] }),
       addSaved: (s) => set({ saved: [s, ...get().saved] }),
       deleteSaved: (id) => set({ saved: get().saved.filter((s) => s.id !== id) }),
 
       recalcAchievements: () => {
-        // lightweight inline engine; heavy logic in achievements module (lazy-import later if needed)
-        // Simple examples + XP sum
         const state = get();
-        const unlocked = new Set(state.achievementsUnlocked);
-        let xp = 0;
-
-        // Rules
-        // 1) first_weight
-        const anyWeight = Object.values(state.days).some((d) =&gt; d.weight != null);
-        if (anyWeight) unlocked.add("first_weight");
-        // 2) seven_days
-        const daysWithWeight = Object.values(state.days).filter((d) =&gt; d.weight != null).length;
-        if (daysWithWeight &gt;= 7) unlocked.add("seven_days");
-        // 3) water_10
-        const anyWater10 = Object.values(state.days).some((d) =&gt; (d.drinks?.water ?? 0) &gt;= 10);
-        if (anyWater10) unlocked.add("water_10");
-        // 4) sport streaks
-        const dates = Object.keys(state.days).sort();
-        let maxSportStreak = 0;
-        let cur = 0;
-        for (const k of dates) {
-          const d = state.days[k];
-          if (d?.drinks?.sport) {
-            cur += 1;
-            maxSportStreak = Math.max(maxSportStreak, cur);
-          } else {
-            cur = 0;
-          }
-        }
-        if (maxSportStreak &gt;= 1) unlocked.add("sport_first");
-        if (maxSportStreak &gt;= 3) unlocked.add("sport_3_days");
-        if (maxSportStreak &gt;= 7) unlocked.add("sport_7_days");
-
-        // XP assignment (example values)
-        const xpMap: Record&lt;string, number&gt; = {
-          first_weight: 100,
-          seven_days: 200,
-          water_10: 150,
-          sport_first: 100,
-          sport_3_days: 200,
-          sport_7_days: 300,
-        };
-        for (const id of unlocked) xp += xpMap[id] ?? 0;
-        const levelCapXP = 99 * 100; // level 100 max (level 1 at 0xp)
-        xp = Math.min(xp, levelCapXP);
-
-        set({ achievementsUnlocked: Array.from(unlocked), xp });
+        const { list, unlocked, xp } = computeAchievements({
+          days: state.days,
+          goal: state.goal,
+          reminders: state.reminders,
+          chat: state.chat,
+          achievementsUnlocked: state.achievementsUnlocked,
+          xp: state.xp,
+          language: state.language,
+        });
+        set({ achievementsUnlocked: unlocked, xp });
       },
     }),
     {
       name: "scarlett-app-state",
-      storage: createJSONStorage(() =&gt; mmkvAdapter),
-      partialize: (s) =&gt; s, // persist all
+      storage: createJSONStorage(() => mmkvAdapter),
+      partialize: (s) => s, // persist all
       version: 1,
-      onRehydrateStorage: () =&gt; (state) =&gt; {
-        // data normalization on startup
+      onRehydrateStorage: () => (state) => {
         if (!state) return;
         const days = state.days || {};
         for (const k of Object.keys(days)) {
           const d = days[k];
-          // ensure sport flag exists
           if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any;
           if (typeof d.drinks.sport !== "boolean") d.drinks.sport = false as any;
         }
@@ -271,7 +234,7 @@ export const useAppStore = create<AppState>()(
 );
 
 export function useLevel() {
-  const xp = useAppStore((s) =&gt; s.xp);
+  const xp = useAppStore((s) => s.xp);
   const level = Math.min(100, Math.floor(xp / 100) + 1);
   return { level, xp };
 }

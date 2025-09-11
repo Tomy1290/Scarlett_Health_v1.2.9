@@ -5,8 +5,8 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppStore, useLevel } from "../src/store/useStore";
 import { displayDate, toKey, parseGermanOrShort } from "../src/utils/date";
 import { LineChart } from "react-native-gifted-charts";
-
 import { useWindowDimensions } from "react-native";
+import { computeAchievements } from "../src/achievements";
 
 function useThemeColors(theme: string) {
   const { width } = useWindowDimensions();
@@ -22,14 +22,6 @@ function useThemeColors(theme: string) {
     return { ...base, card: base.card, primary: base.primary, text: base.text, muted: base.muted };
   }
   return base;
-}
-  if (theme === "pink_pastel") {
-    return { bg: "#fff0f5", card: "#ffe4ef", primary: "#d81b60", text: "#3a2f33", muted: "#8a6b75" };
-  }
-  if (theme === "pink_vibrant") {
-    return { bg: "#1b0b12", card: "#2a0f1b", primary: "#ff2d87", text: "#ffffff", muted: "#e59ab8" };
-  }
-  return { bg: "#fde7ef", card: "#ffd0e0", primary: "#e91e63", text: "#2a1e22", muted: "#7c5866" };
 }
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
@@ -87,14 +79,13 @@ export default function Home() {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [goalWeight, setGoalWeight] = useState("");
   const [goalDate, setGoalDate] = useState("");
+  const [showRemindersModal, setShowRemindersModal] = useState(false);
+  const [newRemType, setNewRemType] = useState("");
+  const [newRemTime, setNewRemTime] = useState("");
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const [analysisTab, setAnalysisTab] = useState<'week'|'month'|'custom'>('week');
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const [showRemindersModal, setShowRemindersModal] = useState(false);
-  const [newRemType, setNewRemType] = useState("");
-  const [newRemTime, setNewRemTime] = useState("");
-
 
   React.useEffect(() => {
     setWeightInput(d?.weight ? String(d.weight) : "");
@@ -172,6 +163,11 @@ export default function Home() {
     };
     return dict[language]?.[k] ?? k;
   };
+
+  // Analysis memoized data
+  const analysisSeries = useMemo(() => buildRange(days, analysisTab, customStart, customEnd), [days, analysisTab, customStart, customEnd]);
+  const analysisData = useMemo(() => analysisSeries.map((s) => ({ value: typeof s.weight === 'number' ? s.weight : 0, label: s.date.slice(5) })), [analysisSeries]);
+  const analysisSummary = useMemo(() => computeStats(analysisSeries), [analysisSeries]);
 
   const header = (
     <View style={[styles.header, { backgroundColor: colors.card }]}>
@@ -347,13 +343,6 @@ export default function Home() {
         goal: parsed.goal,
         reminders: parsed.reminders ?? [],
         chat: parsed.chat ?? [],
-          <SectionCard title={t("weight")}>
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
-              <PrimaryButton icon="analytics" label={language==='de'?'Analyse':'Analysis'} onPress={() => setShowAnalysisModal(true)} colors={colors} />
-            </View>
-            {weightCard}
-          </SectionCard>
-
         saved: parsed.saved ?? [],
         achievementsUnlocked: parsed.achievementsUnlocked ?? [],
         xp: parsed.xp ?? 0,
@@ -369,20 +358,19 @@ export default function Home() {
     }
   }
 
-  // Analysis memoized data
-  const analysisSeries = useMemo(() => buildRange(days, analysisTab, customStart, customEnd), [days, analysisTab, customStart, customEnd]);
-  const analysisData = useMemo(() => analysisSeries.map((s) => ({ value: typeof s.weight === 'number' ? s.weight : 0, label: s.date.slice(5) })), [analysisSeries]);
-  const analysisSummary = useMemo(() => computeStats(analysisSeries), [analysisSeries]);
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }] }>
       {header}
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
           <SectionCard title={t("pills")}>{pillRow}</SectionCard>
           <SectionCard title={t("drinks")}>{drinkRow}</SectionCard>
-          <SectionCard title={t("weight")}>{weightCard}</SectionCard>
-
+          <SectionCard title={t("weight")}>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
+              <PrimaryButton icon="analytics" label={language==='de'?'Analyse':'Analysis'} onPress={() => setShowAnalysisModal(true)} colors={colors} />
+            </View>
+            {weightCard}
+          </SectionCard>
           <SectionCard title={t("achievements")}>
             <AchievementPreview />
           </SectionCard>
@@ -472,36 +460,6 @@ export default function Home() {
               keyboardType="decimal-pad"
               value={weightInput}
               onChangeText={setWeightInput}
-
-      {/* Analysis Modal */}
-      {showAnalysisModal ? (
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}> 
-            <Text style={[styles.cardTitle, { color: colors.text }]}>{language==='de'?'Gewichtsverlauf':'Weight analysis'}</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-              {(['week','month','custom'] as const).map((tab) => (
-                <TouchableOpacity key={tab} onPress={() => setAnalysisTab(tab)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: analysisTab===tab ? colors.primary : 'transparent' }]}>
-                  <Text style={{ color: analysisTab===tab ? '#fff' : colors.text }}>{language==='de' ? (tab==='week'?'Woche':tab==='month'?'Monat':'Benutzerdefiniert') : (tab==='week'?'Week':tab==='month'?'Month':'Custom')}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {analysisTab==='custom' ? (
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-                <TextInput value={customStart} onChangeText={setCustomStart} placeholder="Start: TT.MM.JJJJ" placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
-                <TextInput value={customEnd} onChangeText={setCustomEnd} placeholder="Ende: TT.MM.JJJJ" placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
-              </View>
-            ) : null}
-            <View style={{ height: 200, marginBottom: 8 }}>
-              {renderAnalysisChart()}
-            </View>
-            <Text style={{ color: colors.text }}>{renderAnalysisStats()}</Text>
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-              <PrimaryButton label={language==='de'?'Schließen':'Close'} icon="close" onPress={() => setShowAnalysisModal(false)} colors={colors} outline />
-            </View>
-          </View>
-        </View>
-      ) : null}
-
               placeholder="72.4"
               placeholderTextColor={colors.muted}
               style={[styles.input, { borderColor: colors.muted, color: colors.text }]}
@@ -528,6 +486,20 @@ export default function Home() {
               style={[styles.input, { borderColor: colors.muted, color: colors.text, marginBottom: 8 }]}
             />
             <TextInput
+              keyboardType="numbers-and-punctuation"
+              value={goalDate}
+              onChangeText={setGoalDate}
+              placeholder={language === 'de' ? 'Zieldatum (TT.MM.JJJJ)' : 'Target date (DD.MM.YYYY)'}
+              placeholderTextColor={colors.muted}
+              style={[styles.input, { borderColor: colors.muted, color: colors.text }]}
+            />
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+              <PrimaryButton label="Abbrechen" icon="close" onPress={() => setShowGoalModal(false)} colors={colors} outline />
+              <PrimaryButton label="Ziel erstellen" icon="flag" onPress={handleSaveGoal} colors={colors} />
+            </View>
+          </View>
+        </View>
+      ) : null}
 
       {/* Reminders Modal */}
       {showRemindersModal ? (
@@ -574,40 +546,6 @@ export default function Home() {
                 onChangeText={setNewRemTime}
                 placeholder="HH:MM"
                 placeholderTextColor={colors.muted}
-function buildRange(days: any, mode: 'week'|'month'|'custom', customStart?: string, customEnd?: string) {
-  const today = new Date();
-  let start: Date; let end: Date;
-  if (mode === 'week') { start = new Date(today); start.setDate(today.getDate() - 6); end = today; }
-  else if (mode === 'month') { start = new Date(today); start.setDate(today.getDate() - 29); end = today; }
-  else {
-    const { parseGermanOrShort, toKey } = require('../src/utils/date');
-    const s = parseGermanOrShort(customStart || '');
-    const e = parseGermanOrShort(customEnd || '');
-    start = s || new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    end = e || today;
-  }
-  // Collect weights
-  const res: { date: string; weight?: number }[] = [];
-  const cur = new Date(start);
-  while (cur <= end) {
-    const k = toKey(cur);
-    res.push({ date: k, weight: days[k]?.weight });
-    cur.setDate(cur.getDate() + 1);
-  }
-  return res;
-}
-
-function computeStats(series: { date: string; weight?: number }[]) {
-  const points = series.filter(s => typeof s.weight === 'number') as { date: string; weight: number }[];
-  if (points.length < 2) return { delta: 0, perDay: 0 };
-  const first = points[0].weight;
-  const last = points[points.length - 1].weight;
-  const delta = +(last - first).toFixed(1);
-  const days = points.length - 1;
-  const perDay = +((last - first) / days).toFixed(2);
-  return { delta, perDay };
-}
-
                 style={[styles.input, { borderColor: colors.muted, color: colors.text, width: 96 }]}
               />
               <TouchableOpacity
@@ -616,36 +554,6 @@ function computeStats(series: { date: string; weight?: number }[]) {
                   if (!/^\d{2}:\d{2}$/.test(newRemTime)) { Alert.alert('Fehler', 'Zeit bitte als HH:MM angeben'); return; }
                   const r = { id: String(Date.now()), type: newRemType || 'custom', time: newRemTime, enabled: true } as any;
                   addReminder(r);
-function renderAnalysisChart(this: any) {
-  const state = useAppStore.getState();
-  const { days } = state;
-  const series = buildRange(days, (this as any)?.analysisTab ?? 'week');
-  const data = series.map((s) => ({ value: typeof s.weight === 'number' ? s.weight : 0, label: s.date.slice(5) }));
-  return (
-    <LineChart
-      data={data}
-      thickness={3}
-      color={useThemeColors(useAppStore.getState().theme).primary}
-      hideDataPoints
-      noOfSections={4}
-      yAxisTextStyle={{ color: useThemeColors(useAppStore.getState().theme).muted }}
-      xAxisLabelTextStyle={{ color: useThemeColors(useAppStore.getState().theme).muted }}
-      rulesColor={useThemeColors(useAppStore.getState().theme).muted}
-      yAxisColor={useThemeColors(useAppStore.getState().theme).muted}
-      xAxisColor={useThemeColors(useAppStore.getState().theme).muted}
-      curved
-    />
-  );
-}
-
-function renderAnalysisStats() {
-  const { days } = useAppStore.getState();
-  const mode = useAppStore.getState();
-  const series = buildRange(days, 'week');
-  const { delta, perDay } = computeStats(series);
-  return `${delta >= 0 ? '+' : ''}${delta} kg gesamt, ${perDay >= 0 ? '+' : ''}${perDay} kg/Tag durchschnittlich`;
-}
-
                   setNewRemType('');
                   setNewRemTime('');
                 }}
@@ -660,16 +568,42 @@ function renderAnalysisStats() {
         </View>
       ) : null}
 
-              keyboardType="numbers-and-punctuation"
-              value={goalDate}
-              onChangeText={setGoalDate}
-              placeholder={language === 'de' ? 'Zieldatum (TT.MM.JJJJ)' : 'Target date (DD.MM.YYYY)'}
-              placeholderTextColor={colors.muted}
-              style={[styles.input, { borderColor: colors.muted, color: colors.text }]}
-            />
+      {/* Analysis Modal */}
+      {showAnalysisModal ? (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}> 
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{language==='de'?'Gewichtsverlauf':'Weight analysis'}</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+              {(['week','month','custom'] as const).map((tab) => (
+                <TouchableOpacity key={tab} onPress={() => setAnalysisTab(tab)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: analysisTab===tab ? colors.primary : 'transparent' }]}>
+                  <Text style={{ color: analysisTab===tab ? '#fff' : colors.text }}>{language==='de' ? (tab==='week'?'Woche':tab==='month'?'Monat':'Benutzerdefiniert') : (tab==='week'?'Week':tab==='month'?'Month':'Custom')}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {analysisTab==='custom' ? (
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                <TextInput value={customStart} onChangeText={setCustomStart} placeholder="Start: TT.MM.JJJJ" placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
+                <TextInput value={customEnd} onChangeText={setCustomEnd} placeholder="Ende: TT.MM.JJJJ" placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
+              </View>
+            ) : null}
+            <View style={{ height: 200, marginBottom: 8 }}>
+              <LineChart
+                data={analysisData}
+                thickness={3}
+                color={colors.primary}
+                hideDataPoints
+                noOfSections={4}
+                yAxisTextStyle={{ color: colors.muted }}
+                xAxisLabelTextStyle={{ color: colors.muted }}
+                rulesColor={colors.muted}
+                yAxisColor={colors.muted}
+                xAxisColor={colors.muted}
+                curved
+              />
+            </View>
+            <Text style={{ color: colors.text }}>{`${analysisSummary.delta >= 0 ? '+' : ''}${analysisSummary.delta} kg gesamt, ${analysisSummary.perDay >= 0 ? '+' : ''}${analysisSummary.perDay} kg/Tag`}</Text>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-              <PrimaryButton label="Abbrechen" icon="close" onPress={() => setShowGoalModal(false)} colors={colors} outline />
-              <PrimaryButton label="Ziel erstellen" icon="flag" onPress={handleSaveGoal} colors={colors} />
+              <PrimaryButton label={language==='de'?'Schließen':'Close'} icon="close" onPress={() => setShowAnalysisModal(false)} colors={colors} outline />
             </View>
           </View>
         </View>
@@ -749,20 +683,23 @@ function RowButton({ icon, label, onPress, colors }: any) {
 }
 
 function AchievementPreview() {
-  const { achievementsUnlocked, xp } = useAppStore();
-  const next = useMemo(() => {
-    const all: { id: string; title: string; percent: number }[] = [
-      { id: "first_weight", title: "Erstes Gewicht", percent: achievementsUnlocked.includes("first_weight") ? 100 : 20 },
-      { id: "seven_days", title: "7 Tage Gewichte", percent: achievementsUnlocked.includes("seven_days") ? 100 : 60 },
-      { id: "water_10", title: "10x Wasser an einem Tag", percent: achievementsUnlocked.includes("water_10") ? 100 : 40 },
-    ];
-    return all.slice(0, 3);
-  }, [achievementsUnlocked, xp]);
+  const state = useAppStore();
+  const { list } = computeAchievements({
+    days: state.days,
+    goal: state.goal,
+    reminders: state.reminders,
+    chat: state.chat,
+    achievementsUnlocked: state.achievementsUnlocked,
+    xp: state.xp,
+    language: state.language,
+  });
+  const pending = list.filter((a) => !a.completed).sort((a,b) => b.percent - a.percent);
+  const top3 = (pending.length >= 3 ? pending.slice(0,3) : [...pending, ...list.filter(a => a.completed)].slice(0,3));
   const theme = useAppStore((s) => s.theme);
   const colors = useThemeColors(theme);
   return (
     <View style={{ gap: 12 }}>
-      {next.map((a) => (
+      {top3.map((a) => (
         <View key={a.id}>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <Text style={{ color: colors.text }}>{a.title}</Text>
@@ -771,10 +708,44 @@ function AchievementPreview() {
           <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: "hidden", marginTop: 6 }}>
             <View style={{ width: `${a.percent}%`, height: 8, backgroundColor: colors.primary }} />
           </View>
+          <Text style={{ color: colors.muted, marginTop: 4 }}>{a.description}</Text>
         </View>
       ))}
     </View>
   );
+}
+
+function buildRange(days: any, mode: 'week'|'month'|'custom', customStart?: string, customEnd?: string) {
+  const today = new Date();
+  let start: Date; let end: Date;
+  if (mode === 'week') { start = new Date(today); start.setDate(today.getDate() - 6); end = today; }
+  else if (mode === 'month') { start = new Date(today); start.setDate(today.getDate() - 29); end = today; }
+  else {
+    const { parseGermanOrShort, toKey } = require('../src/utils/date');
+    const s = parseGermanOrShort(customStart || '');
+    const e = parseGermanOrShort(customEnd || '');
+    start = s || new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    end = e || today;
+  }
+  const res: { date: string; weight?: number }[] = [];
+  const cur = new Date(start);
+  while (cur <= end) {
+    const k = toKey(cur);
+    res.push({ date: k, weight: days[k]?.weight });
+    cur.setDate(cur.getDate() + 1);
+  }
+  return res;
+}
+
+function computeStats(series: { date: string; weight?: number }[]) {
+  const points = series.filter(s => typeof s.weight === 'number') as { date: string; weight: number }[];
+  if (points.length < 2) return { delta: 0, perDay: 0 };
+  const first = points[0].weight;
+  const last = points[points.length - 1].weight;
+  const delta = +(last - first).toFixed(1);
+  const days = points.length - 1;
+  const perDay = +((last - first) / days).toFixed(2);
+  return { delta, perDay };
 }
 
 const styles = StyleSheet.create({
