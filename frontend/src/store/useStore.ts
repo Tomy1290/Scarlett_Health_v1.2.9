@@ -130,8 +130,8 @@ export const useAppStore = create<AppState>()(
       appVersion: "1.0.0",
       currentDate: toKey(new Date()),
 
-      setLanguage: (lng) => set({ language: lng }),
-      setTheme: (t) => set({ theme: t }),
+      setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
+      setTheme: (t) => { set({ theme: t }); get().recalcAchievements(); },
       goPrevDay: () => {
         const cur = new Date(get().currentDate);
         const prev = new Date(cur);
@@ -197,9 +197,9 @@ export const useAppStore = create<AppState>()(
           reminders: get().reminders.map((r) => (r.id === id ? { ...r, ...patch } : r)),
         }),
       deleteReminder: (id) => { set({ reminders: get().reminders.filter((r) => r.id !== id) }); get().recalcAchievements(); },
-      addChat: (m) => set({ chat: [...get().chat, m] }),
-      addSaved: (s) => set({ saved: [s, ...get().saved] }),
-      deleteSaved: (id) => set({ saved: get().saved.filter((s) => s.id !== id) }),
+      addChat: (m) => { set({ chat: [...get().chat, m] }); get().recalcAchievements(); },
+      addSaved: (s) => { set({ saved: [s, ...get().saved] }); get().recalcAchievements(); },
+      deleteSaved: (id) => { set({ saved: get().saved.filter((s) => s.id !== id) }); get().recalcAchievements(); },
 
       recalcAchievements: () => {
         const state = get();
@@ -208,9 +208,11 @@ export const useAppStore = create<AppState>()(
           goal: state.goal,
           reminders: state.reminders,
           chat: state.chat,
+          saved: state.saved,
           achievementsUnlocked: state.achievementsUnlocked,
           xp: state.xp,
           language: state.language,
+          theme: state.theme,
         });
         set({ achievementsUnlocked: unlocked, xp });
       },
@@ -235,6 +237,6 @@ export const useAppStore = create<AppState>()(
 
 export function useLevel() {
   const xp = useAppStore((s) => s.xp);
-  const level = Math.min(100, Math.floor(xp / 100) + 1);
+  const level = Math.floor(xp / 100) + 1; // offen, kein Cap
   return { level, xp };
 }
