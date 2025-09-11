@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,6 +6,7 @@ import { useAppStore, useLevel } from "../src/store/useStore";
 import { useRouter } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import { getWeekRange, getCurrentWeeklyEvent, computeEventProgress } from "../src/gamification/events";
+import { computeChains } from "../src/gamification/chains";
 
 function useThemeColors(theme: string) {
   if (theme === "pink_pastel") return { bg: "#fff0f5", card: "#ffe4ef", primary: "#d81b60", text: "#3a2f33", muted: "#8a6b75" };
@@ -20,6 +21,7 @@ export default function Home() {
   const { level } = useLevel();
   const colors = useThemeColors(theme);
 
+  // Weekly event computation
   const now = new Date();
   const { weekKey, dayKeys } = getWeekRange(now);
   const weeklyEvent = getCurrentWeeklyEvent(now);
@@ -32,6 +34,12 @@ export default function Home() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   }, [evProg.completed, weekKey]);
+
+  // Chains teaser (Top 1)
+  const chains = useMemo(() => computeChains(useAppStore.getState()), [days]);
+  const topChain = useMemo(() => chains
+    .filter(c => c.completed < c.total)
+    .sort((a,b) => b.nextPercent - a.nextPercent)[0], [chains]);
 
   const rewardList = [
     { lvl: 10, title: 'Erweiterte Statistiken' },
@@ -63,6 +71,30 @@ export default function Home() {
             <View style={{ width: `${evProg.percent}%`, height: 8, backgroundColor: colors.primary }} />
           </View>
           <Text style={{ color: colors.muted, marginTop: 6 }}>{evProg.percent}% · +{weeklyEvent.xp} XP · Bonus {Math.round(weeklyEvent.bonusPercent*100)}% {evCompleted ? '· Abgeschlossen' : ''}</Text>
+        </View>
+
+        {/* Dashboard: Ketten-Teaser */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='link' size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>Ketten</Text>
+            </View>
+            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/achievements'); }} accessibilityLabel='Zu Ketten'>
+              <Ionicons name='chevron-forward' size={20} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+          {topChain ? (
+            <View style={{ marginTop: 6 }}>
+              <Text style={{ color: colors.muted }}>{topChain.title} · Schritt {topChain.completed+1}/{topChain.total}</Text>
+              <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
+                <View style={{ width: `${Math.round(topChain.nextPercent)}%`, height: 6, backgroundColor: colors.primary }} />
+              </View>
+              {topChain.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>Als Nächstes: {topChain.nextTitle}</Text> : null}
+            </View>
+          ) : (
+            <Text style={{ color: colors.muted, marginTop: 6 }}>Alle Ketten abgeschlossen oder keine vorhanden.</Text>
+          )}
         </View>
 
         {/* Dashboard: Nächste Belohnung */}
