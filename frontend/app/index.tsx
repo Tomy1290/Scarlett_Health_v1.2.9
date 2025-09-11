@@ -340,16 +340,16 @@ export default function Home() {
   }
 
   return (
-    &lt;SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}&gt;
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
       {header}
-      &lt;KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}&gt;
-        &lt;ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}&gt;
-          &lt;SectionCard title={t("pills")}&gt;{pillRow}&lt;/SectionCard&gt;
-          &lt;SectionCard title={t("drinks")}&gt;{drinkRow}&lt;/SectionCard&gt;
-          &lt;SectionCard title={t("weight")}&gt;{weightCard}&lt;/SectionCard&gt;
-          &lt;SectionCard title={t("achievements")}&gt;
-            &lt;AchievementPreview /&gt;
-          &lt;/SectionCard&gt;
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+          <SectionCard title={t("pills")}>{pillRow}</SectionCard>
+          <SectionCard title={t("drinks")}>{drinkRow}</SectionCard>
+          <SectionCard title={t("weight")}>{weightCard}</SectionCard>
+          <SectionCard title={t("achievements")}>
+            <AchievementPreview />
+          </SectionCard>
           &lt;SectionCard title={t("chat")}&gt;
             &lt;View style={{ gap: 8 }}&gt;
               {chat.slice(-5).map((m) =&gt; (
