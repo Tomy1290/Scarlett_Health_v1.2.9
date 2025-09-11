@@ -347,6 +347,13 @@ export default function Home() {
         goal: parsed.goal,
         reminders: parsed.reminders ?? [],
         chat: parsed.chat ?? [],
+          <SectionCard title={t("weight")}>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
+              <PrimaryButton icon="analytics" label={language==='de'?'Analyse':'Analysis'} onPress={() => setShowAnalysisModal(true)} colors={colors} />
+            </View>
+            {weightCard}
+          </SectionCard>
+
         saved: parsed.saved ?? [],
         achievementsUnlocked: parsed.achievementsUnlocked ?? [],
         xp: parsed.xp ?? 0,
