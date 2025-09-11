@@ -190,7 +190,7 @@ export const EVENTS: WeeklyEvent[] = [
     id: 'weigh_early',
     title: (l)=> l==='de'? 'Früh gewogen' : 'Weigh Early',
     description: (l)=> l==='de'? '2× vor 8:00 wiegen.' : 'Weigh before 8:00 twice.',
-    progress: (dayKeys, s) => Math.min(100, Math.round((countDays(dayKeys, s, (d)=> typeof d?.weightTime === 'number' && new Date(d.weightTime).getHours() &lt; 8)/2)*100)),
+    progress: (dayKeys, s) => Math.min(100, Math.round((countDays(dayKeys, s, (d)=> typeof d?.weightTime === 'number' && new Date(d.weightTime).getHours() < 8)/2)*100)),
     xp: 120,
     bonusPercent: 0.06,
   },
