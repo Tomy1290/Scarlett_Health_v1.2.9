@@ -96,7 +96,7 @@ export type AppState = {
   startCycle: (dateKey: string) => void;
   endCycle: (dateKey: string) => void;
 
-  setCycleLog: (dateKey: string, patch: Partial&lt;CycleLog&gt;) => void;
+  setCycleLog: (dateKey: string, patch: Partial<CycleLog>) => void;
 
   recalcAchievements: () => void;
 };
