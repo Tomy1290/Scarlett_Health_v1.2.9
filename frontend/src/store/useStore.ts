@@ -63,6 +63,7 @@ export type AppState = {
   eventsEnabled: boolean;
   cycles: Cycle[];
   cycleLogs: Record<string, CycleLog>;
+  waterCupMl: number;
 
   setLanguage: (lng: Language) => void;
   setTheme: (t: ThemeName) => void;
@@ -94,6 +95,7 @@ export type AppState = {
   setAiInsightsEnabled: (v: boolean) => void;
   feedbackAI: (id: string, delta: 1 | -1) => void;
   setEventsEnabled: (v: boolean) => void;
+  setWaterCupMl: (ml: number) => void;
 
   startCycle: (dateKey: string) => void;
   endCycle: (dateKey: string) => void;
@@ -111,7 +113,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.1.6",
       currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {}, profileAlias: '', xpLog: [],
-      aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true, cycles: [], cycleLogs: {},
+      aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true, cycles: [], cycleLogs: {}, waterCupMl: 250,
 
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
       setTheme: (t) => { const lvl = Math.floor(get().xp / 100) + 1; if (t === 'golden_pink' && lvl < 75) { return; } set({ theme: t }); get().recalcAchievements(); },
@@ -144,6 +146,7 @@ export const useAppStore = create<AppState>()(
       setAiInsightsEnabled: (v) => set({ aiInsightsEnabled: v }),
       feedbackAI: (id, delta) => { const map = { ...(get().aiFeedback||{}) }; map[id] = (map[id]||0) + delta; set({ aiFeedback: map }); },
       setEventsEnabled: (v) => set({ eventsEnabled: v }),
+      setWaterCupMl: (ml) => set({ waterCupMl: Math.max(50, Math.min(1000, Math.round(ml))) }),
 
       startCycle: (dateKey) => { const cycles = [...get().cycles]; const active = cycles.find(c => !c.end); if (active) return; cycles.push({ start: dateKey }); set({ cycles }); },
       endCycle: (dateKey) => { const cycles = [...get().cycles]; const activeIdx = cycles.findIndex(c => !c.end); if (activeIdx === -1) return; cycles[activeIdx] = { ...cycles[activeIdx], end: dateKey }; set({ cycles }); },
@@ -152,7 +155,7 @@ export const useAppStore = create<AppState>()(
 
       recalcAchievements: () => { const state = get(); const base = computeAchievements({ days: state.days, goal: state.goal, reminders: state.reminders, chat: state.chat, saved: state.saved, achievementsUnlocked: state.achievementsUnlocked, xp: state.xp, language: state.language, theme: state.theme }); const prevSet = new Set(state.achievementsUnlocked); const newUnlocks = base.unlocked.filter((id) => !prevSet.has(id)); let xpDelta = 0; const comboBonus = newUnlocks.length >= 2 ? (newUnlocks.length - 1) * 50 : 0; if (newUnlocks.length > 0) { try { const { getAchievementConfigById } = require('../achievements'); const sum = newUnlocks.reduce((acc: number, id: string) => { const cfg = getAchievementConfigById(id); return acc + (cfg?.xp || 0); }, 0); xpDelta += sum; if (sum > 0) { const addLog = { id: `ach:${Date.now()}`, ts: Date.now(), amount: sum, source: 'achievement', note: `${newUnlocks.length} unlocks` } as XpLogEntry; set({ xpLog: [...(state.xpLog||[]), addLog] }); } } catch {} } if (comboBonus > 0) { const addLog = { id: `combo:${Date.now()}`, ts: Date.now(), amount: comboBonus, source: 'combo', note: `${newUnlocks.length} unlocks combo` } as XpLogEntry; set({ xpLog: [...(get().xpLog||[]), addLog] }); } set({ achievementsUnlocked: base.unlocked, xp: state.xp + xpDelta + comboBonus }); },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 14, onRehydrateStorage: () => (state) => { if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; if (!d.xpToday) d.xpToday = {}; } } }
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 15, onRehydrateStorage: () => (state) => { if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; if (!d.xpToday) d.xpToday = {}; } if (typeof (state as any).waterCupMl !== 'number') (state as any).waterCupMl = 250; } }
   )
 );
 

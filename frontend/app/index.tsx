@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Animated, TextInput, Platform, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppStore, useLevel, getAverageCycleLengthDays } from "../src/store/useStore";
+import { useAppStore, useLevel } from "../src/store/useStore";
 import { useRouter } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import { getWeekRange, getCurrentWeeklyEvent, computeEventProgress } from "../src/gamification/events";
@@ -17,10 +17,23 @@ function useThemeColors(theme: string) {
   return { bg: "#fde7ef", card: "#ffd0e0", primary: "#e91e63", text: "#2a1e22", muted: "#7c5866" };
 }
 
+function getLatestWeightKg(days: Record<string, any>): number | undefined {
+  const arr = Object.values(days).filter((d: any) => typeof d.weight === 'number' && d.date).sort((a: any, b: any) => String(a.date).localeCompare(String(b.date)));
+  const w = arr.length ? Number(arr[arr.length - 1].weight) : undefined;
+  return isNaN(w as any) ? undefined : (w as number);
+}
+
+function computeDailyWaterTargetMl(weightKg?: number, didSport?: boolean): number {
+  // 35 ml pro kg Körpergewicht; +500 ml, wenn Sport am Tag markiert
+  const base = weightKg ? Math.round(weightKg * 35) : 2000;
+  const extra = didSport ? 500 : 0;
+  return base + extra; // ml
+}
+
 export default function Home() {
   const router = useRouter();
   const state = useAppStore();
-  const { theme, days, eventHistory, completeEvent, eventsEnabled, currentDate, ensureDay, language, togglePill, incDrink, toggleFlag, setWeight, goPrevDay, goNextDay, goToday } = state as any;
+  const { theme, days, eventHistory, currentDate, ensureDay, language, togglePill, incDrink, toggleFlag, setWeight } = state as any;
   const { level, xp } = useLevel();
   const colors = useThemeColors(theme);
 
@@ -57,7 +70,11 @@ export default function Home() {
 
   const t = (de: string, en: string) => (language === 'en' ? en : de);
 
-  const activeCycle = state.cycles.find((c: any) => !c.end);
+  // Hydration progress
+  const weightKg = getLatestWeightKg(days);
+  const goalMl = computeDailyWaterTargetMl(weightKg, !!day.drinks.sport);
+  const intakeMl = (state.waterCupMl || 250) * (day.drinks.water || 0);
+  const percent = Math.max(0, Math.min(100, Math.round((intakeMl / Math.max(1, goalMl)) * 100)));
 
   // Helpers to render cups: 9 per row
   const renderCupsRow = (count: number, type: 'water'|'coffee') => (
@@ -91,38 +108,14 @@ export default function Home() {
         {/* Date navigation */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <TouchableOpacity accessibilityLabel={t('Vortag', 'Previous day')} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); goPrevDay(); }} style={styles.iconBtn}>
+            <TouchableOpacity accessibilityLabel={t('Vortag', 'Previous day')} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); state.goPrevDay(); }} style={styles.iconBtn}>
               <Ionicons name="chevron-back" size={22} color={colors.text} />
             </TouchableOpacity>
-            <TouchableOpacity accessibilityLabel={t('Heute', 'Today')} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); goToday(); }}>
+            <TouchableOpacity accessibilityLabel={t('Heute', 'Today')} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); state.goToday(); }}>
               <Text style={{ color: colors.text, fontWeight: '700' }}>{dateLabel}</Text>
             </TouchableOpacity>
-            <TouchableOpacity accessibilityLabel={t('Folgetag', 'Next day')} onPress={() => { const canGoNext = currentDate <= toKey(new Date()); if (canGoNext) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); goNextDay(); } }} style={styles.iconBtn}>
+            <TouchableOpacity accessibilityLabel={t('Folgetag', 'Next day')} onPress={() => { const canGoNext = currentDate <= toKey(new Date()); if (canGoNext) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); state.goNextDay(); } }} style={styles.iconBtn}>
               <Ionicons name="chevron-forward" size={22} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Pills */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="medkit" size={20} color={colors.primary} />
-              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('Tabletten', 'Pills')}</Text>
-            </View>
-            <TouchableOpacity onPress={() => toggleHelp('pills')}>
-              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
-            </TouchableOpacity>
-          </View>
-          {help.pills ? <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Markiere morgens/abends, wenn du deine Tabletten genommen hast.', 'Toggle morning/evening when you took your pills.')}</Text> : null}
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 10 }}>
-            <TouchableOpacity accessibilityLabel={t('Morgens einnehmen', 'Morning pill')} onPress={() => { togglePill(currentDate, 'morning'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.toggle, { borderColor: colors.primary, backgroundColor: day.pills.morning ? colors.primary : 'transparent' }]}> 
-              <Ionicons name="sunny" size={18} color={day.pills.morning ? '#fff' : colors.primary} />
-              <Text style={{ color: day.pills.morning ? '#fff' : colors.text, marginLeft: 6 }}>{t('Morgens', 'Morning')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity accessibilityLabel={t('Abends einnehmen', 'Evening pill')} onPress={() => { togglePill(currentDate, 'evening'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.toggle, { borderColor: colors.primary, backgroundColor: day.pills.evening ? colors.primary : 'transparent' }]}> 
-              <Ionicons name="moon" size={18} color={day.pills.evening ? '#fff' : colors.primary} />
-              <Text style={{ color: day.pills.evening ? '#fff' : colors.text, marginLeft: 6 }}>{t('Abends', 'Evening')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -138,16 +131,25 @@ export default function Home() {
               <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
             </TouchableOpacity>
           </View>
-          {help.drinks ? <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Wasser vergibt XP pro Glas. Kaffee ab Tasse 7 gibt Minuspunkte. Toggles (Sport, Kur, etc.) nur einmal täglich XP.', 'Water gives XP per glass. Coffee after cup 6 reduces XP. Toggles (sport, cure, etc.) give XP only once per day.')}</Text> : null}
+          {help.drinks ? <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Wähle Bechergröße in den Einstellungen. Fortschrittsbalken zeigt Trinkziel (35 ml/kg + 500 ml bei Sport).', 'Choose cup size in Settings. Progress bar shows goal (35 ml/kg + 500 ml if sport).')}</Text> : null}
 
-          {/* WATER 2x row cups with centered controls */}
+          {/* Hydration progress */}
+          <View style={{ marginTop: 8 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ color: colors.muted }}>{Math.round(intakeMl/10)/100} L</Text>
+              <Text style={{ color: colors.muted }}>{Math.round(goalMl/10)/100} L · {percent}%</Text>
+            </View>
+            <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden', marginTop: 6 }}>
+              <View style={{ width: `${percent}%`, height: 8, backgroundColor: colors.primary }} />
+            </View>
+          </View>
+
+          {/* WATER cups */}
           <View style={{ marginTop: 10 }}>
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{t('Wasser', 'Water')}</Text>
+              <Text style={{ color: colors.text, fontWeight: '600' }}>{t('Wasser', 'Water')} · {state.waterCupMl} ml</Text>
             </View>
-            {/* Row 2 cups (0..9) */}
             {renderCupsRow(Math.min(day.drinks.water, 9), 'water')}
-            {/* Centered controls */}
             <View style={{ flexDirection: 'row', alignSelf: 'center', gap: 16, marginTop: 6 }}>
               <TouchableOpacity accessibilityLabel={t('Wasser verringern', 'Decrease water')} onPress={() => { incDrink(currentDate, 'water', -1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]}>
                 <Ionicons name='remove' size={18} color={colors.primary} />
@@ -156,11 +158,10 @@ export default function Home() {
                 <Ionicons name='add' size={18} color={colors.primary} />
               </TouchableOpacity>
             </View>
-            {/* Row 3 cups (9..18) */}
             {renderCupsRow(Math.max(0, Math.min(day.drinks.water - 9, 9)), 'water')}
           </View>
 
-          {/* COFFEE 2x row cups with centered controls */}
+          {/* COFFEE cups */}
           <View style={{ marginTop: 14 }}>
             <View style={{ alignItems: 'center' }}>
               <Text style={{ color: colors.text, fontWeight: '600' }}>{t('Kaffee', 'Coffee')}</Text>
@@ -232,7 +233,7 @@ export default function Home() {
           </View>
           {help.cycle ? <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Starte/Beende deinen Zyklus. Über den Kalender erhältst du Übersicht und Prognosen.', 'Start/end your cycle. Open the calendar for overview and predictions.')}</Text> : null}
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
-            {activeCycle ? (
+            {state.cycles.find((c: any) => !c.end) ? (
               <TouchableOpacity onPress={() => { state.endCycle(currentDate); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }} style={[styles.cta, { backgroundColor: colors.primary }]}>
                 <Ionicons name='stop' size={16} color={'#fff'} />
                 <Text style={{ color: '#fff', marginLeft: 6 }}>{language==='de'?'Zyklus Ende':'End cycle'}</Text>
@@ -248,31 +249,6 @@ export default function Home() {
               <Text style={{ color: colors.text, marginLeft: 6 }}>{t('Kalender', 'Calendar')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Chains */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name='link' size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{language==='de'?'Ketten':'Chains'}</Text>
-            </View>
-            <TouchableOpacity onPress={() => toggleHelp('chains')}>
-              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
-            </TouchableOpacity>
-          </View>
-          {help.chains ? <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Ketten zeigen dir Fortschritte in Meilensteinen. Öffne Erfolge für Details.', 'Chains show progress towards milestones. Open achievements for details.')}</Text> : null}
-          {topChain ? (
-            <View style={{ marginTop: 6 }}>
-              <Text style={{ color: colors.muted }}>{topChain.title}</Text>
-              <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
-                <View style={{ width: `${Math.round(topChain.nextPercent)}%`, height: 6, backgroundColor: colors.primary }} />
-              </View>
-              {topChain.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>{t('Als Nächstes', 'Next')}: {topChain.nextTitle}</Text> : null}
-            </View>
-          ) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Alle Ketten abgeschlossen oder keine vorhanden.', 'All chains completed or none available.')}</Text>
-          )}
         </View>
 
         {/* Rewards */}

@@ -100,7 +100,7 @@ export default function SettingsScreen() {
   async function exportData() {
     try {
       const data = useAppStore.getState();
-      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles','cycleLogs'];
+      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles','cycleLogs','waterCupMl'];
       const snapshot: any = {}; for (const k of keys) (snapshot as any)[k] = (data as any)[k];
       const json = JSON.stringify(snapshot, null, 2);
       if (Platform.OS === 'android' && (FileSystem as any).StorageAccessFramework) {
@@ -124,7 +124,7 @@ export default function SettingsScreen() {
       if (res.canceled || !res.assets?.[0]?.uri) return;
       const txt = await FileSystem.readAsStringAsync(res.assets[0].uri, { encoding: FileSystem.EncodingType.UTF8 });
       const parsed = JSON.parse(txt);
-      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles','cycleLogs'];
+      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles','cycleLogs','waterCupMl'];
       const patch: any = {}; for (const k of keys) if (k in parsed) patch[k] = parsed[k];
       useAppStore.setState(patch);
       useAppStore.getState().recalcAchievements();
@@ -235,6 +235,22 @@ export default function SettingsScreen() {
               <Switch value={state.eventsEnabled} onValueChange={(v)=>state.setEventsEnabled(v)} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
             </View>
             <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Aktiviere oder deaktiviere die wöchentlichen Herausforderungen.':'Enable or disable weekly challenges.'}</Text>
+          </View>
+
+          {/* Drinks settings */}
+          <View style={[styles.card, { backgroundColor: colors.card }]}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='water' size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{state.language==='de'?'Trinken':'Drinks'}</Text>
+            </View>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Bechergröße für Wasser (ml). Fortschrittsbalken berechnet Tagesziel automatisch aus Gewicht (35 ml/kg) und +500 ml bei Sport.':'Cup size for water (ml). Progress bar computes daily target automatically from weight (35 ml/kg) and +500 ml if sport.'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+              <Text style={{ color: colors.text, width: 160 }}>{state.language==='de'?'Bechergröße':'Cup size'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <TextInput keyboardType='number-pad' value={String(state.waterCupMl || 0)} onChangeText={(v)=>{ const n = parseInt((v||'').replace(/[^0-9]/g,'')||'0',10); state.setWaterCupMl(isNaN(n)?250:n); }} style={{ flex: 1, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, color: colors.text, backgroundColor: colors.input }} />
+                <Text style={{ color: colors.muted, marginLeft: 8 }}>ml</Text>
+              </View>
+            </View>
           </View>
 
           {/* Data & Backup (Import/Export) */}
