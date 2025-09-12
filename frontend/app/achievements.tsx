@@ -172,7 +172,7 @@ export default function AchievementsScreen() {
             </>
           ) : (
             <>
-              <Text style={{ color: colors.text, marginTop: 6 }}>• {state.language==='de'?'Erweiterte Statistiken':'Extended stats'} (L10)</Text>
+              <Text style={{ color: colors.text, marginTop: 6 }}>• {state.language==='de'?'Erweiterte Statistiken':'Extended stats'} (Level 10)</Text>
               <Text style={{ color: colors.text, marginTop: 6 }}>• Premium Insights (L25)</Text>
               <Text style={{ color: colors.text, marginTop: 6 }}>• VIP-Chat (L50)</Text>
             </>
