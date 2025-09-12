@@ -89,9 +89,13 @@ export default function SettingsScreen() {
   async function exportData() {
     try {
       const data = useAppStore.getState();
-      const snapshot = JSON.stringify(data);
+      // Export only selected keys (exclude cycleLogs as requested)
+      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','xpBonus','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
+      const snapshot: any = {};
+      for (const k of keys) (snapshot as any)[k] = (data as any)[k];
+      const json = JSON.stringify(snapshot);
       const fileUri = FileSystem.cacheDirectory + `scarlett-backup-${Date.now()}.json`;
-      await FileSystem.writeAsStringAsync(fileUri, snapshot, { encoding: FileSystem.EncodingType.UTF8 });
+      await FileSystem.writeAsStringAsync(fileUri, json, { encoding: FileSystem.EncodingType.UTF8 });
       await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Export' });
     } catch (e) {
       Alert.alert('Error', String(e));
@@ -104,7 +108,7 @@ export default function SettingsScreen() {
       if (res.canceled || !res.assets?.[0]?.uri) return;
       const txt = await FileSystem.readAsStringAsync(res.assets[0].uri, { encoding: FileSystem.EncodingType.UTF8 });
       const parsed = JSON.parse(txt);
-      // minimal safety: only copy known fields
+      // minimal safety: only copy known fields (exclude cycleLogs)
       const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','xpBonus','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
       const patch: any = {};
       for (const k of keys) if (k in parsed) patch[k] = parsed[k];
