@@ -61,7 +61,7 @@ export function buildPeriodDaysSet(cycles: Cycle[], periodLength = 5): Set<strin
     const end = new Date(start);
     end.setDate(start.getDate() + len - 1);
     let cur = new Date(start);
-    while (+cur &lt;= +end) { set.add(toKey(cur)); cur.setDate(cur.getDate()+1); }
+    while (+cur <= +end) { set.add(toKey(cur)); cur.setDate(cur.getDate()+1); }
   }
   return set;
 }
