@@ -104,7 +104,7 @@ export type AppState = {
 const defaultDay = (dateKey: string): DayData => ({ date: dateKey, pills: { morning: false, evening: false }, drinks: { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } });
 function clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
 
-export const useAppStore = create&lt;AppState&gt;()(
+export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.0.3",
