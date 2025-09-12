@@ -138,7 +138,11 @@ export default function SettingsScreen() {
   }
 
   const desiredOrder = ['pills_morning','pills_evening','weight','water','sport'];
-  const sortedReminders = [...state.reminders].sort((a,b) => desiredOrder.indexOf(a.type) - desiredOrder.indexOf(b.type));
+  const sortedReminders = [...state.reminders].sort((a,b) => {
+  const ai = desiredOrder.indexOf(a.type); const bi = desiredOrder.indexOf(b.type);
+  const aIdx = ai < 0 ? 999 : ai; const bIdx = bi < 0 ? 999 : bi;
+  return aIdx - bIdx;
+});
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
