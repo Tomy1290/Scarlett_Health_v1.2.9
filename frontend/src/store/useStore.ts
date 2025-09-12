@@ -177,7 +177,7 @@ export const useAppStore = create<AppState>()(
         set({ achievementsUnlocked: base.unlocked, xpBonus, xp: base.xp + xpBonus, xpLog: [...(state.xpLog||[]), ...addLog] });
       },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() =&gt; mmkvAdapter), partialize: (s) =&gt; s, version: 13, onRehydrateStorage: () =&gt; (state) =&gt; {
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 13, onRehydrateStorage: () => (state) => {
       if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; }
     } }
   )
