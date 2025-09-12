@@ -34,6 +34,10 @@ export default function CycleScreen() {
 
   const lang = state.language;
 
+  // bleeding stats from cycleLogs
+  const flowVals = Object.values(state.cycleLogs).map(l => typeof l.flow === 'number' ? l.flow : -1).filter(v => v >= 0);
+  const flowAvg = flowVals.length ? Math.round(flowVals.reduce((a,b)=>a+b,0)/flowVals.length) : null;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
@@ -56,9 +60,12 @@ export default function CycleScreen() {
           {expectedNext ? (
             <Text style={{ color: colors.muted, marginTop: 2 }}>{lang==='de'?'Nächster Zyklus erwartet am':'Next cycle expected on'} {expectedNext.toLocaleDateString()}</Text>
           ) : null}
-          <Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Historie':'History'}: {state.cycles.length} {lang==='de'?'Einträge':'entries'}</Text>
+          {flowAvg!==null ? (
+            <Text style={{ color: colors.muted, marginTop: 2 }}>{lang==='de'?'Ø Blutung':'Ø bleeding'}: {flowAvg}/7</Text>
+          ) : null}
         </View>
 
+        {/* Calendar */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <TouchableOpacity onPress={() => setCursor(new Date(year, month-1, 1))} accessibilityLabel='Vorheriger Monat'>
@@ -92,17 +99,10 @@ export default function CycleScreen() {
                     const isOv = ovulation.has(key);
                     const isExpected = expected.has(key);
                     return (
-                      <TouchableOpacity
-                        key={i}
-                        style={{ width: `${100/7}%`, height: 44, alignItems: 'center', justifyContent: 'center' }}
-                        onPress={() => router.push(`/cycle/${key}`)}
-                        accessibilityLabel={`Tag ${key}`}
-                        testID={`cycle-day-${key}`}
-                      >
+                      <TouchableOpacity key={i} style={{ width: `${100/7}%`, height: 44, alignItems: 'center', justifyContent: 'center' }} onPress={() => router.push(`/cycle/${key}`)} accessibilityLabel={`Tag ${key}`} testID={`cycle-day-${key}`}>
                         <View style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
                           backgroundColor: isPeriod ? colors.primary : (isUpcoming ? `${colors.primary}33` : (isFertile ? `${colors.primary}22` : 'transparent')),
-                          borderWidth: isExpected ? 2 : (isFertile ? 1 : 0), borderColor: isExpected ? colors.primary : (isFertile ? colors.primary : 'transparent')
-                        }}>
+                          borderWidth: isExpected ? 2 : (isFertile ? 1 : 0), borderColor: isExpected ? colors.primary : (isFertile ? colors.primary : 'transparent') }}>
                           <Text style={{ color: (isPeriod ? '#fff' : colors.text) }}>{d.getDate()}</Text>
                           {isOv ? <View style={{ position: 'absolute', right: 2, top: 2, width: 6, height: 6, borderRadius: 3, backgroundColor: isPeriod ? '#fff' : colors.primary }} /> : null}
                         </View>
@@ -136,6 +136,24 @@ export default function CycleScreen() {
               <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Ovulation (Punkt)':'Ovulation (dot)'}</Text>
             </View>
           </View>
+        </View>
+
+        {/* History – last 12 cycles */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
+          <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Historie (12 Zyklen)':'History (12 cycles)'}</Text>
+          {state.cycles.length === 0 ? (
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Keine Einträge.':'No entries.'}</Text>
+          ) : (
+            [...state.cycles].slice(-12).map((c, idx) => {
+              const s = new Date(c.start); const e = c.end ? new Date(c.end) : undefined;
+              const len = e ? Math.max(1, Math.round((+e - +s)/(24*60*60*1000))+1) : undefined;
+              return (
+                <Text key={c.start+String(idx)} style={{ color: colors.muted, marginTop: idx===0?6:2 }}>
+                  {s.toLocaleDateString()} {e ? `– ${e.toLocaleDateString()} (${len} ${lang==='de'?'Tage':'days'})` : `– ${lang==='de'?'laufend':'ongoing'}`}
+                </Text>
+              );
+            })
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

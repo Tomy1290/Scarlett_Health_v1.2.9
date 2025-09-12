@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,21 +23,10 @@ function themeLabel(key: 'pink_default'|'pink_pastel'|'pink_vibrant'|'golden_pin
   return (lang==='en'?mapEn:mapDe)[key] || key;
 }
 
-function reminderLabel(type: string, lang: 'de'|'en') {
-  const mapDe: Record<string,string> = {
-    pills_morning: 'Tabletten morgens',
-    pills_evening: 'Tabletten abends',
-    weight: 'Gewicht',
-    water: 'Wasser',
-    sport: 'Sport',
-  };
-  const mapEn: Record<string,string> = {
-    pills_morning: 'Pills morning',
-    pills_evening: 'Pills evening',
-    weight: 'Weight',
-    water: 'Water',
-    sport: 'Sport',
-  };
+function reminderLabel(type: string, lang: 'de'|'en', label?: string) {
+  if (label) return label;
+  const mapDe: Record<string,string> = { pills_morning: 'Tabletten morgens', pills_evening: 'Tabletten abends', weight: 'Gewicht', water: 'Wasser', sport: 'Sport' };
+  const mapEn: Record<string,string> = { pills_morning: 'Pills morning', pills_evening: 'Pills evening', weight: 'Weight', water: 'Water', sport: 'Sport' };
   return (lang==='en'?mapEn:mapDe)[type] || type;
 }
 
@@ -48,6 +37,10 @@ export default function SettingsScreen() {
 
   const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
   const version = Constants?.expoConfig?.version || '—';
+
+  const [customMode, setCustomMode] = useState(false);
+  const [customLabel, setCustomLabel] = useState('');
+  const [customTime, setCustomTime] = useState('');
 
   async function seedDefaults() {
     await ensureNotificationPermissions();
@@ -73,7 +66,8 @@ export default function SettingsScreen() {
     if (enabled) {
       await ensureNotificationPermissions();
       await ensureAndroidChannel();
-      const notifId = await scheduleDailyReminder(id, reminderLabel(r.type, state.language), 'Zeit für eine Aktion', r.time);
+      const title = reminderLabel(r.type, state.language, r.label);
+      const notifId = await scheduleDailyReminder(id, title, 'Zeit für eine Aktion', r.time);
       state.updateReminder(id, { enabled: true });
       state.setNotificationMeta(id, { id: notifId || '', time: r.time });
     } else {
@@ -86,39 +80,47 @@ export default function SettingsScreen() {
 
   async function updateTime(id: string, time: string) {
     const ok = !!parseHHMM(time);
-    if (!ok) {
-      Alert.alert(state.language==='de'?'Ungültige Zeit':'Invalid time', state.language==='de'?'Bitte HH:MM eingeben.':'Please enter HH:MM.');
-      return;
-    }
+    if (!ok) { Alert.alert(state.language==='de'?'Ungültige Zeit':'Invalid time', state.language==='de'?'Bitte HH:MM eingeben.':'Please enter HH:MM.'); return; }
     const r = state.reminders.find(x=>x.id===id);
     if (!r) return;
     state.updateReminder(id, { time });
     const meta = state.notificationMeta[id];
+    const title = reminderLabel(r.type, state.language, r.label);
     if (r.enabled) {
       await cancelNotification(meta?.id);
       await ensureNotificationPermissions();
       await ensureAndroidChannel();
-      const newId = await scheduleDailyReminder(id, reminderLabel(r.type, state.language), 'Zeit für eine Aktion', time);
+      const newId = await scheduleDailyReminder(id, title, 'Zeit für eine Aktion', time);
       state.setNotificationMeta(id, { id: newId || '', time });
     } else {
       state.setNotificationMeta(id, { id: meta?.id || '', time });
     }
   }
 
+  async function addCustomReminder() {
+    const currentCustom = state.reminders.filter(r => !!r.label).length;
+    if (currentCustom >= 10) { Alert.alert(state.language==='de'?'Limit erreicht':'Limit reached', state.language==='de'?'Maximal 10 eigene Erinnerungen.':'Maximum 10 custom reminders.'); return; }
+    if (!customLabel.trim() || !parseHHMM(customTime)) { Alert.alert(state.language==='de'?'Bitte alle Felder ausfüllen':'Please fill all fields'); return; }
+    await ensureNotificationPermissions();
+    await ensureAndroidChannel();
+    const id = `custom_${Date.now()}`;
+    const notifId = await scheduleDailyReminder(id, customLabel.trim(), 'Custom reminder', customTime);
+    state.addReminder({ id, type: 'custom', label: customLabel.trim(), time: customTime, enabled: true });
+    state.setNotificationMeta(id, { id: notifId || '', time: customTime });
+    setCustomMode(false); setCustomLabel(''); setCustomTime('');
+    Alert.alert(state.language==='de'?'Gespeichert':'Saved');
+  }
+
   async function exportData() {
     try {
       const data = useAppStore.getState();
-      // Export only selected keys (exclude cycleLogs as requested)
       const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
-      const snapshot: any = {};
-      for (const k of keys) (snapshot as any)[k] = (data as any)[k];
+      const snapshot: any = {}; for (const k of keys) (snapshot as any)[k] = (data as any)[k];
       const json = JSON.stringify(snapshot);
       const fileUri = FileSystem.cacheDirectory + `scarlett-backup-${Date.now()}.json`;
       await FileSystem.writeAsStringAsync(fileUri, json, { encoding: FileSystem.EncodingType.UTF8 });
       await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Export' });
-    } catch (e) {
-      Alert.alert('Error', String(e));
-    }
+    } catch (e) { Alert.alert('Error', String(e)); }
   }
 
   async function importData() {
@@ -127,30 +129,29 @@ export default function SettingsScreen() {
       if (res.canceled || !res.assets?.[0]?.uri) return;
       const txt = await FileSystem.readAsStringAsync(res.assets[0].uri, { encoding: FileSystem.EncodingType.UTF8 });
       const parsed = JSON.parse(txt);
-      // minimal safety: only copy known fields (exclude cycleLogs)
       const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
-      const patch: any = {};
-      for (const k of keys) if (k in parsed) patch[k] = parsed[k];
+      const patch: any = {}; for (const k of keys) if (k in parsed) patch[k] = parsed[k];
       useAppStore.setState(patch);
       useAppStore.getState().recalcAchievements();
       Alert.alert(state.language==='de'?'Import abgeschlossen':'Import finished');
-    } catch (e) {
-      Alert.alert('Error', String(e));
-    }
+    } catch (e) { Alert.alert('Error', String(e)); }
   }
 
-  // Desired order of reminders
   const desiredOrder = ['pills_morning','pills_evening','weight','water','sport'];
   const sortedReminders = [...state.reminders].sort((a,b) => desiredOrder.indexOf(a.type) - desiredOrder.indexOf(b.type));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
+      <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 20 }]}> 
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel='Zurück'>
           <Ionicons name='chevron-back' size={26} color={colors.text} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name='star' size={16} color={colors.primary} />
+            <Text style={[styles.appTitle, { color: colors.text, marginHorizontal: 6 }]}>{appTitle}</Text>
+            <Ionicons name='star' size={16} color={colors.primary} />
+          </View>
           <Text style={[styles.title, { color: colors.muted }]}>{state.language==='de'?'Einstellungen':'Settings'}</Text>
         </View>
         <View style={{ width: 40 }} />
@@ -162,12 +163,8 @@ export default function SettingsScreen() {
           <View style={[styles.card, { backgroundColor: colors.card }]}> 
             <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>{state.language==='de'?'Sprache':'Language'}</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity onPress={() => state.setLanguage('de')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: state.language==='de'?colors.primary:'transparent' }]}> 
-                <Text style={{ color: state.language==='de'?'#fff':colors.text }}>Deutsch</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => state.setLanguage('en')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: state.language==='en'?colors.primary:'transparent' }]}> 
-                <Text style={{ color: state.language==='en'?'#fff':colors.text }}>English</Text>
-              </TouchableOpacity>
+              <TouchableOpacity onPress={() => state.setLanguage('de')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: state.language==='de'?colors.primary:'transparent' }]}><Text style={{ color: state.language==='de'?'#fff':colors.text }}>Deutsch</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => state.setLanguage('en')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: state.language==='en'?colors.primary:'transparent' }]}><Text style={{ color: state.language==='en'?'#fff':colors.text }}>English</Text></TouchableOpacity>
             </View>
           </View>
 
@@ -176,9 +173,7 @@ export default function SettingsScreen() {
             <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>{state.language==='de'?'Design':'Theme'}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {(['pink_default','pink_pastel','pink_vibrant','golden_pink'] as const).map((t) => (
-                <TouchableOpacity key={t} onPress={() => state.setTheme(t)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: state.theme===t?colors.primary:'transparent' }]}> 
-                  <Text style={{ color: state.theme===t?'#fff':colors.text }}>{themeLabel(t, state.language)}</Text>
-                </TouchableOpacity>
+                <TouchableOpacity key={t} onPress={() => state.setTheme(t)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: state.theme===t?colors.primary:'transparent' }]}><Text style={{ color: state.theme===t?'#fff':colors.text }}>{themeLabel(t, state.language)}</Text></TouchableOpacity>
               ))}
               <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Hinweis: Goldenes Rosa ab Level 75.':'Note: Golden pink at level 75.'}</Text>
             </View>
@@ -188,17 +183,28 @@ export default function SettingsScreen() {
           <View style={[styles.card, { backgroundColor: colors.card }]}> 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Erinnerungen':'Reminders'}</Text>
-              <TouchableOpacity onPress={seedDefaults} style={[styles.badge, { borderColor: colors.muted }]}> 
-                <Text style={{ color: colors.text }}>{state.language==='de'?'Standard anlegen':'Seed defaults'}</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity onPress={seedDefaults} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{state.language==='de'?'Standard anlegen':'Seed defaults'}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setCustomMode((v)=>!v)} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{state.language==='de'?'Eigene':'Custom'}</Text></TouchableOpacity>
+              </View>
             </View>
-            {sortedReminders.length === 0 ? (
-              <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Keine Erinnerungen angelegt.':'No reminders yet.'}</Text>
+            {customMode ? (
+              <View style={{ marginTop: 10 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput placeholder={state.language==='de'?'Label':'Label'} placeholderTextColor={colors.muted} value={customLabel} onChangeText={setCustomLabel} style={{ flex: 1, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, color: colors.text, backgroundColor: colors.input }} />
+                  <TextInput placeholder='HH:MM' placeholderTextColor={colors.muted} value={customTime} onChangeText={setCustomTime} style={{ width: 100, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, color: colors.text, backgroundColor: colors.input }} />
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+                  <TouchableOpacity onPress={() => { setCustomMode(false); setCustomLabel(''); setCustomTime(''); }} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{state.language==='de'?'Abbrechen':'Cancel'}</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={addCustomReminder} style={[styles.badge, { borderColor: colors.muted, backgroundColor: colors.primary }]}><Text style={{ color: '#fff' }}>{state.language==='de'?'Speichern':'Save'}</Text></TouchableOpacity>
+                </View>
+              </View>
             ) : null}
+            {sortedReminders.length === 0 ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Keine Erinnerungen angelegt.':'No reminders yet.'}</Text>) : null}
             {sortedReminders.map((r) => (
               <View key={r.id} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '700' }}>{reminderLabel(r.type, state.language)}</Text>
+                  <Text style={{ color: colors.text, fontWeight: '700' }}>{reminderLabel(r.type, state.language, r.label)}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                     <TextInput value={r.time} onChangeText={(v)=>updateTime(r.id, v)} placeholder='HH:MM' placeholderTextColor={colors.muted} style={{ flex: 1, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: colors.text, backgroundColor: colors.input }} />
                     <View style={{ width: 8 }} />
@@ -234,12 +240,8 @@ export default function SettingsScreen() {
             <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'App':'App'}</Text>
             <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Version':'Version'}: {version}</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-              <TouchableOpacity onPress={exportData} style={[styles.badge, { borderColor: colors.muted }]}> 
-                <Text style={{ color: colors.text }}>{state.language==='de'?'Daten exportieren':'Export data'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={importData} style={[styles.badge, { borderColor: colors.muted }]}> 
-                <Text style={{ color: colors.text }}>{state.language==='de'?'Daten importieren':'Import data'}</Text>
-              </TouchableOpacity>
+              <TouchableOpacity onPress={exportData} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{state.language==='de'?'Daten exportieren':'Export data'}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={importData} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{state.language==='de'?'Daten importieren':'Import data'}</Text></TouchableOpacity>
             </View>
             <Text style={{ color: colors.muted, marginTop: 2 }}>created by Gugi</Text>
           </View>
@@ -250,7 +252,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 12, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   appTitle: { fontSize: 18, fontWeight: '800' },
   title: { fontSize: 14, fontWeight: '600' },
   iconBtn: { padding: 8 },

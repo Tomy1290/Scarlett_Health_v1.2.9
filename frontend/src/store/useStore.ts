@@ -14,12 +14,13 @@ export type DayData = {
   drinks: { water: number; coffee: number; slimCoffee: boolean; gingerGarlicTea: boolean; waterCure: boolean; sport: boolean };
   weight?: number;
   weightTime?: number;
+  xpToday?: Record<string, boolean>; // track xp awarded toggles per day
 };
 
 export type Cycle = { start: string; end?: string };
 
 export type Goal = { targetWeight: number; targetDate: string; startWeight: number; active: boolean };
-export type Reminder = { id: string; type: string; time: string; enabled: boolean };
+export type Reminder = { id: string; type: string; time: string; enabled: boolean; label?: string };
 export type ChatMessage = { id: string; sender: "user" | "bot"; text: string; createdAt: number };
 export type SavedMessage = { id: string; title: string; category?: string; tags?: string[]; text: string; createdAt: number };
 
@@ -31,9 +32,9 @@ export type CycleLog = {
   energy?: number; // 1-10
   pain?: number; // 1-10
   sleep?: number; // 1-10
-  sex?: boolean; // yes/no
+  sex?: boolean; // kept for compatibility, not used in new UI
   notes?: string;
-  flow?: 0|1|2|3; // 0 none, 1 light, 2 medium, 3 heavy
+  flow?: number; // 0..7 bleeding intensity
 };
 
 export type AppState = {
@@ -101,13 +102,13 @@ export type AppState = {
   recalcAchievements: () => void;
 };
 
-const defaultDay = (dateKey: string): DayData => ({ date: dateKey, pills: { morning: false, evening: false }, drinks: { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } });
+const defaultDay = (dateKey: string): DayData => ({ date: dateKey, pills: { morning: false, evening: false }, drinks: { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false }, xpToday: {} });
 function clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.1.2",
+      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.1.3",
       currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {}, profileAlias: '', xpLog: [],
       aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true, cycles: [], cycleLogs: {},
 
@@ -118,8 +119,41 @@ export const useAppStore = create<AppState>()(
       goToday: () => set({ currentDate: toKey(new Date()) }),
       ensureDay: (key) => { const days = get().days; if (!days[key]) set({ days: { ...days, [key]: defaultDay(key) } }); },
       togglePill: (key, time) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const before = d.pills[time]; d.pills = { ...d.pills, [time]: !before } as any; days[key] = d; let xpDelta = 0; if (!before && d.pills[time]) xpDelta += 10; set({ days, xp: get().xp + xpDelta, xpLog: xpDelta ? [...(get().xpLog||[]), { id: `xp:${Date.now()}`, ts: Date.now(), amount: xpDelta, source: 'other', note: `pill_${time}` }] : get().xpLog }); get().recalcAchievements(); },
-      incDrink: (key, type, delta) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const oldVal = d.drinks[type] as number; const next = clamp(oldVal + delta, 0, 999); d.drinks = { ...d.drinks, [type]: next } as any; days[key] = d; let xpDelta = 0; if (type === 'water' && delta > 0) { xpDelta += 10 * delta; } if (type === 'coffee' && delta > 0) { for (let i = oldVal + 1; i <= next; i++) { if (i > 6) xpDelta -= 10; } } set({ days, xp: get().xp + xpDelta, xpLog: xpDelta ? [...(get().xpLog||[]), { id: `xp:${Date.now()}`, ts: Date.now(), amount: xpDelta, source: 'other', note: type }] : get().xpLog }); get().recalcAchievements(); },
-      toggleFlag: (key, type) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const before = d.drinks[type] as boolean; d.drinks = { ...d.drinks, [type]: !before } as any; days[key] = d; let xpDelta = 0; if (!before && (d.drinks[type] as boolean)) xpDelta += 10; set({ days, xp: get().xp + xpDelta, xpLog: xpDelta ? [...(get().xpLog||[]), { id: `xp:${Date.now()}`, ts: Date.now(), amount: xpDelta, source: 'other', note: type }] : get().xpLog }); get().recalcAchievements(); },
+      incDrink: (key, type, delta) => {
+        const days = { ...get().days };
+        const d = days[key] ?? defaultDay(key);
+        const oldVal = d.drinks[type] as number;
+        const next = clamp(oldVal + delta, 0, 999);
+        d.drinks = { ...d.drinks, [type]: next } as any;
+        days[key] = d;
+        let xpDelta = 0;
+        if (type === 'water') {
+          // +10 per glass; removing glasses deducts XP
+          xpDelta += 10 * (next - oldVal);
+        } else if (type === 'coffee') {
+          if (next > oldVal) {
+            for (let i = oldVal + 1; i <= next; i++) { if (i > 6) xpDelta -= 10; }
+          } else if (next < oldVal) {
+            for (let i = oldVal; i > next; i--) { if (i > 6) xpDelta += 10; }
+          }
+        }
+        if (xpDelta !== 0) set({ days, xp: get().xp + xpDelta, xpLog: [...(get().xpLog||[]), { id: `xp:${Date.now()}`, ts: Date.now(), amount: xpDelta, source: 'other', note: type }] }); else set({ days });
+        get().recalcAchievements();
+      },
+      toggleFlag: (key, type) => {
+        const days = { ...get().days };
+        const d = days[key] ?? defaultDay(key);
+        const before = d.drinks[type] as boolean;
+        const now = !before;
+        d.drinks = { ...d.drinks, [type]: now } as any;
+        const xpFlags = { ...(d.xpToday || {}) };
+        let xpDelta = 0;
+        if (now && !xpFlags[type]) { xpDelta += 10; xpFlags[type] = true; }
+        d.xpToday = xpFlags;
+        days[key] = d;
+        if (xpDelta !== 0) set({ days, xp: get().xp + xpDelta, xpLog: [...(get().xpLog||[]), { id: `xp:${Date.now()}`, ts: Date.now(), amount: xpDelta, source: 'other', note: type }] }); else set({ days });
+        get().recalcAchievements();
+      },
       setWeight: (key, weight) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); d.weight = weight; d.weightTime = Date.now(); days[key] = d; set({ days }); get().recalcAchievements(); },
       setGoal: (goal) => { set({ goal }); get().recalcAchievements(); },
       removeGoal: () => { set({ goal: undefined }); get().recalcAchievements(); },
@@ -154,7 +188,7 @@ export const useAppStore = create<AppState>()(
         if (typeof patch.sleep === 'number') merged.sleep = clamp(patch.sleep, 1, 10);
         if (typeof patch.sex === 'boolean') merged.sex = patch.sex;
         if (typeof patch.notes === 'string') merged.notes = patch.notes;
-        if (typeof patch.flow === 'number') merged.flow = Math.max(0, Math.min(3, patch.flow)) as 0|1|2|3;
+        if (typeof patch.flow === 'number') merged.flow = Math.max(0, Math.min(7, patch.flow));
         all[dateKey] = merged;
         set({ cycleLogs: all });
       },
@@ -173,7 +207,6 @@ export const useAppStore = create<AppState>()(
             const sum = newUnlocks.reduce((acc: number, id: string) => { const cfg = getAchievementConfigById(id); return acc + (cfg?.xp || 0); }, 0);
             xpDelta += sum;
             if (sum > 0) {
-              // log achievement xp
               const addLog = { id: `ach:${Date.now()}`, ts: Date.now(), amount: sum, source: 'achievement', note: `${newUnlocks.length} unlocks` } as XpLogEntry;
               set({ xpLog: [...(state.xpLog||[]), addLog] });
             }
@@ -186,8 +219,8 @@ export const useAppStore = create<AppState>()(
         set({ achievementsUnlocked: base.unlocked, xp: state.xp + xpDelta + comboBonus });
       },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 13, onRehydrateStorage: () => (state) => {
-      if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; }
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 14, onRehydrateStorage: () => (state) => {
+      if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; if (!d.xpToday) d.xpToday = {}; }
     } }
   )
 );
