@@ -192,7 +192,7 @@ export function getAverageCycleLengthDays(cycles: Cycle[]): number {
   for (let i = 1; i < starts.length; i++) {
     const a = new Date(starts[i-1]); const b = new Date(starts[i]);
     const diff = Math.round((+b - +a)/(24*60*60*1000));
-    if (diff &gt; 0) diffs.push(diff);
+    if (diff > 0) diffs.push(diff);
   }
   if (diffs.length === 0) return 28;
   const last3 = diffs.slice(-3);
