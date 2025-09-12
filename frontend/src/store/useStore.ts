@@ -183,7 +183,7 @@ export const useAppStore = create<AppState>()(
   )
 );
 
-export function useLevel() { const xp = useAppStore((s) =&gt; s.xp); const level = Math.floor(xp / 100) + 1; return { level, xp }; }
+export function useLevel() { const xp = useAppStore((s) => s.xp); const level = Math.floor(xp / 100) + 1; return { level, xp }; }
 
 export function getAverageCycleLengthDays(cycles: Cycle[]): number {
   const starts = cycles.filter(c =&gt; c.start).map(c =&gt; c.start).sort();
