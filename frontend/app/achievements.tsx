@@ -167,7 +167,7 @@ export default function AchievementsScreen() {
                 <Text style={{ color: colors.text, fontWeight: '700' }}>Golden Pink Theme (Level 75)</Text>
               </View>
               <View style={{ marginTop: 6 }}>
-                <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Legendärer Status':'Legendary status'} (L100)</Text>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Legendärer Status':'Legendary status'} (Level 100)</Text>
               </View>
             </>
           ) : (
