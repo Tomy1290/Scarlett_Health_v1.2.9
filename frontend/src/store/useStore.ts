@@ -165,7 +165,7 @@ export const useAppStore = create<AppState>()(
         const prevSet = new Set(state.achievementsUnlocked);
         const newUnlocks = base.unlocked.filter((id) => !prevSet.has(id));
         let xpBonus = state.xpBonus;
-        if (newUnlocks.length &gt;= 2) xpBonus += (newUnlocks.length - 1) * 50;
+        if (newUnlocks.length >= 2) xpBonus += (newUnlocks.length - 1) * 50;
         let addLog: XpLogEntry[] = [];
         if (newUnlocks.length &gt; 0) {
           try {
