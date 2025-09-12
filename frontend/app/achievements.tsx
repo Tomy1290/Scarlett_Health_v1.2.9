@@ -155,7 +155,7 @@ export default function AchievementsScreen() {
           {showUnlocks ? (
             <>
               <View style={{ marginTop: 6 }}>
-                <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Erweiterte Statistiken':'Extended stats'} (L10)</Text>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Erweiterte Statistiken':'Extended stats'} (Level 10)</Text>
               </View>
               <View style={{ marginTop: 6 }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>Premium Insights (L25)</Text>
