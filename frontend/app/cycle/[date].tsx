@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -28,7 +28,9 @@ export default function CycleDayScreen() {
     state.setCycleLog(String(date), { [field]: next } as any);
   };
 
-  const setFlow = (val: 0|1|2|3) => state.setCycleLog(String(date), { flow: val });
+  const setFlow = (val: number) => state.setCycleLog(String(date), { flow: val as any });
+
+  const bleedingLabels = lang==='de'?['Keine','Leicht','Mittel','Normal','Mehr','Heftig','Übertrieben','Extrem']:['None','Light','Medium','Normal','More','Severe','Excessive','Extreme'];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -44,7 +46,7 @@ export default function CycleDayScreen() {
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':'height'} style={{ flex: 1 }}>
-        <View style={{ padding: 16 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
           <Text style={{ color: colors.muted }}>{date}</Text>
 
           {/* Scales */}
@@ -76,17 +78,13 @@ export default function CycleDayScreen() {
             );
           })}
 
-          {/* Sex toggle and Flow intensity */}
+          {/* Bleeding intensity between sleep and additional */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Weitere Angaben':'Additional'}</Text>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Blutung':'Bleeding'}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-              <TouchableOpacity testID='cycle-sex-toggle' onPress={() => state.setCycleLog(String(date), { sex: !log.sex })} style={[styles.chip, { borderColor: colors.primary, backgroundColor: log.sex ? colors.primary : 'transparent' }]}> 
-                <Ionicons name='heart' size={14} color={log.sex ? '#fff' : colors.primary} />
-                <Text style={{ color: log.sex ? '#fff' : colors.text, marginLeft: 6 }}>{lang==='de'?'Sex':'Sex'}</Text>
-              </TouchableOpacity>
-              {[0,1,2,3].map((f) => (
-                <TouchableOpacity key={f} testID={`cycle-flow-${f}`} onPress={() => setFlow(f as 0|1|2|3)} style={[styles.chip, { borderColor: colors.primary, backgroundColor: log.flow===f ? colors.primary : 'transparent' }]}> 
-                  <Text style={{ color: log.flow===f ? '#fff' : colors.text }}>{lang==='de'?(['Kein','Leicht','Mittel','Stark'][f]):(['None','Light','Medium','Heavy'][f])}</Text>
+              {bleedingLabels.map((label, idx) => (
+                <TouchableOpacity key={label} testID={`cycle-bleeding-${idx}`} onPress={() => setFlow(idx)} style={[styles.chip, { borderColor: colors.primary, backgroundColor: (log.flow ?? -1)===idx ? colors.primary : 'transparent' }]}> 
+                  <Text style={{ color: (log.flow ?? -1)===idx ? '#fff' : colors.text }}>{label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -105,7 +103,7 @@ export default function CycleDayScreen() {
               multiline
             />
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
