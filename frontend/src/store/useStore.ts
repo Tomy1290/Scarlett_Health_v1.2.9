@@ -167,7 +167,7 @@ export const useAppStore = create<AppState>()(
         let xpBonus = state.xpBonus;
         if (newUnlocks.length >= 2) xpBonus += (newUnlocks.length - 1) * 50;
         let addLog: XpLogEntry[] = [];
-        if (newUnlocks.length &gt; 0) {
+        if (newUnlocks.length > 0) {
           try {
             const { getAchievementConfigById } = require('../achievements');
             const sum = newUnlocks.reduce((acc: number, id: string) =&gt; { const cfg = getAchievementConfigById(id); return acc + (cfg?.xp || 0); }, 0);
