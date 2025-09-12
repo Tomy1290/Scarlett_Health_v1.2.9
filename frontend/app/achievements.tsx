@@ -161,7 +161,7 @@ export default function AchievementsScreen() {
                 <Text style={{ color: colors.text, fontWeight: '700' }}>Premium Insights (Level 25)</Text>
               </View>
               <View style={{ marginTop: 6 }}>
-                <Text style={{ color: colors.text, fontWeight: '700' }}>VIP-Chat (L50)</Text>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>VIP-Chat (Level 50)</Text>
               </View>
               <View style={{ marginTop: 6 }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>Golden Pink Theme (L75)</Text>
