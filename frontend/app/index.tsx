@@ -74,7 +74,7 @@ export default function Home() {
   // Hydration progress
   const weightKg = getLatestWeightKg(days);
   const goalMl = computeDailyWaterTargetMl(weightKg, !!day.drinks.sport);
-  const intakeMl = (state.waterCupMl || 250) * (day.drinks.water || 0);
+  const intakeMl = ((state.waterCupMl || 250) * (day.drinks.water || 0)) + (day.drinks.waterCure ? 1000 : 0);
   const percent = Math.max(0, Math.min(100, Math.round((intakeMl / Math.max(1, goalMl)) * 100)));
 
   // Helpers to render cups: 9 per row
