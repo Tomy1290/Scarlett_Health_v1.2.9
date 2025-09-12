@@ -3,7 +3,7 @@ import { Cycle } from "../store/useStore";
 export const toKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
 export function getAverageCycleLengthDays(cycles: Cycle[]): number {
-  const starts = cycles.filter(c =&gt; c.start).map(c =&gt; c.start).sort();
+  const starts = cycles.filter(c => c.start).map(c => c.start).sort();
   if (starts.length < 2) return 28;
   const diffs: number[] = [];
   for (let i = 1; i < starts.length; i++) {
