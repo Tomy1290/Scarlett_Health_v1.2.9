@@ -23,11 +23,12 @@ function getLatestWeightKg(days: Record<string, any>): number | undefined {
   return isNaN(w as any) ? undefined : (w as number);
 }
 
-function computeDailyWaterTargetMl(weightKg?: number, didSport?: boolean): number {
-  // 35 ml pro kg Körpergewicht; +500 ml, wenn Sport am Tag markiert
+function computeDailyWaterTargetMl(weightKg?: number, didSport?: boolean, waterCure?: boolean): number {
+  // 35 ml pro kg Körpergewicht; +500 ml bei Sport; +1000 ml bei Wasserkur
   const base = weightKg ? Math.round(weightKg * 35) : 2000;
-  const extra = didSport ? 500 : 0;
-  return base + extra; // ml
+  const sportExtra = didSport ? 500 : 0;
+  const cureExtra = waterCure ? 1000 : 0;
+  return base + sportExtra + cureExtra; // ml
 }
 
 export default function Home() {
