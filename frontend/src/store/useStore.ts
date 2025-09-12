@@ -187,7 +187,7 @@ export function useLevel() { const xp = useAppStore((s) =&gt; s.xp); const level
 
 export function getAverageCycleLengthDays(cycles: Cycle[]): number {
   const starts = cycles.filter(c =&gt; c.start).map(c =&gt; c.start).sort();
-  if (starts.length &lt; 2) return 28;
+  if (starts.length < 2) return 28;
   const diffs: number[] = [];
   for (let i = 1; i &lt; starts.length; i++) {
     const a = new Date(starts[i-1]); const b = new Date(starts[i]);
