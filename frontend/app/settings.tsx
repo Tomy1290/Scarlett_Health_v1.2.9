@@ -97,20 +97,6 @@ export default function SettingsScreen() {
     }
   }
 
-  async function addCustomReminder() {
-    const currentCustom = state.reminders.filter(r => !!r.label).length;
-    if (currentCustom >= 10) { Alert.alert(state.language==='de'?'Limit erreicht':'Limit reached', state.language==='de'?'Maximal 10 eigene Erinnerungen.':'Maximum 10 custom reminders.'); return; }
-    if (!customLabel.trim() || !parseHHMM(customTime)) { Alert.alert(state.language==='de'?'Bitte alle Felder ausfüllen':'Please fill all fields'); return; }
-    await ensureNotificationPermissions();
-    await ensureAndroidChannel();
-    const id = `custom_${Date.now()}`;
-    const notifId = await scheduleDailyReminder(id, customLabel.trim(), 'Custom reminder', customTime);
-    state.addReminder({ id, type: 'custom', label: customLabel.trim(), time: customTime, enabled: true });
-    state.setNotificationMeta(id, { id: notifId || '', time: customTime });
-    setCustomMode(false); setCustomLabel(''); setCustomTime('');
-    Alert.alert(state.language==='de'?'Gespeichert':'Saved');
-  }
-
   async function exportData() {
     try {
       const data = useAppStore.getState();
@@ -147,11 +133,7 @@ export default function SettingsScreen() {
   }
 
   const desiredOrder = ['pills_morning','pills_evening','weight','water','sport'];
-  const sortedReminders = [...state.reminders].sort((a,b) => {
-    const ai = desiredOrder.indexOf(a.type); const bi = desiredOrder.indexOf(b.type);
-    const aIdx = ai < 0 ? 999 : ai; const bIdx = bi < 0 ? 999 : bi;
-    return aIdx - bIdx;
-  });
+  const sortedReminders = [...state.reminders].sort((a,b) => { const ai = desiredOrder.indexOf(a.type); const bi = desiredOrder.indexOf(b.type); const aIdx = ai < 0 ? 999 : ai; const bIdx = bi < 0 ? 999 : bi; return aIdx - bIdx; });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -209,7 +191,7 @@ export default function SettingsScreen() {
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
                   <TouchableOpacity onPress={() => { setCustomMode(false); setCustomLabel(''); setCustomTime(''); }} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{state.language==='de'?'Abbrechen':'Cancel'}</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={addCustomReminder} style={[styles.badge, { borderColor: colors.muted, backgroundColor: colors.primary }]}><Text style={{ color: '#fff' }}>{state.language==='de'?'Speichern':'Save'}</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={async ()=>{ const currentCustom = state.reminders.filter(r => !!r.label).length; if (currentCustom >= 10) { Alert.alert(state.language==='de'?'Limit erreicht':'Limit reached', state.language==='de'?'Maximal 10 eigene Erinnerungen.':'Maximum 10 custom reminders.'); return; } if (!customLabel.trim() || !parseHHMM(customTime)) { Alert.alert(state.language==='de'?'Bitte alle Felder ausfüllen':'Please fill all fields'); return; } await ensureNotificationPermissions(); await ensureAndroidChannel(); const id = `custom_${Date.now()}`; const notifId = await scheduleDailyReminder(id, customLabel.trim(), 'Custom reminder', customTime); state.addReminder({ id, type: 'custom', label: customLabel.trim(), time: customTime, enabled: true }); state.setNotificationMeta(id, { id: notifId || '', time: customTime }); setCustomMode(false); setCustomLabel(''); setCustomTime(''); Alert.alert(state.language==='de'?'Gespeichert':'Saved'); }} style={[styles.badge, { borderColor: colors.muted, backgroundColor: colors.primary }]}><Text style={{ color: '#fff' }}>{state.language==='de'?'Speichern':'Save'}</Text></TouchableOpacity>
                 </View>
               </View>
             ) : null}
@@ -231,31 +213,23 @@ export default function SettingsScreen() {
             ))}
           </View>
 
-          {/* Feature toggles */}
-          <View style={[styles.card, { backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}> 
-            <View>
-              <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Insights aktiv':'Insights enabled'}</Text>
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Offline‑Analysen und Tipps anzeigen.':'Show offline analyses and tips.'}</Text>
-            </View>
-            <Switch value={state.aiInsightsEnabled} onValueChange={state.setAiInsightsEnabled} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
-          </View>
-
-          <View style={[styles.card, { backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}> 
-            <View>
-              <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Wöchentliche Events aktiv':'Weekly events enabled'}</Text>
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Wöchentliche Event‑Challenges mit Bonus‑XP.':'Weekly event challenges with bonus XP.'}</Text>
-            </View>
-            <Switch value={state.eventsEnabled} onValueChange={state.setEventsEnabled} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
-          </View>
-
-          {/* App info / Import/Export */}
+          {/* Data & Backup */}
           <View style={[styles.card, { backgroundColor: colors.card }]}> 
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'App':'App'}</Text>
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Version':'Version'}: {version}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='folder' size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{state.language==='de'?'Daten & Backup':'Data & Backup'}</Text>
+            </View>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Sichere oder stelle deine App-Daten wieder her.':'Backup or restore your app data.'}</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
               <TouchableOpacity onPress={exportData} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{state.language==='de'?'Daten exportieren':'Export data'}</Text></TouchableOpacity>
               <TouchableOpacity onPress={importData} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{state.language==='de'?'Daten importieren':'Import data'}</Text></TouchableOpacity>
             </View>
+          </View>
+
+          {/* App info */}
+          <View style={[styles.card, { backgroundColor: colors.card }]}> 
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'App':'App'}</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Version':'Version'}: {version}</Text>
             <Text style={{ color: colors.muted, marginTop: 2 }}>created by Gugi</Text>
           </View>
         </ScrollView>

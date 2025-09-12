@@ -31,7 +31,6 @@ export default function CycleScreen() {
   const year = cursor.getFullYear(); const month = cursor.getMonth();
   const monthDays = useMemo(() => getMonthDays(year, month), [year, month]);
   const { period, upcomingPeriod, fertile, ovulation, expected, avgCycleLen, avgPeriodLen, expectedNext } = useMemo(() => markersForMonth(year, month, state.cycles), [year, month, state.cycles]);
-
   const lang = state.language;
 
   // entries markers from cycleLogs
@@ -60,7 +59,13 @@ export default function CycleScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {/* Analysis header */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Analyse':'Analysis'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='stats-chart' size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?'Analyse':'Analysis'}</Text>
+            </View>
+            <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+          </View>
           <Text style={{ color: colors.muted, marginTop: 6 }}>Ø {lang==='de'?'Zykluslänge':'cycle length'}: {avgCycleLen} {lang==='de'?'Tage':'days'}</Text>
           <Text style={{ color: colors.muted, marginTop: 2 }}>Ø {lang==='de'?'Periodenlänge':'period length'}: {avgPeriodLen} {lang==='de'?'Tage':'days'}</Text>
           {expectedNext ? (<Text style={{ color: colors.muted, marginTop: 2 }}>{lang==='de'?'Nächster Zyklus erwartet am':'Next cycle expected on'} {expectedNext.toLocaleDateString()}</Text>) : null}
@@ -143,7 +148,10 @@ export default function CycleScreen() {
 
         {/* History – last 12 cycles */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Historie (12 Zyklen)':'History (12 cycles)'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name='time' size={18} color={colors.primary} />
+            <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?'Historie (12 Zyklen)':'History (12 cycles)'}</Text>
+          </View>
           {state.cycles.length === 0 ? (
             <Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Keine Einträge.':'No entries.'}</Text>
           ) : (

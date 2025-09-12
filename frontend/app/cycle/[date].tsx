@@ -32,6 +32,24 @@ export default function CycleDayScreen() {
 
   const bleedingLabels = lang==='de'?['Keine','Leicht','Mittel','Normal','Mehr','Heftig','Übertrieben','Extrem']:['None','Light','Medium','Normal','More','Severe','Excessive','Extreme'];
 
+  const formattedDate = (() => { try { const [y,m,d] = String(date).split('-').map(Number); return `${String(d).padStart(2,'0')}.${String(m).padStart(2,'0')}.${y}`; } catch { return String(date); }})();
+
+  const renderIcons = (type: 'mood'|'energy'|'pain'|'sleep', value: number) => {
+    const icons: React.ReactNode[] = [];
+    for (let i = 1; i <= value; i++) {
+      let name: any = 'ellipse';
+      if (type === 'mood') {
+        if (i <= 3) name = 'sad';
+        else if (i <= 7) name = 'remove';
+        else name = 'happy';
+      } else if (type === 'energy') name = 'flash';
+      else if (type === 'pain') name = 'medkit';
+      else if (type === 'sleep') name = 'moon';
+      icons.push(<Ionicons key={`${type}-${i}`} name={name} size={16} color={colors.primary} style={{ marginHorizontal: 2 }} />);
+    }
+    return <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginVertical: 4 }}>{icons}</View>;
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
@@ -47,7 +65,7 @@ export default function CycleDayScreen() {
 
       <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-          <Text style={{ color: colors.muted }}>{date}</Text>
+          <Text style={{ color: colors.text, textAlign: 'center', fontWeight: '700' }}>{formattedDate}</Text>
 
           {/* Scales */}
           {([
@@ -66,12 +84,12 @@ export default function CycleDayScreen() {
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
-                  <TouchableOpacity testID={`cycle-${cfg.key}-minus`} onPress={() => setVal(cfg.key, -1)} style={[styles.stepBtn, { borderColor: colors.primary }]}>
-                    <Text style={{ color: colors.primary }}>-</Text>
+                  <TouchableOpacity testID={`cycle-${cfg.key}-minus`} onPress={() => setVal(cfg.key, -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                    <Ionicons name='remove' size={16} color={colors.primary} />
                   </TouchableOpacity>
-                  <Text style={{ color: colors.text, fontWeight: '900', fontSize: 20 }}>{value}</Text>
-                  <TouchableOpacity testID={`cycle-${cfg.key}-plus`} onPress={() => setVal(cfg.key, +1)} style={[styles.stepBtn, { borderColor: colors.primary }]}>
-                    <Text style={{ color: colors.primary }}>+</Text>
+                  <View style={{ flex: 1, alignItems: 'center' }}>{renderIcons(cfg.key, value)}</View>
+                  <TouchableOpacity testID={`cycle-${cfg.key}-plus`} onPress={() => setVal(cfg.key, +1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                    <Ionicons name='add' size={16} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -80,7 +98,10 @@ export default function CycleDayScreen() {
 
           {/* Bleeding intensity */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Blutung':'Bleeding'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='water' size={16} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 6 }}>{lang==='de'?'Blutung':'Bleeding'}</Text>
+            </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
               {bleedingLabels.map((label, idx) => (
                 <TouchableOpacity key={label} testID={`cycle-bleeding-${idx}`} onPress={() => setFlow(idx)} style={[styles.chip, { borderColor: colors.primary, backgroundColor: (log.flow ?? -1)===idx ? colors.primary : 'transparent' }]}> 
@@ -112,4 +133,4 @@ export default function CycleDayScreen() {
   );
 }
 
-const styles = StyleSheet.create({ header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, appTitle: { fontSize: 14, fontWeight: '800' }, title: { fontSize: 12, fontWeight: '600' }, card: { borderRadius: 12, padding: 12 }, chip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1 }, stepBtn: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8, borderWidth: 1, minWidth: 100, alignItems: 'center' } });
+const styles = StyleSheet.create({ header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, appTitle: { fontSize: 14, fontWeight: '800' }, title: { fontSize: 12, fontWeight: '600' }, card: { borderRadius: 12, padding: 12 }, chip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1 }, stepBtnSmall: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, minWidth: 44, alignItems: 'center', justifyContent: 'center' } });

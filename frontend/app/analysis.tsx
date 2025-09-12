@@ -20,9 +20,7 @@ export default function AnalysisScreen() {
   const { level, xp } = useLevel();
   const colors = useThemeColors(state.theme);
 
-  const weightArrAll = useMemo(() => Object.values(state.days)
-    .filter((d) => typeof d.weight === 'number')
-    .sort((a, b) => a.date.localeCompare(b.date)), [state.days]);
+  const weightArrAll = useMemo(() => Object.values(state.days).filter((d) => typeof d.weight === 'number').sort((a, b) => a.date.localeCompare(b.date)), [state.days]);
 
   const [range, setRange] = useState<'7'|'14'|'30'|'custom'>('14');
   const [from, setFrom] = useState<Date | null>(null);
@@ -45,17 +43,13 @@ export default function AnalysisScreen() {
 
   const last14 = useMemo(() => weightArrAll.slice(-14), [weightArrAll]);
 
-  const t = (key: string) => {
-    const de: Record<string, string> = { analysis: 'Analyse', weight: 'Gewichtsanalyse', ext_stats: 'Erweiterte Statistiken', ext_locked: 'Ab Level 10 verfügbar.', insights_title: 'Premium Insights', insights_locked: 'Ab Level 25 verfügbar.', help: 'Hilfe', too_few: 'Zu wenige Daten', scale: 'Skala', app: 'Scarletts Gesundheitstracking', range7: '7 Tage', range14: '14 Tage', range30: '30 Tage', custom: 'Eigener Zeitraum', from: 'Von', to: 'Bis' };
-    const en: Record<string, string> = { analysis: 'Analysis', weight: 'Weight analysis', ext_stats: 'Extended stats', ext_locked: 'Available from level 10.', insights_title: 'Premium insights', insights_locked: 'Available from level 25.', help: 'Help', too_few: 'Not enough data', scale: 'Scale', app: "Scarlett’s Health Tracking", range7: '7 days', range14: '14 days', range30: '30 days', custom: 'Custom', from: 'From', to: 'To' };
-    return (state.language === 'de' ? de : en)[key] || key;
-  };
+  const t = (key: string) => { const de: Record<string, string> = { analysis: 'Analyse', weight: 'Gewichtsanalyse', app: 'Scarletts Gesundheitstracking', range7: '7 Tage', range14: '14 Tage', range30: '30 Tage', custom: 'Eigener Zeitraum', from: 'Von', to: 'Bis' }; const en: Record<string, string> = { analysis: 'Analysis', weight: 'Weight analysis', app: "Scarlett’s Health Tracking", range7: '7 days', range14: '14 days', range30: '30 days', custom: 'Custom', from: 'From', to: 'To' }; return (state.language === 'de' ? de : en)[key] || key; };
 
   const appTitle = t('app');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
+      <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 12 }]}> 
         <TouchableOpacity onPress={() => router.back()} accessibilityLabel={state.language==='de'?'Zurück':'Back'} style={{ padding: 8 }}>
           <Ionicons name='chevron-back' size={26} color={colors.text} />
         </TouchableOpacity>
@@ -65,8 +59,8 @@ export default function AnalysisScreen() {
             <Text style={[styles.appTitle, { color: colors.text, marginHorizontal: 6 }]}>{appTitle}</Text>
             <Ionicons name='star' size={16} color={colors.primary} />
           </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 6 }}>
-            <Text style={{ color: colors.text }}>L{level}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '80%', alignSelf: 'center', marginTop: 6 }}>
+            <Text style={{ color: colors.text }}>Level {level}</Text>
             <Text style={{ color: colors.text }}>{xp} XP</Text>
           </View>
         </View>
@@ -76,23 +70,22 @@ export default function AnalysisScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {/* Gewicht */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700' }}>{t('weight')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='fitness' size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('weight')}</Text>
+            </View>
+            <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+          </View>
           <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
             <TouchableOpacity onPress={() => setRange('7')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: range==='7'?colors.primary:'transparent' }]}><Text style={{ color: range==='7'?'#fff':colors.text }}>{t('range7')}</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => setRange('14')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: range==='14'?colors.primary:'transparent' }]}><Text style={{ color: range==='14'?'#fff':colors.text }}>{t('range14')}</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => setRange('30')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: range==='30'?colors.primary:'transparent' }]}><Text style={{ color: range==='30'?'#fff':colors.text }}>{t('range30')}</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => setRange('custom')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: range==='custom'?colors.primary:'transparent' }]}><Text style={{ color: range==='custom'?'#fff':colors.text }}>{t('custom')}</Text></TouchableOpacity>
-            {range==='custom' ? (
-              <>
-                <TouchableOpacity onPress={() => setShowFrom(true)} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{t('from')}: {from?from.toLocaleDateString():"--"}</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowTo(true)} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{t('to')}: {to?to.toLocaleDateString():"--"}</Text></TouchableOpacity>
-              </>
-            ): null}
+            {range==='custom' ? (<><TouchableOpacity onPress={() => setShowFrom(true)} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{t('from')}: {from?from.toLocaleDateString():"--"}</Text></TouchableOpacity><TouchableOpacity onPress={() => setShowTo(true)} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{t('to')}: {to?to.toLocaleDateString():"--"}</Text></TouchableOpacity></>) : null}
           </View>
-
           {showFrom && (<DateTimePicker value={from || new Date()} mode='date' onChange={(e, d) => { setShowFrom(false); if (d) setFrom(d); }} />)}
           {showTo && (<DateTimePicker value={to || new Date()} mode='date' onChange={(e, d) => { setShowTo(false); if (d) setTo(d); }} />)}
-
           {weightSeries.length > 1 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator>
               <View style={{ width: chartWidth, height: 240, justifyContent: 'center' }}>
@@ -100,25 +93,19 @@ export default function AnalysisScreen() {
               </View>
             </ScrollView>
           ) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('too_few')}</Text>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>Zu wenige Daten</Text>
           )}
         </View>
 
         {/* Premium Insights + last 14 weights */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700' }}>Premium Insights</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name='sparkles' size={18} color={colors.primary} />
+            <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>Premium Insights</Text>
+          </View>
           <View style={{ marginTop: 8 }}>
-            {last14.length < 2 ? (
-              <Text style={{ color: colors.muted }}>{state.language==='de'?'Zu wenige Daten':'Too few data'}</Text>
-            ) : (
-              last14.map((d, i) => {
-                const dt = new Date(d.date);
-                const label = `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}`;
-                const prev = last14[i-1];
-                const diff = i===0 ? 0 : ((Number(d.weight)||0) - (Number(prev?.weight)||0));
-                const sign = i===0 ? '' : (diff > 0 ? `(+${diff.toFixed(1)}kg)` : `(${diff.toFixed(1)}kg)`);
-                return (<Text key={d.date} style={{ color: colors.muted }}>{label} {Number(d.weight).toFixed(1)}kg {sign}</Text>);
-              })
+            {last14.length < 2 ? (<Text style={{ color: colors.muted }}>Zu wenige Daten</Text>) : (
+              last14.map((d, i) => { const dt = new Date(d.date); const label = `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}`; const prev = last14[i-1]; const diff = i===0 ? 0 : ((Number(d.weight)||0) - (Number(prev?.weight)||0)); const sign = i===0 ? '' : (diff > 0 ? `(+${diff.toFixed(1)}kg)` : `(${diff.toFixed(1)}kg)`); return (<Text key={d.date} style={{ color: colors.muted }}>{label} {Number(d.weight).toFixed(1)}kg {sign}</Text>); })
             )}
           </View>
         </View>
