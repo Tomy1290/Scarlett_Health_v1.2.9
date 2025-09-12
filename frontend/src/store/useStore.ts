@@ -170,7 +170,7 @@ export const useAppStore = create<AppState>()(
         if (newUnlocks.length > 0) {
           try {
             const { getAchievementConfigById } = require('../achievements');
-            const sum = newUnlocks.reduce((acc: number, id: string) =&gt; { const cfg = getAchievementConfigById(id); return acc + (cfg?.xp || 0); }, 0);
+            const sum = newUnlocks.reduce((acc: number, id: string) => { const cfg = getAchievementConfigById(id); return acc + (cfg?.xp || 0); }, 0);
             if (sum &gt; 0) addLog.push({ id: `ach:${Date.now()}`, ts: Date.now(), amount: sum, source: 'achievement', note: `${newUnlocks.length} unlocks` });
           } catch {}
         }
