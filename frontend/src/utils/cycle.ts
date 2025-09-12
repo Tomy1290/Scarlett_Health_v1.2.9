@@ -19,7 +19,7 @@ export function getAverageCycleLengthDays(cycles: Cycle[]): number {
 
 export function predictNextStart(cycles: Cycle[]): Date | null {
   const avg = getAverageCycleLengthDays(cycles);
-  const starts = cycles.map(c =&gt; c.start).filter(Boolean).sort();
+  const starts = cycles.map(c => c.start).filter(Boolean).sort();
   const last = starts.slice(-1)[0];
   if (!last) return null;
   const dt = new Date(last);
