@@ -131,7 +131,7 @@ export default function ChatScreen() {
         <View style={{ flex: 1 }}>
           <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, gap: 8 }} showsVerticalScrollIndicator={false} onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
             {level < 50 ? (
-              <Text style={{ color: colors.muted, textAlign: 'center', marginBottom: 8 }}>{state.language==='de'?'Nur die letzten 5 Nachrichten sichtbar. Mit VIP (L50) siehst du 30.':'Only last 5 messages visible. With VIP (L50) you see 30.'}</Text>
+              <Text style={{ color: colors.muted, textAlign: 'center', marginBottom: 8 }}>{state.language==='de'?'Nur die letzten 5 Nachrichten sichtbar. Mit VIP (Level 50) siehst du 30.':'Only last 5 messages visible. With VIP (Level 50) you see 30.'}</Text>
             ) : null}
             {visibleChat.map((m) => (
               <View key={m.id} style={[styles.msgRow, { justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start' }]}>
