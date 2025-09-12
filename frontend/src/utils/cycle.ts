@@ -79,7 +79,7 @@ export function markersForMonth(year: number, month: number, cycles: Cycle[]) {
   const d = new Date(year, month, 1);
   while (d.getMonth() === month) { days.push(new Date(d)); d.setDate(d.getDate()+1); }
 
-  const period = new Set(days.filter(dd =&gt; periodSet.has(toKey(dd))).map(toKey));
+  const period = new Set(days.filter(dd => periodSet.has(toKey(dd))).map(toKey));
   const fertileSet = new Set(days.filter(dd =&gt; fertile &amp;&amp; isWithin(dd, fertile.start, fertile.end)).map(toKey));
   const ovulationSet = new Set(days.filter(dd =&gt; ovulation &amp;&amp; toKey(dd) === toKey(ovulation)).map(toKey));
   const expectedSet = new Set(days.filter(dd =&gt; expectedNext &amp;&amp; toKey(dd) === toKey(expectedNext)).map(toKey));
