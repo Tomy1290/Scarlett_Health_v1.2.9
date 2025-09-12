@@ -62,10 +62,7 @@ export default function CycleDayScreen() {
           <Text style={[styles.appTitle, { color: colors.text }]}>{lang==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking'}</Text>
           <Text style={[styles.title, { color: colors.muted }]}>{lang==='de'?'Zyklus-Tag':'Cycle day'}</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/cycle')} style={{ padding: 8, flexDirection: 'row', alignItems: 'center' }} accessibilityLabel='Kalender'>
-          <Ionicons name='calendar' size={18} color={colors.text} />
-          <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Kalender':'Calendar'}</Text>
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':'height'} style={{ flex: 1 }}>
