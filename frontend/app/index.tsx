@@ -143,6 +143,17 @@ export default function Home() {
             <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden', marginTop: 6 }}>
               <View style={{ width: `${percent}%`, height: 8, backgroundColor: colors.primary }} />
             </View>
+            {day.drinks.waterCure ? (
+              <>
+                <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Wasserkur zählt +1,0 L zur heutigen Aufnahme.', 'Water cure counts +1.0 L towards today\'s intake.')}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primary, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
+                    <Ionicons name='water' size={14} color={'#fff'} />
+                    <Text style={{ color: '#fff', marginLeft: 6 }}>{t('Wasserkur +1,0 L', 'Water cure +1.0 L')}</Text>
+                  </View>
+                </View>
+              </>
+            ) : null}
           </View>
 
           {/* WATER cups */}
