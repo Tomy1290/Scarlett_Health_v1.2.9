@@ -59,7 +59,7 @@ export default function AnalysisScreen() {
             <Text style={[styles.appTitle, { color: colors.text, marginHorizontal: 6 }]}>{appTitle}</Text>
             <Ionicons name='star' size={16} color={colors.primary} />
           </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '80%', alignSelf: 'center', marginTop: 6 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '70%', alignSelf: 'center', marginTop: 6 }}>
             <Text style={{ color: colors.text }}>Level {level}</Text>
             <Text style={{ color: colors.text }}>{xp} XP</Text>
           </View>

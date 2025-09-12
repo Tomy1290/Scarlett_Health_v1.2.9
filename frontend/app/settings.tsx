@@ -100,7 +100,7 @@ export default function SettingsScreen() {
   async function exportData() {
     try {
       const data = useAppStore.getState();
-      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
+      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles','cycleLogs'];
       const snapshot: any = {}; for (const k of keys) (snapshot as any)[k] = (data as any)[k];
       const json = JSON.stringify(snapshot, null, 2);
       if (Platform.OS === 'android' && (FileSystem as any).StorageAccessFramework) {
@@ -124,7 +124,7 @@ export default function SettingsScreen() {
       if (res.canceled || !res.assets?.[0]?.uri) return;
       const txt = await FileSystem.readAsStringAsync(res.assets[0].uri, { encoding: FileSystem.EncodingType.UTF8 });
       const parsed = JSON.parse(txt);
-      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
+      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles','cycleLogs'];
       const patch: any = {}; for (const k of keys) if (k in parsed) patch[k] = parsed[k];
       useAppStore.setState(patch);
       useAppStore.getState().recalcAchievements();
@@ -213,11 +213,23 @@ export default function SettingsScreen() {
             ))}
           </View>
 
-          {/* Data & Backup */}
+          {/* Weekly Events */}
+          <View style={[styles.card, { backgroundColor: colors.card }]}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name='calendar' size={18} color={colors.primary} />
+                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{state.language==='de'?'Wöchentliche Events':'Weekly events'}</Text>
+              </View>
+              <Switch value={state.eventsEnabled} onValueChange={(v)=>state.setEventsEnabled(v)} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
+            </View>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Aktiviere oder deaktiviere die wöchentlichen Herausforderungen.':'Enable or disable weekly challenges.'}</Text>
+          </View>
+
+          {/* Data & Backup (Import/Export) */}
           <View style={[styles.card, { backgroundColor: colors.card }]}> 
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name='folder' size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{state.language==='de'?'Daten & Backup':'Data & Backup'}</Text>
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{state.language==='de'?'Daten & Backup (Import/Export)':'Data & Backup (Import/Export)'}</Text>
             </View>
             <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Sichere oder stelle deine App-Daten wieder her.':'Backup or restore your app data.'}</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
