@@ -117,7 +117,7 @@ export default function ChatScreen() {
             ) : (
               <View style={[styles.vipPill, { borderColor: colors.muted, backgroundColor: 'transparent' }]}> 
                 <Ionicons name='lock-closed' size={12} color={colors.muted} />
-                <Text style={{ color: colors.muted, marginLeft: 6, fontSize: 12 }}>VIP (L50)</Text>
+                <Text style={{ color: colors.muted, marginLeft: 6, fontSize: 12 }}>VIP (Level 50)</Text>
               </View>
             )}
           </View>
