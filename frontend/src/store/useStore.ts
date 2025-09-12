@@ -114,7 +114,7 @@ export const useAppStore = create<AppState>()(
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
       setTheme: (t) => { const lvl = Math.floor(get().xp / 100) + 1; if (t === 'golden_pink' && lvl < 75) { return; } set({ theme: t }); get().recalcAchievements(); },
       goPrevDay: () => { const cur = new Date(get().currentDate); const prev = new Date(cur); prev.setDate(cur.getDate() - 1); set({ currentDate: toKey(prev) }); },
-      goNextDay: () => { const cur = new Date(get().currentDate); const next = new Date(cur); next.setDate(cur.getDate() + 1); const todayKey = toKey(new Date()); const nextKey = toKey(next); if (nextKey &gt; todayKey) return; set({ currentDate: nextKey }); },
+      goNextDay: () => { const cur = new Date(get().currentDate); const next = new Date(cur); next.setDate(cur.getDate() + 1); const todayKey = toKey(new Date()); const nextKey = toKey(next); if (nextKey > todayKey) return; set({ currentDate: nextKey }); },
       goToday: () => set({ currentDate: toKey(new Date()) }),
       ensureDay: (key) => { const days = get().days; if (!days[key]) set({ days: { ...days, [key]: defaultDay(key) } }); },
       togglePill: (key, time) => { const days = { ...get().days }; const d = days[key] ?? defaultDay(key); const before = d.pills[time]; d.pills = { ...d.pills, [time]: !before } as any; days[key] = d; let xpDelta = 0; if (!before &amp;&amp; d.pills[time]) xpDelta += 10; set({ days, xp: get().xp + xpDelta, xpLog: xpDelta ? [...(get().xpLog||[]), { id: `xp:${Date.now()}`, ts: Date.now(), amount: xpDelta, source: 'other', note: `pill_${time}` }] : get().xpLog }); get().recalcAchievements(); },
