@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppStore } from '../../src/store/useStore';
 
@@ -35,16 +35,19 @@ export default function CycleDayScreen() {
   const formattedDate = (() => { try { const [y,m,d] = String(date).split('-').map(Number); return `${String(d).padStart(2,'0')}.${String(m).padStart(2,'0')}.${y}`; } catch { return String(date); }})();
 
   const renderMoodScale = (value: number) => {
-    // 10 icons (1..10): 1-3 sad, 4-7 neutral, 8-10 happy; colored up to selected value
+    // 10 icons (1..10): 1-3 very/sad, 4-7 neutral, 8-10 very/happy; colored up to selected value
     const items = Array.from({ length: 10 }).map((_, i) => {
       const idx = i + 1;
-      let name: any = 'emoticon-neutral-outline';
-      if (idx <= 3) name = 'emoticon-sad-outline';
-      else if (idx >= 8) name = 'emoticon-happy-outline';
+      let name: keyof typeof MaterialIcons.glyphMap = 'sentiment-neutral';
+      if (idx <= 2) name = 'sentiment-very-dissatisfied';
+      else if (idx === 3) name = 'sentiment-dissatisfied';
+      else if (idx >= 9) name = 'sentiment-very-satisfied';
+      else if (idx >= 8) name = 'sentiment-satisfied';
+      else name = 'sentiment-neutral';
       const active = idx <= value;
       return (
         <TouchableOpacity key={`mood-${idx}`} onPress={() => state.setCycleLog(String(date), { mood: idx })} style={{ padding: 2 }}>
-          <MaterialCommunityIcons name={name} size={18} color={active ? colors.primary : colors.muted} />
+          <MaterialIcons name={name} size={18} color={active ? colors.primary : colors.muted} />
         </TouchableOpacity>
       );
     });
@@ -65,6 +68,7 @@ export default function CycleDayScreen() {
   };
 
   const renderBleedingScale = (value: number) => {
+    // 10 droplet icons 0..9, tap to set
     const items = Array.from({ length: 10 }).map((_, i) => {
       const idx = i; // 0..9
       const active = idx <= (typeof value === 'number' ? value : -1);
@@ -186,7 +190,7 @@ export default function CycleDayScreen() {
             </View>
           </View>
 
-          {/* Bleeding intensity */}
+          {/* Bleeding intensity (0..9 taps) */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
