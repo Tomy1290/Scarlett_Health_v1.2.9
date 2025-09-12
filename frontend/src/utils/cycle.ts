@@ -50,7 +50,7 @@ export function isWithin(date: Date, start: Date, end: Date) {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const s = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   const e = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-  return +d &gt;= +s &amp;&amp; +d &lt;= +e;
+  return +d >= +s && +d <= +e;
 }
 
 export function buildPeriodDaysSet(cycles: Cycle[], periodLength = 5): Set&lt;string&gt; {
