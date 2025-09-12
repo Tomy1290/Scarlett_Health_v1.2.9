@@ -64,12 +64,12 @@ export default function CycleDayScreen() {
                     <Ionicons name={cfg.icon as any} size={18} color={colors.primary} />
                     <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?cfg.de:cfg.en}</Text>
                   </View>
-                  <Text style={{ color: colors.text, fontWeight: '700' }}>{value}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
                   <TouchableOpacity testID={`cycle-${cfg.key}-minus`} onPress={() => setVal(cfg.key, -1)} style={[styles.stepBtn, { borderColor: colors.primary }]}>
                     <Text style={{ color: colors.primary }}>-</Text>
                   </TouchableOpacity>
+                  <Text style={{ color: colors.text, fontWeight: '900', fontSize: 20 }}>{value}</Text>
                   <TouchableOpacity testID={`cycle-${cfg.key}-plus`} onPress={() => setVal(cfg.key, +1)} style={[styles.stepBtn, { borderColor: colors.primary }]}>
                     <Text style={{ color: colors.primary }}>+</Text>
                   </TouchableOpacity>
@@ -78,7 +78,7 @@ export default function CycleDayScreen() {
             );
           })}
 
-          {/* Bleeding intensity between sleep and additional */}
+          {/* Bleeding intensity */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
             <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Blutung':'Bleeding'}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
@@ -90,18 +90,21 @@ export default function CycleDayScreen() {
             </View>
           </View>
 
+          {/* Additional: Sex toggle */}
+          <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Weitere Angaben':'Additional'}</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+              <TouchableOpacity testID='cycle-sex-toggle' onPress={() => state.setCycleLog(String(date), { sex: !log.sex })} style={[styles.chip, { borderColor: colors.primary, backgroundColor: log.sex ? colors.primary : 'transparent' }]}> 
+                <Ionicons name='heart' size={14} color={log.sex ? '#fff' : colors.primary} />
+                <Text style={{ color: log.sex ? '#fff' : colors.text, marginLeft: 6 }}>{lang==='de'?'Sex':'Sex'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Notes */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
             <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Notizen':'Notes'}</Text>
-            <TextInput
-              testID='cycle-notes'
-              style={{ marginTop: 8, minHeight: 100, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, padding: 10, color: colors.text, backgroundColor: colors.input }}
-              placeholder={lang==='de'?'Notizen hier eingeben...':'Enter notes...'}
-              placeholderTextColor={colors.muted}
-              value={log.notes || ''}
-              onChangeText={(v) => state.setCycleLog(String(date), { notes: v })}
-              multiline
-            />
+            <TextInput testID='cycle-notes' style={{ marginTop: 8, minHeight: 100, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, padding: 10, color: colors.text, backgroundColor: colors.input }} placeholder={lang==='de'?'Notizen hier eingeben...':'Enter notes...'} placeholderTextColor={colors.muted} value={log.notes || ''} onChangeText={(v) => state.setCycleLog(String(date), { notes: v })} multiline />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

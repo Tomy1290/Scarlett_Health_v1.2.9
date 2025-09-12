@@ -34,9 +34,15 @@ export default function CycleScreen() {
 
   const lang = state.language;
 
-  // bleeding stats from cycleLogs
-  const flowVals = Object.values(state.cycleLogs).map(l => typeof l.flow === 'number' ? l.flow : -1).filter(v => v >= 0);
-  const flowAvg = flowVals.length ? Math.round(flowVals.reduce((a,b)=>a+b,0)/flowVals.length) : null;
+  // entries markers from cycleLogs
+  const hasLog = new Set<string>();
+  for (const k of Object.keys(state.cycleLogs||{})) {
+    const v = state.cycleLogs[k];
+    if (!v) continue;
+    if (typeof v.mood==='number' || typeof v.energy==='number' || typeof v.pain==='number' || typeof v.sleep==='number' || typeof v.flow==='number' || typeof v.sex==='boolean' || (v.notes && v.notes.trim().length>0)) {
+      hasLog.add(k);
+    }
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -57,12 +63,7 @@ export default function CycleScreen() {
           <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Analyse':'Analysis'}</Text>
           <Text style={{ color: colors.muted, marginTop: 6 }}>Ø {lang==='de'?'Zykluslänge':'cycle length'}: {avgCycleLen} {lang==='de'?'Tage':'days'}</Text>
           <Text style={{ color: colors.muted, marginTop: 2 }}>Ø {lang==='de'?'Periodenlänge':'period length'}: {avgPeriodLen} {lang==='de'?'Tage':'days'}</Text>
-          {expectedNext ? (
-            <Text style={{ color: colors.muted, marginTop: 2 }}>{lang==='de'?'Nächster Zyklus erwartet am':'Next cycle expected on'} {expectedNext.toLocaleDateString()}</Text>
-          ) : null}
-          {flowAvg!==null ? (
-            <Text style={{ color: colors.muted, marginTop: 2 }}>{lang==='de'?'Ø Blutung':'Ø bleeding'}: {flowAvg}/7</Text>
-          ) : null}
+          {expectedNext ? (<Text style={{ color: colors.muted, marginTop: 2 }}>{lang==='de'?'Nächster Zyklus erwartet am':'Next cycle expected on'} {expectedNext.toLocaleDateString()}</Text>) : null}
         </View>
 
         {/* Calendar */}
@@ -98,6 +99,7 @@ export default function CycleScreen() {
                     const isFertile = fertile.has(key);
                     const isOv = ovulation.has(key);
                     const isExpected = expected.has(key);
+                    const has = hasLog.has(key);
                     return (
                       <TouchableOpacity key={i} style={{ width: `${100/7}%`, height: 44, alignItems: 'center', justifyContent: 'center' }} onPress={() => router.push(`/cycle/${key}`)} accessibilityLabel={`Tag ${key}`} testID={`cycle-day-${key}`}>
                         <View style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
@@ -105,6 +107,7 @@ export default function CycleScreen() {
                           borderWidth: isExpected ? 2 : (isFertile ? 1 : 0), borderColor: isExpected ? colors.primary : (isFertile ? colors.primary : 'transparent') }}>
                           <Text style={{ color: (isPeriod ? '#fff' : colors.text) }}>{d.getDate()}</Text>
                           {isOv ? <View style={{ position: 'absolute', right: 2, top: 2, width: 6, height: 6, borderRadius: 3, backgroundColor: isPeriod ? '#fff' : colors.primary }} /> : null}
+                          {has ? <View style={{ position: 'absolute', bottom: 3, width: 18, height: 2, backgroundColor: isPeriod ? '#fff' : colors.primary, borderRadius: 1 }} /> : null}
                         </View>
                       </TouchableOpacity>
                     );
@@ -120,7 +123,7 @@ export default function CycleScreen() {
               <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Periode':'Period'}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: `${colors.primary}33` }} />
+              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: `${colors.primary}33" }} />
               <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Periode (bevorstehend)':'Period (upcoming)'}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -132,13 +135,13 @@ export default function CycleScreen() {
               <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Erwarteter Start':'Expected start'}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: colors.primary }} />
-              <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Ovulation (Punkt)':'Ovulation (dot)'}</Text>
+              <View style={{ width: 12, height: 2, backgroundColor: colors.primary, marginRight: 6 }} />
+              <Text style={{ color: colors.text }}>{lang==='de'?'Eintrag vorhanden':'Has entry'}</Text>
             </View>
           </View>
         </View>
 
-        {/* History – last 12 cycles */}
+        {/* History – last 12 cycles (kept) */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Historie (12 Zyklen)':'History (12 cycles)'}</Text>
           {state.cycles.length === 0 ? (
