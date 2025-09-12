@@ -196,6 +196,6 @@ export function getAverageCycleLengthDays(cycles: Cycle[]): number {
   }
   if (diffs.length === 0) return 28;
   const last3 = diffs.slice(-3);
-  const avg = Math.round(last3.reduce((a,b)=&gt;a+b,0)/last3.length);
+  const avg = Math.round(last3.reduce((a,b)=>a+b,0)/last3.length);
   return avg || 28;
 }
