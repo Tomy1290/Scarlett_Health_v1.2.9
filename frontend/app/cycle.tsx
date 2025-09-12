@@ -28,6 +28,8 @@ export default function CycleScreen() {
   const router = useRouter();
   const colors = useThemeColors(state.theme);
   const [cursor, setCursor] = useState(new Date());
+  const [help, setHelp] = useState<{[k:string]: boolean}>({});
+  const toggleHelp = (k: string) => setHelp((h) => ({ ...h, [k]: !h[k] }));
   const year = cursor.getFullYear(); const month = cursor.getMonth();
   const monthDays = useMemo(() => getMonthDays(year, month), [year, month]);
   const { period, upcomingPeriod, fertile, ovulation, expected, avgCycleLen, avgPeriodLen, expectedNext } = useMemo(() => markersForMonth(year, month, state.cycles), [year, month, state.cycles]);
@@ -53,7 +55,10 @@ export default function CycleScreen() {
           <Text style={[styles.appTitle, { color: colors.text }]}>{lang==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking'}</Text>
           <Text style={[styles.title, { color: colors.muted }]}>{lang==='de'?'Zyklus':'Cycle'}</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={() => router.push('/cycle')} style={{ padding: 8, flexDirection: 'row', alignItems: 'center' }} accessibilityLabel='Kalender'>
+          <Ionicons name='calendar' size={18} color={colors.text} />
+          <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Kalender':'Calendar'}</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
@@ -64,8 +69,13 @@ export default function CycleScreen() {
               <Ionicons name='stats-chart' size={18} color={colors.primary} />
               <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?'Analyse':'Analysis'}</Text>
             </View>
-            <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+            <TouchableOpacity onPress={() => toggleHelp('analysis')}>
+              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+            </TouchableOpacity>
           </View>
+          {help.analysis ? (
+            <Text style={{ color: colors.muted, marginTop: 6 }}>Ø {lang==='de'?'Zykluslänge':'cycle length'} = {avgCycleLen}, Ø {lang==='de'?'Periodenlänge':'period length'} = {avgPeriodLen}. {lang==='de'?'Prognose basiert auf letzten Starts.':'Forecast based on recent cycle starts.'}</Text>
+          ) : null}
           <Text style={{ color: colors.muted, marginTop: 6 }}>Ø {lang==='de'?'Zykluslänge':'cycle length'}: {avgCycleLen} {lang==='de'?'Tage':'days'}</Text>
           <Text style={{ color: colors.muted, marginTop: 2 }}>Ø {lang==='de'?'Periodenlänge':'period length'}: {avgPeriodLen} {lang==='de'?'Tage':'days'}</Text>
           {expectedNext ? (<Text style={{ color: colors.muted, marginTop: 2 }}>{lang==='de'?'Nächster Zyklus erwartet am':'Next cycle expected on'} {expectedNext.toLocaleDateString()}</Text>) : null}
@@ -82,6 +92,12 @@ export default function CycleScreen() {
               <Ionicons name='chevron-forward' size={20} color={colors.text} />
             </TouchableOpacity>
           </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <TouchableOpacity onPress={() => toggleHelp('calendar')}>
+              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+          {help.calendar ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Farben zeigen Periode/Fruchtbarkeit. Tippe auf einen Tag zum Eintrag.':'Colors indicate period/fertile days. Tap a day to log.'}</Text>) : null}
           {/* Weekday header (Mon start) */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
             {[lang==='de'?['Mo','Di','Mi','Do','Fr','Sa','So']:['Mo','Tu','We','Th','Fr','Sa','Su']].flat().map((d, i) => (
@@ -148,10 +164,16 @@ export default function CycleScreen() {
 
         {/* History – last 12 cycles */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name='time' size={18} color={colors.primary} />
-            <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?'Historie (12 Zyklen)':'History (12 cycles)'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='time' size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?'Historie (12 Zyklen)':'History (12 cycles)'}</Text>
+            </View>
+            <TouchableOpacity onPress={() => toggleHelp('history')}>
+              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+            </TouchableOpacity>
           </View>
+          {help.history ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Letzte 12 Zyklen mit Länge; laufende Zyklen sind markiert.':'Last 12 cycles with length; ongoing cycles marked.'}</Text>) : null}
           {state.cycles.length === 0 ? (
             <Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Keine Einträge.':'No entries.'}</Text>
           ) : (

@@ -28,6 +28,9 @@ export default function AnalysisScreen() {
   const [showFrom, setShowFrom] = useState(false);
   const [showTo, setShowTo] = useState(false);
 
+  const [help, setHelp] = useState<{[k:string]: boolean}>({});
+  const toggleHelp = (k: string) => setHelp((h) => ({ ...h, [k]: !h[k] }));
+
   const weightArr = useMemo(() => {
     if (range === 'custom' && from && to) {
       return weightArrAll.filter(d => { const dt = new Date(d.date); return +dt >= +new Date(from.getFullYear(), from.getMonth(), from.getDate()) && +dt <= +new Date(to.getFullYear(), to.getMonth(), to.getDate()); });
@@ -43,7 +46,7 @@ export default function AnalysisScreen() {
 
   const last14 = useMemo(() => weightArrAll.slice(-14), [weightArrAll]);
 
-  const t = (key: string) => { const de: Record<string, string> = { analysis: 'Analyse', weight: 'Gewichtsanalyse', app: 'Scarletts Gesundheitstracking', range7: '7 Tage', range14: '14 Tage', range30: '30 Tage', custom: 'Eigener Zeitraum', from: 'Von', to: 'Bis' }; const en: Record<string, string> = { analysis: 'Analysis', weight: 'Weight analysis', app: "Scarlett’s Health Tracking", range7: '7 days', range14: '14 days', range30: '30 days', custom: 'Custom', from: 'From', to: 'To' }; return (state.language === 'de' ? de : en)[key] || key; };
+  const t = (key: string) => { const de: Record<string, string> = { analysis: 'Analyse', weight: 'Gewichtsanalyse', app: 'Scarletts Gesundheitstracking', range7: '7 Tage', range14: '14 Tage', range30: '30 Tage', custom: 'Eigener Zeitraum', from: 'Von', to: 'Bis', weight_help: 'Wähle den Zeitraum und betrachte Trends.', insights: 'Premium Insights', insights_help: 'Letzte 14 Einträge mit Tagesdifferenz.' }; const en: Record<string, string> = { analysis: 'Analysis', weight: 'Weight analysis', app: "Scarlett’s Health Tracking", range7: '7 days', range14: '14 days', range30: '30 days', custom: 'Custom', from: 'From', to: 'To', weight_help: 'Select a range and see trends.', insights: 'Premium Insights', insights_help: 'Last 14 entries with daily difference.' }; return (state.language === 'de' ? de : en)[key] || key; };
 
   const appTitle = t('app');
 
@@ -75,8 +78,11 @@ export default function AnalysisScreen() {
               <Ionicons name='fitness' size={18} color={colors.primary} />
               <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('weight')}</Text>
             </View>
-            <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+            <TouchableOpacity onPress={() => toggleHelp('weight')}>
+              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+            </TouchableOpacity>
           </View>
+          {help.weight ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{t('weight_help')}</Text>) : null}
           <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
             <TouchableOpacity onPress={() => setRange('7')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: range==='7'?colors.primary:'transparent' }]}><Text style={{ color: range==='7'?'#fff':colors.text }}>{t('range7')}</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => setRange('14')} style={[styles.badge, { borderColor: colors.muted, backgroundColor: range==='14'?colors.primary:'transparent' }]}><Text style={{ color: range==='14'?'#fff':colors.text }}>{t('range14')}</Text></TouchableOpacity>
@@ -99,10 +105,16 @@ export default function AnalysisScreen() {
 
         {/* Premium Insights + last 14 weights */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name='sparkles' size={18} color={colors.primary} />
-            <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>Premium Insights</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='sparkles' size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('insights')}</Text>
+            </View>
+            <TouchableOpacity onPress={() => toggleHelp('insights')}>
+              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+            </TouchableOpacity>
           </View>
+          {help.insights ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{t('insights_help')}</Text>) : null}
           <View style={{ marginTop: 8 }}>
             {last14.length < 2 ? (<Text style={{ color: colors.muted }}>Zu wenige Daten</Text>) : (
               last14.map((d, i) => { const dt = new Date(d.date); const label = `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}`; const prev = last14[i-1]; const diff = i===0 ? 0 : ((Number(d.weight)||0) - (Number(prev?.weight)||0)); const sign = i===0 ? '' : (diff > 0 ? `(+${diff.toFixed(1)}kg)` : `(${diff.toFixed(1)}kg)`); return (<Text key={d.date} style={{ color: colors.muted }}>{label} {Number(d.weight).toFixed(1)}kg {sign}</Text>); })

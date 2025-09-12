@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,8 @@ export default function CycleDayScreen() {
   const colors = useThemeColors(state.theme);
   const log = state.cycleLogs[date || ''] || {};
   const lang = state.language;
+  const [help, setHelp] = useState<{[k:string]: boolean}>({});
+  const toggleHelp = (k: string) => setHelp(h => ({ ...h, [k]: !h[k] }));
 
   const setVal = (field: 'mood'|'energy'|'pain'|'sleep', delta: number) => {
     const cur = (log as any)[field] ?? 5;
@@ -60,7 +62,10 @@ export default function CycleDayScreen() {
           <Text style={[styles.appTitle, { color: colors.text }]}>{lang==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking'}</Text>
           <Text style={[styles.title, { color: colors.muted }]}>{lang==='de'?'Zyklus-Tag':'Cycle day'}</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={() => router.push('/cycle')} style={{ padding: 8, flexDirection: 'row', alignItems: 'center' }} accessibilityLabel='Kalender'>
+          <Ionicons name='calendar' size={18} color={colors.text} />
+          <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Kalender':'Calendar'}</Text>
+        </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':'height'} style={{ flex: 1 }}>
@@ -69,10 +74,10 @@ export default function CycleDayScreen() {
 
           {/* Scales */}
           {([
-            { key: 'mood', icon: 'happy', de: 'Stimmung', en: 'Mood' },
-            { key: 'energy', icon: 'flash', de: 'Energie', en: 'Energy' },
-            { key: 'pain', icon: 'medkit', de: 'Schmerz', en: 'Pain' },
-            { key: 'sleep', icon: 'moon', de: 'Schlaf', en: 'Sleep' },
+            { key: 'mood', icon: 'happy', de: 'Stimmung', en: 'Mood', help: lang==='de'?'Stimmung 1–10: links weniger, rechts mehr.':'Mood 1–10: left less, right more.' },
+            { key: 'energy', icon: 'flash', de: 'Energie', en: 'Energy', help: lang==='de'?'Energie 1–10: Gefühlte Power.':'Energy 1–10: perceived power.' },
+            { key: 'pain', icon: 'medkit', de: 'Schmerz', en: 'Pain', help: lang==='de'?'Schmerz 1–10: höher = stärker.':'Pain 1–10: higher = stronger.' },
+            { key: 'sleep', icon: 'moon', de: 'Schlaf', en: 'Sleep', help: lang==='de'?'Schlaf 1–10: Qualität/Erholung.':'Sleep 1–10: quality/rest.' },
           ] as const).map((cfg) => {
             const value = (log as any)[cfg.key] ?? 5;
             return (
@@ -82,7 +87,11 @@ export default function CycleDayScreen() {
                     <Ionicons name={cfg.icon as any} size={18} color={colors.primary} />
                     <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?cfg.de:cfg.en}</Text>
                   </View>
+                  <TouchableOpacity onPress={() => toggleHelp(cfg.key)}>
+                    <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+                  </TouchableOpacity>
                 </View>
+                {help[cfg.key] ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{cfg.help}</Text>) : null}
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
                   <TouchableOpacity testID={`cycle-${cfg.key}-minus`} onPress={() => setVal(cfg.key, -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
                     <Ionicons name='remove' size={16} color={colors.primary} />
@@ -98,10 +107,16 @@ export default function CycleDayScreen() {
 
           {/* Bleeding intensity */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name='water' size={16} color={colors.primary} />
-              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 6 }}>{lang==='de'?'Blutung':'Bleeding'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name='water' size={16} color={colors.primary} />
+                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 6 }}>{lang==='de'?'Blutung':'Bleeding'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => toggleHelp('bleeding')}>
+                <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+              </TouchableOpacity>
             </View>
+            {help.bleeding ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Wähle die Stärke (0–7) – von keiner bis extrem.':'Choose intensity (0–7) – from none to extreme.'}</Text>) : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
               {bleedingLabels.map((label, idx) => (
                 <TouchableOpacity key={label} testID={`cycle-bleeding-${idx}`} onPress={() => setFlow(idx)} style={[styles.chip, { borderColor: colors.primary, backgroundColor: (log.flow ?? -1)===idx ? colors.primary : 'transparent' }]}> 
@@ -113,7 +128,13 @@ export default function CycleDayScreen() {
 
           {/* Additional: Sex toggle */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Weitere Angaben':'Additional'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Weitere Angaben':'Additional'}</Text>
+              <TouchableOpacity onPress={() => toggleHelp('additional')}>
+                <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            {help.additional ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Zusätzliche Angaben wie Sex.':'Additional items like sex.'}</Text>) : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
               <TouchableOpacity testID='cycle-sex-toggle' onPress={() => state.setCycleLog(String(date), { sex: !log.sex })} style={[styles.chip, { borderColor: colors.primary, backgroundColor: log.sex ? colors.primary : 'transparent' }]}> 
                 <Ionicons name='heart' size={14} color={log.sex ? '#fff' : colors.primary} />
@@ -124,7 +145,13 @@ export default function CycleDayScreen() {
 
           {/* Notes */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Notizen':'Notes'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Notizen':'Notes'}</Text>
+              <TouchableOpacity onPress={() => toggleHelp('notes')}>
+                <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            {help.notes ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Freitext für besondere Beobachtungen.':'Free text for notable observations.'}</Text>) : null}
             <TextInput testID='cycle-notes' style={{ marginTop: 8, minHeight: 100, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, padding: 10, color: colors.text, backgroundColor: colors.input }} placeholder={lang==='de'?'Notizen hier eingeben...':'Enter notes...'} placeholderTextColor={colors.muted} value={log.notes || ''} onChangeText={(v) => state.setCycleLog(String(date), { notes: v })} multiline />
           </View>
         </ScrollView>
