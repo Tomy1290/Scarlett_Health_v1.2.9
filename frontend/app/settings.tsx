@@ -213,6 +213,18 @@ export default function SettingsScreen() {
             ))}
           </View>
 
+          {/* Premium Insights */}
+          <View style={[styles.card, { backgroundColor: colors.card }]}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name='sparkles' size={18} color={colors.primary} />
+                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{state.language==='de'?'Premium Insights':'Premium insights'}</Text>
+              </View>
+              <Switch value={state.aiInsightsEnabled} onValueChange={(v)=>state.setAiInsightsEnabled(v)} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
+            </View>
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Aktiviere KI-gestützte Tipps im Chat und in der Analyse.':'Enable AI-powered tips in chat and analysis.'}</Text>
+          </View>
+
           {/* Weekly Events */}
           <View style={[styles.card, { backgroundColor: colors.card }]}> 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

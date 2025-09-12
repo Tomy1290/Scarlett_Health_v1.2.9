@@ -117,7 +117,20 @@ export default function AnalysisScreen() {
           {help.insights ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{t('insights_help')}</Text>) : null}
           <View style={{ marginTop: 8 }}>
             {last14.length < 2 ? (<Text style={{ color: colors.muted }}>Zu wenige Daten</Text>) : (
-              last14.map((d, i) => { const dt = new Date(d.date); const label = `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}`; const prev = last14[i-1]; const diff = i===0 ? 0 : ((Number(d.weight)||0) - (Number(prev?.weight)||0)); const sign = i===0 ? '' : (diff > 0 ? `(+${diff.toFixed(1)}kg)` : `(${diff.toFixed(1)}kg)`); return (<Text key={d.date} style={{ color: colors.muted }}>{label} {Number(d.weight).toFixed(1)}kg {sign}</Text>); })
+              last14.map((d, i) => {
+                const dt = new Date(d.date);
+                const label = `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}`;
+                const prev = last14[i-1];
+                const diff = i===0 ? 0 : ((Number(d.weight)||0) - (Number(prev?.weight)||0));
+                const sign = i===0 ? '' : (diff > 0 ? `+${diff.toFixed(1)} kg` : `${diff.toFixed(1)} kg`);
+                return (
+                  <View key={d.date} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2 }}>
+                    <Text style={{ color: colors.muted, width: 60 }}>{label}</Text>
+                    <Text style={{ color: colors.muted, width: 80, textAlign: 'right' }}>{Number(d.weight).toFixed(1)} kg</Text>
+                    <Text style={{ color: colors.muted, width: 100, textAlign: 'right' }}>{i===0 ? '' : `(${sign})`}</Text>
+                  </View>
+                );
+              })
             )}
           </View>
         </View>

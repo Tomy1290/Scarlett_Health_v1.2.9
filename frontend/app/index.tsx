@@ -20,7 +20,7 @@ function useThemeColors(theme: string) {
 export default function Home() {
   const router = useRouter();
   const state = useAppStore();
-  const { theme, days, eventHistory, completeEvent, eventsEnabled, currentDate, ensureDay, language, togglePill, incDrink, toggleFlag, setWeight, goPrevDay, goNextDay, goToday, setPillsBoth } = state as any;
+  const { theme, days, eventHistory, completeEvent, eventsEnabled, currentDate, ensureDay, language, togglePill, incDrink, toggleFlag, setWeight, goPrevDay, goNextDay, goToday } = state as any;
   const { level, xp } = useLevel();
   const colors = useThemeColors(theme);
 
@@ -45,7 +45,6 @@ export default function Home() {
   const evProg = computeEventProgress(dayKeys, { days }, weeklyEvent);
   const evCompleted = evProg.completed || !!eventHistory[weekKey]?.completed;
 
-  const [detailVisible, setDetailVisible] = useState(false);
   const [weightModal, setWeightModal] = useState(false);
   const [weightInput, setWeightInput] = useState<string>(day?.weight ? String(day.weight) : "");
   useEffect(() => { setWeightInput(day?.weight ? String(day.weight) : ""); }, [currentDate, day?.weight]);
@@ -56,30 +55,18 @@ export default function Home() {
   const chains = useMemo(() => computeChains(useAppStore.getState()), [days]);
   const topChain = useMemo(() => chains.filter(c => c.completed < c.total).sort((a,b) => b.nextPercent - a.nextPercent)[0], [chains]);
 
-  const rewardList = [ { lvl: 10, title: 'Erweiterte Statistiken' }, { lvl: 25, title: 'Premium Insights' }, { lvl: 50, title: 'VIP-Chat' }, { lvl: 75, title: 'Golden Pink Theme' }, { lvl: 100, title: 'Legendärer Status' } ];
-  const nextReward = rewardList.find(r => level < r.lvl);
-
-  const canGoNext = currentDate <= todayKey;
   const t = (de: string, en: string) => (language === 'en' ? en : de);
 
   const activeCycle = state.cycles.find((c: any) => !c.end);
-  const avgLen = getAverageCycleLengthDays(state.cycles);
-  const lastStart = [...state.cycles].filter((c: any)=>c.start).sort((a: any,b: any)=>a.start.localeCompare(b.start)).slice(-1)[0]?.start;
-  const expectedNext = lastStart ? (() => { const dt = new Date(lastStart); dt.setDate(dt.getDate() + avgLen); return dt; })() : null;
-  const daysUntilNext = expectedNext ? Math.max(0, Math.ceil((+expectedNext - +new Date(currentDate))/(24*60*60*1000))) : null;
 
-  // Helpers for 3x3 layout cups
-  const renderCupRow = (count: number, type: 'water'|'coffee') => (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-      <View style={{ width: 44, alignItems: 'center' }} />
-      <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {Array.from({ length: Math.min(count, 10) }).map((_, i) => (
-          <View key={`${type}-icon-${i}`} style={{ width: `${100/10}%`, alignItems: 'center', paddingVertical: 2 }}>
-            <Ionicons name={type==='coffee' ? 'cafe' : 'water'} size={16} color={colors.primary} />
-          </View>
-        ))}
-      </View>
-      <View style={{ width: 44, alignItems: 'center' }} />
+  // Helpers to render cups: 9 per row
+  const renderCupsRow = (count: number, type: 'water'|'coffee') => (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
+      {Array.from({ length: Math.min(count, 9) }).map((_, i) => (
+        <View key={`${type}-icon-${i}`} style={{ width: `${100/9}%`, alignItems: 'center', paddingVertical: 2 }}>
+          <Ionicons name={type==='coffee' ? 'cafe' : 'water'} size={16} color={colors.primary} />
+        </View>
+      ))}
     </View>
   );
 
@@ -110,7 +97,7 @@ export default function Home() {
             <TouchableOpacity accessibilityLabel={t('Heute', 'Today')} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); goToday(); }}>
               <Text style={{ color: colors.text, fontWeight: '700' }}>{dateLabel}</Text>
             </TouchableOpacity>
-            <TouchableOpacity accessibilityLabel={t('Folgetag', 'Next day')} onPress={() => { if (canGoNext) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); goNextDay(); } }} style={styles.iconBtn}>
+            <TouchableOpacity accessibilityLabel={t('Folgetag', 'Next day')} onPress={() => { const canGoNext = currentDate <= toKey(new Date()); if (canGoNext) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); goNextDay(); } }} style={styles.iconBtn}>
               <Ionicons name="chevron-forward" size={22} color={colors.text} />
             </TouchableOpacity>
           </View>
@@ -153,66 +140,41 @@ export default function Home() {
           </View>
           {help.drinks ? <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Wasser vergibt XP pro Glas. Kaffee ab Tasse 7 gibt Minuspunkte. Toggles (Sport, Kur, etc.) nur einmal täglich XP.', 'Water gives XP per glass. Coffee after cup 6 reduces XP. Toggles (sport, cure, etc.) give XP only once per day.')}</Text> : null}
 
-          {/* WATER 3x3 layout */}
+          {/* WATER 2x row cups with centered controls */}
           <View style={{ marginTop: 10 }}>
             <View style={{ alignItems: 'center' }}>
               <Text style={{ color: colors.text, fontWeight: '600' }}>{t('Wasser', 'Water')}</Text>
             </View>
-            {/* Row 2 with - | cups(0..10) | + */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+            {/* Row 2 cups (0..9) */}
+            {renderCupsRow(Math.min(day.drinks.water, 9), 'water')}
+            {/* Centered controls */}
+            <View style={{ flexDirection: 'row', alignSelf: 'center', gap: 16, marginTop: 6 }}>
               <TouchableOpacity accessibilityLabel={t('Wasser verringern', 'Decrease water')} onPress={() => { incDrink(currentDate, 'water', -1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]}>
                 <Ionicons name='remove' size={18} color={colors.primary} />
               </TouchableOpacity>
-              <View style={{ flex: 1, marginHorizontal: 8 }}>
-                {renderCupRow(Math.min(day.drinks.water, 10), 'water')}
-              </View>
               <TouchableOpacity accessibilityLabel={t('Wasser erhöhen', 'Increase water')} onPress={() => { incDrink(currentDate, 'water', +1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]}>
                 <Ionicons name='add' size={18} color={colors.primary} />
               </TouchableOpacity>
             </View>
-            {/* Row 3 with - | cups(10..20) | + */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-              <TouchableOpacity accessibilityLabel={t('Wasser verringern', 'Decrease water')} onPress={() => { incDrink(currentDate, 'water', -1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]}>
-                <Ionicons name='remove' size={18} color={colors.primary} />
-              </TouchableOpacity>
-              <View style={{ flex: 1, marginHorizontal: 8 }}>
-                {renderCupRow(Math.max(0, Math.min(day.drinks.water - 10, 10)), 'water')}
-              </View>
-              <TouchableOpacity accessibilityLabel={t('Wasser erhöhen', 'Increase water')} onPress={() => { incDrink(currentDate, 'water', +1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]}>
-                <Ionicons name='add' size={18} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
+            {/* Row 3 cups (9..18) */}
+            {renderCupsRow(Math.max(0, Math.min(day.drinks.water - 9, 9)), 'water')}
           </View>
 
-          {/* COFFEE 3x3 layout */}
+          {/* COFFEE 2x row cups with centered controls */}
           <View style={{ marginTop: 14 }}>
             <View style={{ alignItems: 'center' }}>
               <Text style={{ color: colors.text, fontWeight: '600' }}>{t('Kaffee', 'Coffee')}</Text>
             </View>
-            {/* Row 2 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+            {renderCupsRow(Math.min(day.drinks.coffee, 9), 'coffee')}
+            <View style={{ flexDirection: 'row', alignSelf: 'center', gap: 16, marginTop: 6 }}>
               <TouchableOpacity accessibilityLabel={t('Kaffee verringern', 'Decrease coffee')} onPress={() => { incDrink(currentDate, 'coffee', -1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]}>
                 <Ionicons name='remove' size={18} color={colors.primary} />
               </TouchableOpacity>
-              <View style={{ flex: 1, marginHorizontal: 8 }}>
-                {renderCupRow(Math.min(day.drinks.coffee, 10), 'coffee')}
-              </View>
               <TouchableOpacity accessibilityLabel={t('Kaffee erhöhen', 'Increase coffee')} onPress={() => { incDrink(currentDate, 'coffee', +1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]}>
                 <Ionicons name='add' size={18} color={colors.primary} />
               </TouchableOpacity>
             </View>
-            {/* Row 3 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-              <TouchableOpacity accessibilityLabel={t('Kaffee verringern', 'Decrease coffee')} onPress={() => { incDrink(currentDate, 'coffee', -1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]}>
-                <Ionicons name='remove' size={18} color={colors.primary} />
-              </TouchableOpacity>
-              <View style={{ flex: 1, marginHorizontal: 8 }}>
-                {renderCupRow(Math.max(0, Math.min(day.drinks.coffee - 10, 10)), 'coffee')}
-              </View>
-              <TouchableOpacity accessibilityLabel={t('Kaffee erhöhen', 'Increase coffee')} onPress={() => { incDrink(currentDate, 'coffee', +1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]}>
-                <Ionicons name='add' size={18} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
+            {renderCupsRow(Math.max(0, Math.min(day.drinks.coffee - 9, 9)), 'coffee')}
           </View>
 
           {/* Toggles */}
@@ -286,7 +248,6 @@ export default function Home() {
               <Text style={{ color: colors.text, marginLeft: 6 }}>{t('Kalender', 'Calendar')}</Text>
             </TouchableOpacity>
           </View>
-          {expectedNext ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{t('Nächster Zyklus in', 'Next cycle in')} {daysUntilNext} {t('Tagen', 'days')} {t('erwartet', 'expected')} ({expectedNext.toLocaleDateString()})</Text>) : null}
         </View>
 
         {/* Chains */}
@@ -303,7 +264,7 @@ export default function Home() {
           {help.chains ? <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Ketten zeigen dir Fortschritte in Meilensteinen. Öffne Erfolge für Details.', 'Chains show progress towards milestones. Open achievements for details.')}</Text> : null}
           {topChain ? (
             <View style={{ marginTop: 6 }}>
-              <Text style={{ color: colors.muted }}>{topChain.title} · {t('Schritt', 'Step')} {topChain.completed+1}/{topChain.total}</Text>
+              <Text style={{ color: colors.muted }}>{topChain.title}</Text>
               <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
                 <View style={{ width: `${Math.round(topChain.nextPercent)}%`, height: 6, backgroundColor: colors.primary }} />
               </View>
@@ -336,31 +297,6 @@ export default function Home() {
             <TouchableOpacity style={[styles.cta, { borderColor: colors.primary, borderWidth: 1 }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/leaderboard'); }}>
               <Ionicons name="podium" size={16} color={colors.primary} />
               <Text style={{ color: colors.text, marginLeft: 6 }}>{language==='de'?'Rangliste':'Leaderboard'}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Quick access */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{language==='de'?'Schnellzugriff':'Quick access'}</Text>
-            <TouchableOpacity onPress={() => toggleHelp('quick')}>
-              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
-            </TouchableOpacity>
-          </View>
-          {help.quick ? <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Schneller Zugriff auf wichtige Bereiche.', 'Quick access to key sections.')}</Text> : null}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 10 }}>
-            <TouchableOpacity accessibilityLabel={language==='de'?'Chat':'Chat'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/chat'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
-              <Ionicons name="chatbubbles" size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, marginTop: 6 }}>{language==='de'?'Chat':'Chat'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity accessibilityLabel={language==='de'?'Einstellungen':'Settings'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/settings'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
-              <Ionicons name="settings" size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, marginTop: 6 }}>{language==='de'?'Einstellungen':'Settings'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity accessibilityLabel={language==='de'?'Gespeichert':'Saved'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/saved'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
-              <Ionicons name="bookmark" size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, marginTop: 6 }}>{language==='de'?'Gespeichert':'Saved'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -403,9 +339,6 @@ const styles = StyleSheet.create({
   cta: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 12, borderRadius: 8 },
   iconBtn: { padding: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   toggle: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, borderWidth: 1 },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
-  counterWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   counterBtn: { paddingHorizontal: 10, paddingVertical: 10, borderRadius: 8, borderWidth: 1, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
   chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
-  quick: { width: '47%', borderRadius: 12, padding: 12, alignItems: 'center', justifyContent: 'center' },
 });

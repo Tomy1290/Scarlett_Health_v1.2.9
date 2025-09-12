@@ -122,8 +122,8 @@ export default function ChatScreen() {
             )}
           </View>
         </View>
-        <TouchableOpacity onPress={() => router.push('/settings')} style={styles.iconBtn} accessibilityLabel='Einstellungen'>
-          <Ionicons name='settings' size={20} color={colors.text} />
+        <TouchableOpacity onPress={() => router.push('/saved')} style={styles.iconBtn} accessibilityLabel='Gespeichert'>
+          <Ionicons name='bookmark' size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
 
