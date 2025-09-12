@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppStore } from '../../src/store/useStore';
 
@@ -32,24 +32,49 @@ export default function CycleDayScreen() {
 
   const setFlow = (val: number) => state.setCycleLog(String(date), { flow: val as any });
 
-  const bleedingLabels = lang==='de'?['Keine','Leicht','Mittel','Normal','Mehr','Heftig','Übertrieben','Extrem']:['None','Light','Medium','Normal','More','Severe','Excessive','Extreme'];
-
   const formattedDate = (() => { try { const [y,m,d] = String(date).split('-').map(Number); return `${String(d).padStart(2,'0')}.${String(m).padStart(2,'0')}.${y}`; } catch { return String(date); }})();
 
-  const renderIcons = (type: 'mood'|'energy'|'pain'|'sleep', value: number) => {
-    const icons: React.ReactNode[] = [];
-    for (let i = 1; i <= value; i++) {
-      let name: any = 'ellipse';
-      if (type === 'mood') {
-        if (i <= 3) name = 'sad';
-        else if (i <= 7) name = 'remove';
-        else name = 'happy';
-      } else if (type === 'energy') name = 'flash';
-      else if (type === 'pain') name = 'medkit';
-      else if (type === 'sleep') name = 'moon';
-      icons.push(<Ionicons key={`${type}-${i}`} name={name} size={16} color={colors.primary} style={{ marginHorizontal: 2 }} />);
-    }
-    return <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginVertical: 4 }}>{icons}</View>;
+  const renderMoodScale = (value: number) => {
+    // 10 icons (1..10): 1-3 sad, 4-7 neutral, 8-10 happy; colored up to selected value
+    const items = Array.from({ length: 10 }).map((_, i) => {
+      const idx = i + 1;
+      let name: any = 'emoticon-neutral-outline';
+      if (idx <= 3) name = 'emoticon-sad-outline';
+      else if (idx >= 8) name = 'emoticon-happy-outline';
+      const active = idx <= value;
+      return (
+        <TouchableOpacity key={`mood-${idx}`} onPress={() => state.setCycleLog(String(date), { mood: idx })} style={{ padding: 2 }}>
+          <MaterialCommunityIcons name={name} size={18} color={active ? colors.primary : colors.muted} />
+        </TouchableOpacity>
+      );
+    });
+    return <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginVertical: 4 }}>{items}</View>;
+  };
+
+  const renderIconScale = (value: number, icon: keyof typeof Ionicons.glyphMap, field: 'energy'|'pain'|'sleep') => {
+    const items = Array.from({ length: 10 }).map((_, i) => {
+      const idx = i + 1;
+      const active = idx <= value;
+      return (
+        <TouchableOpacity key={`${field}-${idx}`} onPress={() => state.setCycleLog(String(date), { [field]: idx } as any)} style={{ padding: 2 }}>
+          <Ionicons name={icon} size={16} color={active ? colors.primary : colors.muted} />
+        </TouchableOpacity>
+      );
+    });
+    return <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginVertical: 4 }}>{items}</View>;
+  };
+
+  const renderBleedingScale = (value: number) => {
+    const items = Array.from({ length: 10 }).map((_, i) => {
+      const idx = i; // 0..9
+      const active = idx <= (typeof value === 'number' ? value : -1);
+      return (
+        <TouchableOpacity key={`flow-${idx}`} onPress={() => setFlow(idx)} style={{ padding: 2 }}>
+          <Ionicons name='water' size={16} color={active ? colors.primary : colors.muted} />
+        </TouchableOpacity>
+      );
+    });
+    return <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginVertical: 4 }}>{items}</View>;
   };
 
   return (
@@ -69,38 +94,97 @@ export default function CycleDayScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
           <Text style={{ color: colors.text, textAlign: 'center', fontWeight: '700' }}>{formattedDate}</Text>
 
-          {/* Scales */}
-          {([
-            { key: 'mood', icon: 'happy', de: 'Stimmung', en: 'Mood', help: lang==='de'?'Stimmung 1–10: links weniger, rechts mehr.':'Mood 1–10: left less, right more.' },
-            { key: 'energy', icon: 'flash', de: 'Energie', en: 'Energy', help: lang==='de'?'Energie 1–10: Gefühlte Power.':'Energy 1–10: perceived power.' },
-            { key: 'pain', icon: 'medkit', de: 'Schmerz', en: 'Pain', help: lang==='de'?'Schmerz 1–10: höher = stärker.':'Pain 1–10: higher = stronger.' },
-            { key: 'sleep', icon: 'moon', de: 'Schlaf', en: 'Sleep', help: lang==='de'?'Schlaf 1–10: Qualität/Erholung.':'Sleep 1–10: quality/rest.' },
-          ] as const).map((cfg) => {
-            const value = (log as any)[cfg.key] ?? 5;
-            return (
-              <View key={cfg.key} style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name={cfg.icon as any} size={18} color={colors.primary} />
-                    <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?cfg.de:cfg.en}</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => toggleHelp(cfg.key)}>
-                    <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
-                  </TouchableOpacity>
-                </View>
-                {help[cfg.key] ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{cfg.help}</Text>) : null}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
-                  <TouchableOpacity testID={`cycle-${cfg.key}-minus`} onPress={() => setVal(cfg.key, -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
-                    <Ionicons name='remove' size={16} color={colors.primary} />
-                  </TouchableOpacity>
-                  <View style={{ flex: 1, alignItems: 'center' }}>{renderIcons(cfg.key, value)}</View>
-                  <TouchableOpacity testID={`cycle-${cfg.key}-plus`} onPress={() => setVal(cfg.key, +1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
-                    <Ionicons name='add' size={16} color={colors.primary} />
-                  </TouchableOpacity>
-                </View>
+          {/* Mood */}
+          <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name={'happy'} size={18} color={colors.primary} />
+                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?'Stimmung':'Mood'}</Text>
               </View>
-            );
-          })}
+              <TouchableOpacity onPress={() => toggleHelp('mood')}>
+                <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            {help.mood ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Wähle 1–10; links traurig, Mitte neutral, rechts glücklich.':'Choose 1–10; left sad, middle neutral, right happy.'}</Text>) : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+              <TouchableOpacity testID={`cycle-mood-minus`} onPress={() => setVal('mood', -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                <Ionicons name='remove' size={16} color={colors.primary} />
+              </TouchableOpacity>
+              <View style={{ flex: 1, alignItems: 'center' }}>{renderMoodScale(log.mood ?? 5)}</View>
+              <TouchableOpacity testID={`cycle-mood-plus`} onPress={() => setVal('mood', +1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                <Ionicons name='add' size={16} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Energy */}
+          <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name={'flash'} size={18} color={colors.primary} />
+                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?'Energie':'Energy'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => toggleHelp('energy')}>
+                <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            {help.energy ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Wähle 1–10: höhere Zahl = mehr Energie.':'Choose 1–10: higher number = more energy.'}</Text>) : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+              <TouchableOpacity testID={`cycle-energy-minus`} onPress={() => setVal('energy', -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                <Ionicons name='remove' size={16} color={colors.primary} />
+              </TouchableOpacity>
+              <View style={{ flex: 1, alignItems: 'center' }}>{renderIconScale(log.energy ?? 5, 'flash', 'energy')}</View>
+              <TouchableOpacity testID={`cycle-energy-plus`} onPress={() => setVal('energy', +1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                <Ionicons name='add' size={16} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Pain */}
+          <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name={'medkit'} size={18} color={colors.primary} />
+                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?'Schmerz':'Pain'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => toggleHelp('pain')}>
+                <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            {help.pain ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Wähle 1–10: höher = stärker.':'Choose 1–10: higher = stronger.'}</Text>) : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+              <TouchableOpacity testID={`cycle-pain-minus`} onPress={() => setVal('pain', -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                <Ionicons name='remove' size={16} color={colors.primary} />
+              </TouchableOpacity>
+              <View style={{ flex: 1, alignItems: 'center' }}>{renderIconScale(log.pain ?? 5, 'medkit', 'pain')}</View>
+              <TouchableOpacity testID={`cycle-pain-plus`} onPress={() => setVal('pain', +1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                <Ionicons name='add' size={16} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Sleep */}
+          <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name={'moon'} size={18} color={colors.primary} />
+                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{lang==='de'?'Schlaf':'Sleep'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => toggleHelp('sleep')}>
+                <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            {help.sleep ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Wähle 1–10: höhere Zahl = besserer Schlaf.':'Choose 1–10: higher number = better sleep.'}</Text>) : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+              <TouchableOpacity testID={`cycle-sleep-minus`} onPress={() => setVal('sleep', -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                <Ionicons name='remove' size={16} color={colors.primary} />
+              </TouchableOpacity>
+              <View style={{ flex: 1, alignItems: 'center' }}>{renderIconScale(log.sleep ?? 5, 'moon', 'sleep')}</View>
+              <TouchableOpacity testID={`cycle-sleep-plus`} onPress={() => setVal('sleep', +1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                <Ionicons name='add' size={16} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {/* Bleeding intensity */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
@@ -113,13 +197,9 @@ export default function CycleDayScreen() {
                 <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            {help.bleeding ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Wähle die Stärke (0–7) – von keiner bis extrem.':'Choose intensity (0–7) – from none to extreme.'}</Text>) : null}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-              {bleedingLabels.map((label, idx) => (
-                <TouchableOpacity key={label} testID={`cycle-bleeding-${idx}`} onPress={() => setFlow(idx)} style={[styles.chip, { borderColor: colors.primary, backgroundColor: (log.flow ?? -1)===idx ? colors.primary : 'transparent' }]}> 
-                  <Text style={{ color: (log.flow ?? -1)===idx ? '#fff' : colors.text }}>{label}</Text>
-                </TouchableOpacity>
-              ))}
+            {help.bleeding ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Tippe 0–9 Tropfen; mehr Tropfen = stärkere Blutung.':'Tap 0–9 drops; more drops = stronger bleeding.'}</Text>) : null}
+            <View style={{ marginTop: 8 }}>
+              {renderBleedingScale(log.flow ?? 0)}
             </View>
           </View>
 
