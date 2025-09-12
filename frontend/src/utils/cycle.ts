@@ -17,8 +17,24 @@ export function getAverageCycleLengthDays(cycles: Cycle[]): number {
   return avg || 28;
 }
 
+export function getAveragePeriodLengthDays(cycles: Cycle[]): number {
+  // If ends are recorded, use average (end-start+1), fallback to 5 days
+  const completed = cycles.filter(c => c.start && c.end);
+  if (completed.length === 0) return 5;
+  const lens = completed.map(c => {
+    const s = new Date(c.start); const e = new Date(c.end as string);
+    return Math.max(1, Math.round((+e - +s)/(24*60*60*1000)) + 1);
+  });
+  const last3 = lens.slice(-3);
+  return Math.max(1, Math.round(last3.reduce((a,b)=>a+b,0)/last3.length));
+}
+
+export function averageStartToStart(cycles: Cycle[]): number {
+  return getAverageCycleLengthDays(cycles);
+}
+
 export function predictNextStart(cycles: Cycle[]): Date | null {
-  const avg = getAverageCycleLengthDays(cycles);
+  const avg = averageStartToStart(cycles);
   const starts = cycles.map(c => c.start).filter(Boolean).sort();
   const last = starts.slice(-1)[0];
   if (!last) return null;
@@ -28,7 +44,7 @@ export function predictNextStart(cycles: Cycle[]): Date | null {
 }
 
 // Typical model: ovulation occurs ~14 days before next period. Fertile window = ovulation -5 .. ovulation -1
-export function getOvulationDate(cycles: Cycle[], refDate?: Date): Date | null {
+export function getOvulationDate(cycles: Cycle[]): Date | null {
   const next = predictNextStart(cycles);
   if (!next) return null;
   const ov = new Date(next);
@@ -67,22 +83,37 @@ export function buildPeriodDaysSet(cycles: Cycle[], periodLength = 5): Set<strin
 }
 
 export function markersForMonth(year: number, month: number, cycles: Cycle[]) {
-  const avg = getAverageCycleLengthDays(cycles);
+  const today = new Date();
+  const avgCycleLen = averageStartToStart(cycles);
+  const avgPeriodLen = getAveragePeriodLengthDays(cycles);
   const expectedNext = predictNextStart(cycles);
   const fertile = getFertileWindow(cycles);
   const ovulation = getOvulationDate(cycles);
 
-  const periodSet = buildPeriodDaysSet(cycles, 5);
-
-  // build arrays of dates in current month for markers
   const days: Date[] = [];
   const d = new Date(year, month, 1);
   while (d.getMonth() === month) { days.push(new Date(d)); d.setDate(d.getDate()+1); }
 
-  const period = new Set(days.filter(dd => periodSet.has(toKey(dd))).map(toKey));
+  // Past/confirmed period days: from each cycle start up to today (clamped by period length)
+  const confirmed = new Set<string>();
+  const upcoming = new Set<string>();
+
+  for (const c of cycles) {
+    const s = new Date(c.start);
+    const end = c.end ? new Date(c.end) : (() => { const tmp = new Date(s); tmp.setDate(tmp.getDate() + avgPeriodLen - 1); return tmp; })();
+    let cur = new Date(s);
+    while (+cur <= +end) {
+      const key = toKey(cur);
+      if (+cur <= +today) confirmed.add(key); else upcoming.add(key);
+      cur.setDate(cur.getDate()+1);
+    }
+  }
+
+  const period = new Set(days.filter(dd => confirmed.has(toKey(dd))).map(toKey));
+  const upcomingPeriod = new Set(days.filter(dd => upcoming.has(toKey(dd))).map(toKey));
   const fertileSet = new Set(days.filter(dd => fertile && isWithin(dd, fertile.start, fertile.end)).map(toKey));
   const ovulationSet = new Set(days.filter(dd => ovulation && toKey(dd) === toKey(ovulation)).map(toKey));
   const expectedSet = new Set(days.filter(dd => expectedNext && toKey(dd) === toKey(expectedNext)).map(toKey));
 
-  return { period, fertile: fertileSet, ovulation: ovulationSet, expected: expectedSet, avg };
+  return { period, upcomingPeriod, fertile: fertileSet, ovulation: ovulationSet, expected: expectedSet, avgCycleLen, avgPeriodLen, expectedNext };
 }

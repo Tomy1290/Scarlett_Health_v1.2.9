@@ -30,7 +30,7 @@ export default function CycleScreen() {
   const [cursor, setCursor] = useState(new Date());
   const year = cursor.getFullYear(); const month = cursor.getMonth();
   const monthDays = useMemo(() => getMonthDays(year, month), [year, month]);
-  const { period, fertile, ovulation, expected } = useMemo(() => markersForMonth(year, month, state.cycles), [year, month, state.cycles]);
+  const { period, upcomingPeriod, fertile, ovulation, expected, avgCycleLen, avgPeriodLen, expectedNext } = useMemo(() => markersForMonth(year, month, state.cycles), [year, month, state.cycles]);
 
   const lang = state.language;
 
@@ -50,11 +50,15 @@ export default function CycleScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {/* Analysis header */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Kalender & Analyse':'Calendar & Analysis'}</Text>
-          <Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Tippe auf einen Tag, um Einträge zu erfassen.':'Tap a day to log entries.'}</Text>
+          <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Analyse':'Analysis'}</Text>
+          <Text style={{ color: colors.muted, marginTop: 6 }}>Ø {lang==='de'?'Zykluslänge':'cycle length'}: {avgCycleLen} {lang==='de'?'Tage':'days'}</Text>
+          <Text style={{ color: colors.muted, marginTop: 2 }}>Ø {lang==='de'?'Periodenlänge':'period length'}: {avgPeriodLen} {lang==='de'?'Tage':'days'}</Text>
+          {expectedNext ? (
+            <Text style={{ color: colors.muted, marginTop: 2 }}>{lang==='de'?'Nächster Zyklus erwartet am':'Next cycle expected on'} {expectedNext.toLocaleDateString()}</Text>
+          ) : null}
+          <Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Historie':'History'}: {state.cycles.length} {lang==='de'?'Einträge':'entries'}</Text>
         </View>
 
-        {/* Calendar */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <TouchableOpacity onPress={() => setCursor(new Date(year, month-1, 1))} accessibilityLabel='Vorheriger Monat'>
@@ -83,6 +87,7 @@ export default function CycleScreen() {
                   {monthDays.map((d, i) => {
                     const key = dateKey(d);
                     const isPeriod = period.has(key);
+                    const isUpcoming = upcomingPeriod.has(key);
                     const isFertile = fertile.has(key);
                     const isOv = ovulation.has(key);
                     const isExpected = expected.has(key);
@@ -95,10 +100,10 @@ export default function CycleScreen() {
                         testID={`cycle-day-${key}`}
                       >
                         <View style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
-                          backgroundColor: isPeriod ? colors.primary : (isFertile ? `${colors.primary}22` : 'transparent'),
+                          backgroundColor: isPeriod ? colors.primary : (isUpcoming ? `${colors.primary}33` : (isFertile ? `${colors.primary}22` : 'transparent')),
                           borderWidth: isExpected ? 2 : (isFertile ? 1 : 0), borderColor: isExpected ? colors.primary : (isFertile ? colors.primary : 'transparent')
                         }}>
-                          <Text style={{ color: isPeriod ? '#fff' : colors.text }}>{d.getDate()}</Text>
+                          <Text style={{ color: (isPeriod ? '#fff' : colors.text) }}>{d.getDate()}</Text>
                           {isOv ? <View style={{ position: 'absolute', right: 2, top: 2, width: 6, height: 6, borderRadius: 3, backgroundColor: isPeriod ? '#fff' : colors.primary }} /> : null}
                         </View>
                       </TouchableOpacity>
@@ -113,6 +118,10 @@ export default function CycleScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: colors.primary }} />
               <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Periode':'Period'}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: `${colors.primary}33` }} />
+              <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Periode (bevorstehend)':'Period (upcoming)'}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: `${colors.primary}22`, borderWidth: 1, borderColor: colors.primary }} />

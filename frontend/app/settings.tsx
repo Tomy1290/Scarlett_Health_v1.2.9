@@ -23,6 +23,24 @@ function themeLabel(key: 'pink_default'|'pink_pastel'|'pink_vibrant'|'golden_pin
   return (lang==='en'?mapEn:mapDe)[key] || key;
 }
 
+function reminderLabel(type: string, lang: 'de'|'en') {
+  const mapDe: Record<string,string> = {
+    pills_morning: 'Tabletten morgens',
+    pills_evening: 'Tabletten abends',
+    weight: 'Gewicht',
+    water: 'Wasser',
+    sport: 'Sport',
+  };
+  const mapEn: Record<string,string> = {
+    pills_morning: 'Pills morning',
+    pills_evening: 'Pills evening',
+    weight: 'Weight',
+    water: 'Water',
+    sport: 'Sport',
+  };
+  return (lang==='en'?mapEn:mapDe)[type] || type;
+}
+
 export default function SettingsScreen() {
   const state = useAppStore();
   const router = useRouter();
@@ -35,10 +53,11 @@ export default function SettingsScreen() {
     await ensureNotificationPermissions();
     await ensureAndroidChannel();
     const defaults = [
-      { id: 'pill_morning', type: 'pills_morning', title: state.language==='de'?'Pille am Morgen':'Morning pill', body: state.language==='de'?'Bitte Tablette einnehmen.':'Please take your pill.', time: '08:00' },
-      { id: 'pill_evening', type: 'pills_evening', title: state.language==='de'?'Pille am Abend':'Evening pill', body: state.language==='de'?'Bitte Tablette einnehmen.':'Please take your pill.', time: '20:00' },
-      { id: 'water_daily', type: 'water', title: state.language==='de'?'Wasser trinken':'Drink water', body: state.language==='de'?'Ein Glas Wasser trinken.':'Have a glass of water.', time: '10:00' },
-      { id: 'weight_morning', type: 'weight', title: state.language==='de'?'Gewicht eintragen':'Log weight', body: state.language==='de'?'Gewicht morgens eintragen.':'Log weight in the morning.', time: '07:00' },
+      { id: 'pill_morning', type: 'pills_morning', title: state.language==='de'?'Tabletten morgens':'Pills morning', body: state.language==='de'?'Bitte Tabletten einnehmen.':'Please take your pills.', time: '08:00' },
+      { id: 'pill_evening', type: 'pills_evening', title: state.language==='de'?'Tabletten abends':'Pills evening', body: state.language==='de'?'Bitte Tabletten einnehmen.':'Please take your pills.', time: '20:00' },
+      { id: 'weight_morning', type: 'weight', title: state.language==='de'?'Gewicht':'Weight', body: state.language==='de'?'Gewicht morgens eintragen.':'Log weight in the morning.', time: '07:00' },
+      { id: 'water_daily', type: 'water', title: state.language==='de'?'Wasser':'Water', body: state.language==='de'?'Ein Glas Wasser trinken.':'Have a glass of water.', time: '10:00' },
+      { id: 'sport_daily', type: 'sport', title: state.language==='de'?'Sport':'Sport', body: state.language==='de'?'Zeit für Sport.':'Time for sport.', time: '16:00' },
     ];
     for (const def of defaults) {
       const notifId = await scheduleDailyReminder(def.id, def.title, def.body, def.time);
@@ -54,7 +73,7 @@ export default function SettingsScreen() {
     if (enabled) {
       await ensureNotificationPermissions();
       await ensureAndroidChannel();
-      const notifId = await scheduleDailyReminder(id, 'Reminder', 'Zeit für eine Aktion', r.time);
+      const notifId = await scheduleDailyReminder(id, reminderLabel(r.type, state.language), 'Zeit für eine Aktion', r.time);
       state.updateReminder(id, { enabled: true });
       state.setNotificationMeta(id, { id: notifId || '', time: r.time });
     } else {
@@ -79,7 +98,7 @@ export default function SettingsScreen() {
       await cancelNotification(meta?.id);
       await ensureNotificationPermissions();
       await ensureAndroidChannel();
-      const newId = await scheduleDailyReminder(id, 'Reminder', 'Zeit für eine Aktion', time);
+      const newId = await scheduleDailyReminder(id, reminderLabel(r.type, state.language), 'Zeit für eine Aktion', time);
       state.setNotificationMeta(id, { id: newId || '', time });
     } else {
       state.setNotificationMeta(id, { id: meta?.id || '', time });
@@ -90,7 +109,7 @@ export default function SettingsScreen() {
     try {
       const data = useAppStore.getState();
       // Export only selected keys (exclude cycleLogs as requested)
-      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','xpBonus','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
+      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
       const snapshot: any = {};
       for (const k of keys) (snapshot as any)[k] = (data as any)[k];
       const json = JSON.stringify(snapshot);
@@ -109,7 +128,7 @@ export default function SettingsScreen() {
       const txt = await FileSystem.readAsStringAsync(res.assets[0].uri, { encoding: FileSystem.EncodingType.UTF8 });
       const parsed = JSON.parse(txt);
       // minimal safety: only copy known fields (exclude cycleLogs)
-      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','xpBonus','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
+      const keys = ['days','goal','reminders','chat','saved','achievementsUnlocked','xp','language','theme','eventHistory','legendShown','rewardsSeen','profileAlias','xpLog','aiInsightsEnabled','aiFeedback','eventsEnabled','cycles'];
       const patch: any = {};
       for (const k of keys) if (k in parsed) patch[k] = parsed[k];
       useAppStore.setState(patch);
@@ -119,6 +138,10 @@ export default function SettingsScreen() {
       Alert.alert('Error', String(e));
     }
   }
+
+  // Desired order of reminders
+  const desiredOrder = ['pills_morning','pills_evening','weight','water','sport'];
+  const sortedReminders = [...state.reminders].sort((a,b) => desiredOrder.indexOf(a.type) - desiredOrder.indexOf(b.type));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -169,13 +192,13 @@ export default function SettingsScreen() {
                 <Text style={{ color: colors.text }}>{state.language==='de'?'Standard anlegen':'Seed defaults'}</Text>
               </TouchableOpacity>
             </View>
-            {state.reminders.length === 0 ? (
+            {sortedReminders.length === 0 ? (
               <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Keine Erinnerungen angelegt.':'No reminders yet.'}</Text>
             ) : null}
-            {state.reminders.map((r) => (
+            {sortedReminders.map((r) => (
               <View key={r.id} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '700' }}>{r.type}</Text>
+                  <Text style={{ color: colors.text, fontWeight: '700' }}>{reminderLabel(r.type, state.language)}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                     <TextInput value={r.time} onChangeText={(v)=>updateTime(r.id, v)} placeholder='HH:MM' placeholderTextColor={colors.muted} style={{ flex: 1, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: colors.text, backgroundColor: colors.input }} />
                     <View style={{ width: 8 }} />
@@ -200,7 +223,7 @@ export default function SettingsScreen() {
 
           <View style={[styles.card, { backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}> 
             <View>
-              <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Saisonevents aktiv':'Seasonal events enabled'}</Text>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Wöchentliche Events aktiv':'Weekly events enabled'}</Text>
               <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Wöchentliche Event‑Challenges mit Bonus‑XP.':'Weekly event challenges with bonus XP.'}</Text>
             </View>
             <Switch value={state.eventsEnabled} onValueChange={state.setEventsEnabled} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />

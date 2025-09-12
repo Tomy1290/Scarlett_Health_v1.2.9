@@ -107,7 +107,7 @@ function clamp(n: number, min: number, max: number) { return Math.max(min, Math.
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.0.3",
+      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.1.2",
       currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {}, profileAlias: '', xpLog: [],
       aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true, cycles: [], cycleLogs: {},
 
@@ -133,7 +133,7 @@ export const useAppStore = create<AppState>()(
       setNotificationMeta: (remId, meta) => set({ notificationMeta: { ...get().notificationMeta, [remId]: meta } }),
       setHasSeededReminders: (v) => set({ hasSeededReminders: v }),
       setShowOnboarding: (v) => set({ showOnboarding: v }),
-      completeEvent: (weekKey, entry) => { const existing = get().eventHistory[weekKey]; if (existing?.completed) return; let bonus = 0; try { const { EVENTS } = require('../gamification/events'); const evt = (EVENTS as any[]).find((e) => e.id === entry.id); if (evt) bonus = Math.round(entry.xp * (evt.bonusPercent || 0)); } catch {} const total = entry.xp + bonus; const xpBonus = get().xpBonus + total; const log = [...(get().xpLog||[]), { id: `${weekKey}:${Date.now()}`, ts: Date.now(), amount: total, source: 'event', note: entry.id }]; set({ eventHistory: { ...get().eventHistory, [weekKey]: { id: entry.id, completed: true, xp: total } }, xpBonus, xp: get().xp + total, xpLog: log }); },
+      completeEvent: (weekKey, entry) => { const existing = get().eventHistory[weekKey]; if (existing?.completed) return; let bonus = 0; try { const { EVENTS } = require('../gamification/events'); const evt = (EVENTS as any[]).find((e) => e.id === entry.id); if (evt) bonus = Math.round(entry.xp * (evt.bonusPercent || 0)); } catch {} const total = entry.xp + bonus; const log = [...(get().xpLog||[]), { id: `${weekKey}:${Date.now()}`, ts: Date.now(), amount: total, source: 'event', note: entry.id }]; set({ eventHistory: { ...get().eventHistory, [weekKey]: { id: entry.id, completed: true, xp: total } }, xp: get().xp + total, xpLog: log }); },
       setLegendShown: (v) => set({ legendShown: v }),
       setRewardSeen: (key, v) => set({ rewardsSeen: { ...(get().rewardsSeen||{}), [key]: v } }),
       setProfileAlias: (alias) => set({ profileAlias: alias }),
@@ -164,17 +164,26 @@ export const useAppStore = create<AppState>()(
         const base = computeAchievements({ days: state.days, goal: state.goal, reminders: state.reminders, chat: state.chat, saved: state.saved, achievementsUnlocked: state.achievementsUnlocked, xp: state.xp, language: state.language, theme: state.theme });
         const prevSet = new Set(state.achievementsUnlocked);
         const newUnlocks = base.unlocked.filter((id) => !prevSet.has(id));
-        let xpBonus = state.xpBonus;
-        if (newUnlocks.length >= 2) xpBonus += (newUnlocks.length - 1) * 50;
-        let addLog: XpLogEntry[] = [];
+        let xpDelta = 0;
+        // combo bonus when 2+ unlocks
+        const comboBonus = newUnlocks.length >= 2 ? (newUnlocks.length - 1) * 50 : 0;
         if (newUnlocks.length > 0) {
           try {
             const { getAchievementConfigById } = require('../achievements');
             const sum = newUnlocks.reduce((acc: number, id: string) => { const cfg = getAchievementConfigById(id); return acc + (cfg?.xp || 0); }, 0);
-            if (sum > 0) addLog.push({ id: `ach:${Date.now()}`, ts: Date.now(), amount: sum, source: 'achievement', note: `${newUnlocks.length} unlocks` });
+            xpDelta += sum;
+            if (sum > 0) {
+              // log achievement xp
+              const addLog = { id: `ach:${Date.now()}`, ts: Date.now(), amount: sum, source: 'achievement', note: `${newUnlocks.length} unlocks` } as XpLogEntry;
+              set({ xpLog: [...(state.xpLog||[]), addLog] });
+            }
           } catch {}
         }
-        set({ achievementsUnlocked: base.unlocked, xpBonus, xp: base.xp + xpBonus, xpLog: [...(state.xpLog||[]), ...addLog] });
+        if (comboBonus > 0) {
+          const addLog = { id: `combo:${Date.now()}`, ts: Date.now(), amount: comboBonus, source: 'combo', note: `${newUnlocks.length} unlocks combo` } as XpLogEntry;
+          set({ xpLog: [...(get().xpLog||[]), addLog] });
+        }
+        set({ achievementsUnlocked: base.unlocked, xp: state.xp + xpDelta + comboBonus });
       },
     }),
     { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 13, onRehydrateStorage: () => (state) => {

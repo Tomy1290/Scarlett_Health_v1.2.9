@@ -125,7 +125,7 @@ export default function Home() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-        {/* Top bar with app title and Level/XP (settings icon removed) */}
+        {/* Top bar with app title and Level/XP */}
         <View style={[styles.card, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: colors.text, fontWeight: '800', fontSize: 18 }}>{t('Scarletts Gesundheitstracking', "Scarlett’s Health Tracking")}</Text>
@@ -174,7 +174,7 @@ export default function Home() {
         {/* Drinks & Sport */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="water" size={20} color={colors.primary} />
+            <Ionicons name="wine-outline" size={20} color={colors.primary} />
             <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('Getränke & Sport', 'Drinks & Sport')}</Text>
           </View>
           {/* Water */}
@@ -224,7 +224,10 @@ export default function Home() {
         {/* Cycle card */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{language==='de'?'Zyklus':'Cycle'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='water' size={20} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{language==='de'?'Zyklus':'Cycle'}</Text>
+            </View>
             <TouchableOpacity onPress={() => router.push('/cycle')} accessibilityLabel='Kalender & Analyse'>
               <Ionicons name='calendar' size={20} color={colors.primary} />
             </TouchableOpacity>
@@ -245,54 +248,6 @@ export default function Home() {
           {expectedNext ? (
             <Text style={{ color: colors.muted, marginTop: 6 }}>{language==='de'?'Nächster Zyklus in':'Next cycle in'} {daysUntilNext} {language==='de'?'Tagen':'days'} {language==='de'?'erwartet':'expected'} ({expectedNext.toLocaleDateString()})</Text>
           ) : null}
-          <TouchableOpacity onPress={() => router.push('/cycle')} style={{ alignSelf: 'flex-start', marginTop: 8 }}>
-            <Text style={{ color: colors.primary }}>{language==='de'?'Kalender & Analyse öffnen':'Open calendar & analysis'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Event-Karte */}
-        {eventsEnabled ? (
-          <TouchableOpacity onPress={() => setDetailVisible(true)} activeOpacity={0.8}>
-            <View style={[styles.card, { backgroundColor: colors.card }]}> 
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: colors.text, fontWeight: '700' }}>{weeklyEvent.title(language)}</Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity onPress={() => router.push('/events')} accessibilityLabel={language==='de'?'Archiv':'Archive'} style={{ padding: 6 }}>
-                    <Ionicons name="calendar" size={20} color={colors.primary} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <Text style={{ color: colors.muted, marginTop: 4 }}>{weeklyEvent.description(language)}</Text>
-              <View style={{ height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
-                <View style={{ width: `${evProg.percent}%`, height: 8, backgroundColor: colors.primary }} />
-              </View>
-              <Text style={{ color: colors.muted, marginTop: 6 }}>{evProg.percent}% · +{weeklyEvent.xp} XP · Bonus {Math.round(weeklyEvent.bonusPercent*100)}% {evCompleted ? (language==='de'?'· Abgeschlossen':'· Completed') : ''}</Text>
-            </View>
-          </TouchableOpacity>
-        ) : null}
-
-        {/* Ketten-Teaser */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name='link' size={18} color={colors.primary} />
-              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{language==='de'?'Ketten':'Chains'}</Text>
-            </View>
-            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/achievements'); }} accessibilityLabel={language==='de'?'Zu Ketten':'To chains'}>
-              <Ionicons name='chevron-forward' size={20} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-          {topChain ? (
-            <View style={{ marginTop: 6 }}>
-              <Text style={{ color: colors.muted }}>{topChain.title} · {language==='de'?'Schritt':'Step'} {topChain.completed+1}/{topChain.total}</Text>
-              <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
-                <View style={{ width: `${Math.round(topChain.nextPercent)}%`, height: 6, backgroundColor: colors.primary }} />
-              </View>
-              {topChain.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>{language==='de'?'Als Nächstes':'Next'}: {topChain.nextTitle}</Text> : null}
-            </View>
-          ) : (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{language==='de'?'Alle Ketten abgeschlossen oder keine vorhanden.':'All chains completed or none available.'}</Text>
-          )}
         </View>
 
         {/* Belohnungen */}
@@ -334,14 +289,17 @@ export default function Home() {
               <Ionicons name="podium" size={18} color={colors.primary} />
               <Text style={{ color: colors.text, marginTop: 6 }}>{language==='de'?'Rangliste':'Leaderboard'}</Text>
             </TouchableOpacity>
+            <TouchableOpacity accessibilityLabel={language==='de'?'Gewicht':'Weight'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setWeightModal(true); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
+              <Ionicons name="fitness" size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, marginTop: 6 }}>{language==='de'?'Gewicht':'Weight'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityLabel={language==='de'?'Einstellungen':'Settings'} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/settings'); }} style={[styles.quick, { backgroundColor: colors.bg }]}>
+              <Ionicons name="settings" size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, marginTop: 6 }}>{language==='de'?'Einstellungen':'Settings'}</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-
-      {/* Floating settings button */}
-      <TouchableOpacity onPress={() => router.push('/settings')} accessibilityLabel={language==='de'?'Einstellungen':'Settings'} style={{ position: 'absolute', right: 16, bottom: 16, backgroundColor: colors.primary, borderRadius: 28, width: 56, height: 56, alignItems: 'center', justifyContent: 'center', elevation: 4 }}>
-        <Ionicons name='settings' size={24} color={'#fff'} />
-      </TouchableOpacity>
 
       {/* Event detail modal */}
       <Modal visible={detailVisible} transparent animationType="fade" onRequestClose={() => setDetailVisible(false)}>
