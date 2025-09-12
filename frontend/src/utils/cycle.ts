@@ -53,7 +53,7 @@ export function isWithin(date: Date, start: Date, end: Date) {
   return +d >= +s && +d <= +e;
 }
 
-export function buildPeriodDaysSet(cycles: Cycle[], periodLength = 5): Set&lt;string&gt; {
+export function buildPeriodDaysSet(cycles: Cycle[], periodLength = 5): Set<string> {
   const set = new Set&lt;string&gt;();
   for (const c of cycles) {
     const start = new Date(c.start);
