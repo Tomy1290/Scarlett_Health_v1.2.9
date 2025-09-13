@@ -161,8 +161,19 @@ export default function ChatScreen() {
           <Ionicons name='chevron-back' size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
-          <Text style={[styles.title, { color: colors.muted }]}>Gugi</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
+            <View style={{ 
+              width: 8, 
+              height: 8, 
+              borderRadius: 4, 
+              marginLeft: 6,
+              backgroundColor: aiStatus === 'cloud' ? '#4CAF50' : aiStatus === 'local' ? '#FF9800' : '#9E9E9E'
+            }} />
+          </View>
+          <Text style={[styles.title, { color: colors.muted }]}>
+            Gugi {aiStatus === 'cloud' ? '☁️' : aiStatus === 'local' ? '📱' : '⏳'}
+          </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity onPress={() => setShowKnowledge(true)} style={styles.iconBtn} accessibilityLabel='Wissen'>
