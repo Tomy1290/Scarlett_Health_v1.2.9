@@ -4,8 +4,10 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { mmkvAdapter, storage } from "../utils/storage";
 import { toKey } from "../utils/date";
 import { computeAchievements } from "../achievements";
+import { predictNextStart, getFertileWindow } from "../utils/cycle";
+import { ensureAndroidChannel, ensureNotificationPermissions, scheduleOneTime, cancelNotification } from "../utils/notifications";
 
-export type Language = "de" | "en";
+export type Language = "de" | "en" | "pl";
 export type ThemeName = "pink_default" | "pink_pastel" | "pink_vibrant" | "golden_pink";
 
 export type DayData = {
@@ -34,7 +36,7 @@ export type CycleLog = {
   sleep?: number; // 1-10
   sex?: boolean;
   notes?: string;
-  flow?: number; // 0..9 bleeding intensity
+  flow?: number; // 0..10 bleeding intensity
   cramps?: boolean;
   headache?: boolean;
   nausea?: boolean;
@@ -53,7 +55,7 @@ export type AppState = {
   theme: ThemeName;
   appVersion: string;
   currentDate: string;
-  notificationMeta: Record<string, { id: string; time: string } | undefined>;
+  notificationMeta: Record<string, { id: string; time?: string } | undefined>;
   hasSeededReminders: boolean;
   showOnboarding: boolean;
   eventHistory: Record<string, { id: string; completed: boolean; xp: number } | undefined>;
@@ -88,7 +90,7 @@ export type AppState = {
   addSaved: (s: SavedMessage) => void;
   deleteSaved: (id: string) => void;
 
-  setNotificationMeta: (remId: string, meta?: { id: string; time: string }) => void;
+  setNotificationMeta: (remId: string, meta?: { id: string; time?: string }) => void;
   setHasSeededReminders: (v: boolean) => void;
   setShowOnboarding: (v: boolean) => void;
   completeEvent: (weekKey: string, entry: { id: string; xp: number }) => void;
@@ -107,6 +109,7 @@ export type AppState = {
   clearCycleLog: (dateKey: string) => void;
 
   recalcAchievements: () => void;
+  scheduleCycleNotifications: () => Promise<void>;
 };
 
 const defaultDay = (dateKey: string): DayData => ({ date: dateKey, pills: { morning: false, evening: false }, drinks: { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false }, xpToday: {} });
@@ -115,7 +118,7 @@ function clamp(n: number, min: number, max: number) { return Math.max(min, Math.
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.1.7",
+      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.1.8",
       currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {}, profileAlias: '', xpLog: [],
       aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true, cycles: [], cycleLogs: {}, waterCupMl: 250,
 
@@ -152,8 +155,8 @@ export const useAppStore = create<AppState>()(
       setEventsEnabled: (v) => set({ eventsEnabled: v }),
       setWaterCupMl: (ml) => set({ waterCupMl: Math.max(50, Math.min(1000, Math.round(ml))) }),
 
-      startCycle: (dateKey) => { const cycles = [...get().cycles]; const active = cycles.find(c => !c.end); if (active) return; cycles.push({ start: dateKey }); set({ cycles }); },
-      endCycle: (dateKey) => { const cycles = [...get().cycles]; const activeIdx = cycles.findIndex(c => !c.end); if (activeIdx === -1) return; cycles[activeIdx] = { ...cycles[activeIdx], end: dateKey }; set({ cycles }); },
+      startCycle: async (dateKey) => { const cycles = [...get().cycles]; const active = cycles.find(c => !c.end); if (active) return; cycles.push({ start: dateKey }); set({ cycles }); await get().scheduleCycleNotifications(); },
+      endCycle: async (dateKey) => { const cycles = [...get().cycles]; const activeIdx = cycles.findIndex(c => !c.end); if (activeIdx === -1) return; cycles[activeIdx] = { ...cycles[activeIdx], end: dateKey }; set({ cycles }); await get().scheduleCycleNotifications(); },
 
       setCycleLog: (dateKey, patch) => { const all = { ...(get().cycleLogs || {}) }; const prev = all[dateKey] || {}; const merged: CycleLog = { ...prev };
         if (typeof patch.mood === 'number') merged.mood = clamp(patch.mood, 1, 10);
@@ -162,7 +165,7 @@ export const useAppStore = create<AppState>()(
         if (typeof patch.sleep === 'number') merged.sleep = clamp(patch.sleep, 1, 10);
         if (typeof patch.sex === 'boolean') merged.sex = patch.sex;
         if (typeof patch.notes === 'string') merged.notes = patch.notes;
-        if (typeof patch.flow === 'number') merged.flow = Math.max(0, Math.min(9, patch.flow));
+        if (typeof patch.flow === 'number') merged.flow = Math.max(0, Math.min(10, patch.flow));
         if (typeof patch.cramps === 'boolean') merged.cramps = patch.cramps;
         if (typeof patch.headache === 'boolean') merged.headache = patch.headache;
         if (typeof patch.nausea === 'boolean') merged.nausea = patch.nausea;
@@ -170,8 +173,41 @@ export const useAppStore = create<AppState>()(
       clearCycleLog: (dateKey) => { const all = { ...(get().cycleLogs || {}) }; delete all[dateKey]; set({ cycleLogs: all }); },
 
       recalcAchievements: () => { const state = get(); const base = computeAchievements({ days: state.days, goal: state.goal, reminders: state.reminders, chat: state.chat, saved: state.saved, achievementsUnlocked: state.achievementsUnlocked, xp: state.xp, language: state.language, theme: state.theme }); const prevSet = new Set(state.achievementsUnlocked); const newUnlocks = base.unlocked.filter((id) => !prevSet.has(id)); let xpDelta = 0; const comboBonus = newUnlocks.length >= 2 ? (newUnlocks.length - 1) * 50 : 0; if (newUnlocks.length > 0) { try { const { getAchievementConfigById } = require('../achievements'); const sum = newUnlocks.reduce((acc: number, id: string) => { const cfg = getAchievementConfigById(id); return acc + (cfg?.xp || 0); }, 0); xpDelta += sum; if (sum > 0) { const addLog = { id: `ach:${Date.now()}`, ts: Date.now(), amount: sum, source: 'achievement', note: `${newUnlocks.length} unlocks` } as XpLogEntry; set({ xpLog: [...(state.xpLog||[]), addLog] }); } } catch {} } if (comboBonus > 0) { const addLog = { id: `combo:${Date.now()}`, ts: Date.now(), amount: comboBonus, source: 'combo', note: `${newUnlocks.length} unlocks combo` } as XpLogEntry; set({ xpLog: [...(get().xpLog||[]), addLog] }); } set({ achievementsUnlocked: base.unlocked, xp: state.xp + xpDelta + comboBonus }); },
+
+      scheduleCycleNotifications: async () => {
+        try {
+          await ensureNotificationPermissions();
+          await ensureAndroidChannel();
+          // Cancel existing cycle notifications
+          const keys = ['cycle_period_minus2','cycle_period_day0','cycle_fertile_minus2','cycle_fertile_day0'];
+          for (const k of keys) { const meta = get().notificationMeta[k]; if (meta?.id) await cancelNotification(meta.id); }
+          const cycles = get().cycles;
+          const next = predictNextStart(cycles);
+          const fertile = getFertileWindow(cycles);
+          if (next) {
+            const day0 = new Date(next.getFullYear(), next.getMonth(), next.getDate(), 9, 0, 0);
+            const minus2 = new Date(day0); minus2.setDate(day0.getDate() - 2);
+            const title0 = get().language==='en' ? 'Period expected today' : (get().language==='pl'?'Okres spodziewany dziś':'Periode heute erwartet');
+            const title2 = get().language==='en' ? 'Period in 2 days' : (get().language==='pl'?'Okres za 2 dni':'Periode in 2 Tagen erwartet');
+            const id2 = await scheduleOneTime(title2, '', minus2);
+            const id0 = await scheduleOneTime(title0, '', day0);
+            if (id2) get().setNotificationMeta('cycle_period_minus2', { id: id2 });
+            if (id0) get().setNotificationMeta('cycle_period_day0', { id: id0 });
+          }
+          if (fertile) {
+            const start = new Date(fertile.start.getFullYear(), fertile.start.getMonth(), fertile.start.getDate(), 9, 0, 0);
+            const minus2f = new Date(start); minus2f.setDate(start.getDate() - 2);
+            const title0f = get().language==='en' ? 'Fertile phase starts today' : (get().language==='pl'?'Płodna faza zaczyna się dziś':'Fruchtbare Phase ab heute');
+            const title2f = get().language==='en' ? 'Fertile phase in 2 days' : (get().language==='pl'?'Płodna faza za 2 dni':'Fruchtbare Phase in 2 Tagen');
+            const id2f = await scheduleOneTime(title2f, '', minus2f);
+            const id0f = await scheduleOneTime(title0f, '', start);
+            if (id2f) get().setNotificationMeta('cycle_fertile_minus2', { id: id2f });
+            if (id0f) get().setNotificationMeta('cycle_fertile_day0', { id: id0f });
+          }
+        } catch {}
+      },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 17, onRehydrateStorage: () => (state) => {
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 18, onRehydrateStorage: () => (state) => {
       if (!state) return;
       // Migrations for missing fields
       const days = state.days || {} as any;
@@ -182,16 +218,13 @@ export const useAppStore = create<AppState>()(
         if (!d.xpToday) d.xpToday = {};
       }
       if (typeof (state as any).waterCupMl !== 'number') (state as any).waterCupMl = 250;
-      // Fallback restore from backup if content seems empty
       try {
         const empty = (!state.days || Object.keys(state.days).length === 0) && (!state.cycles || state.cycles.length === 0) && (!state.saved || state.saved.length === 0);
         if (empty) {
           const backup = storage.getString('scarlett-backup');
           if (backup) {
             const parsed = JSON.parse(backup);
-            // Dangerous replace: only if backup looks valid
             if (parsed && parsed.days) {
-              // set whole state
               setTimeout(() => {
                 try { (useAppStore as any).setState(parsed, true); } catch {}
               }, 0);
@@ -199,11 +232,12 @@ export const useAppStore = create<AppState>()(
           }
         }
       } catch {}
+      // Schedule notifications after rehydrate
+      setTimeout(() => { try { (useAppStore.getState() as any).scheduleCycleNotifications(); } catch {} }, 200);
     } }
   )
 );
 
-// Continuous backup to MMKV (secondary key) to survive rare resets
 try {
   (useAppStore as any).subscribe((s: any) => {
     try { storage.set('scarlett-backup', JSON.stringify(s)); } catch {}
@@ -211,5 +245,3 @@ try {
 } catch {}
 
 export function useLevel() { const xp = useAppStore((s) => s.xp); const level = Math.floor(xp / 100) + 1; return { level, xp }; }
-
-export function getAverageCycleLengthDays(cycles: Cycle[]): number { const starts = cycles.filter(c => c.start).map(c => c.start).sort(); if (starts.length < 2) return 28; const diffs: number[] = []; for (let i = 1; i < starts.length; i++) { const a = new Date(starts[i-1]); const b = new Date(starts[i]); const diff = Math.round((+b - +a)/(24*60*60*1000)); if (diff > 0) diffs.push(diff); } if (diffs.length === 0) return 28; const last3 = diffs.slice(-3); const avg = Math.round(last3.reduce((a,b)=>a+b,0)/last3.length); return avg || 28; }

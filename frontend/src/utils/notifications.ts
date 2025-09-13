@@ -43,6 +43,16 @@ export async function scheduleDailyReminder(id: string, title: string, body: str
   return notifId;
 }
 
+export async function scheduleOneTime(title: string, body: string, date: Date): Promise<string | null> {
+  // If past date, do not schedule
+  if (+date <= +new Date()) return null;
+  const id = await Notifications.scheduleNotificationAsync({
+    content: { title, body, sound: 'default' as any },
+    trigger: date,
+  });
+  return id;
+}
+
 export async function cancelNotification(notifId?: string | null) {
   if (notifId) {
     try { await Notifications.cancelScheduledNotificationAsync(notifId); } catch {}
