@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, ToastAndroid } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppStore } from '../../src/store/useStore';
+import * as Haptics from 'expo-haptics';
 
 function useThemeColors(theme: string) {
   if (theme === 'pink_pastel') return { bg: '#fff0f5', card: '#ffe4ef', primary: '#d81b60', text: '#3a2f33', muted: '#8a6b75', input: '#ffffff' };
@@ -22,6 +23,7 @@ export default function CycleDayScreen() {
   const serverLog = state.cycleLogs[date || ''] || {};
   const lang = state.language;
   const [help, setHelp] = useState<{[k:string]: boolean}>({});
+  const [savedVisible, setSavedVisible] = useState(false);
   const toggleHelp = (k: string) => setHelp(h => ({ ...h, [k]: !h[k] }));
 
   // Local draft, only save to store when pressing save
@@ -96,6 +98,13 @@ export default function CycleDayScreen() {
 
   const saveDraft = () => {
     state.setCycleLog(String(date), draft as any);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(lang==='de'?'Gespeichert':(lang==='pl'?'Zapisano':'Saved'), ToastAndroid.SHORT);
+    } else {
+      setSavedVisible(true);
+      setTimeout(() => setSavedVisible(false), 1500);
+    }
   };
   const deleteDraft = () => {
     state.clearCycleLog(String(date));
@@ -300,6 +309,7 @@ export default function CycleDayScreen() {
                 <Text style={{ color: '#fff', marginLeft: 6 }}>{lang==='de'?'Speichern':'Save'}</Text>
               </TouchableOpacity>
             </View>
+            {savedVisible ? (<Text style={{ color: colors.muted, marginTop: 6, textAlign: 'right' }}>{lang==='de'?'Gespeichert':'Saved'}</Text>) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

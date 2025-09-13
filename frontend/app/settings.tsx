@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, Alert, Switch } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,7 +9,7 @@ import * as Sharing from 'expo-sharing';
 import { useRouter } from "expo-router";
 import { useAppStore } from "../src/store/useStore";
 import { ensureAndroidChannel, ensureNotificationPermissions, scheduleDailyReminder, cancelNotification } from "../src/utils/notifications";
-import { parseHHMM } from "../src/utils/date";
+import { parseHHMM } from "../src/utils/notifications";
 
 function useThemeColors(theme: string) {
   if (theme === 'pink_pastel') return { bg: '#fff0f5', card: '#ffe4ef', primary: '#d81b60', text: '#3a2f33', muted: '#8a6b75', input: '#fff' };
@@ -33,6 +33,12 @@ function reminderLabel(type: string, lang: 'de'|'en'|'pl', label?: string) {
   return (lang==='en'?mapEn:(lang==='pl'?mapPl:mapDe))[type] || type;
 }
 
+function formatTimeDigits(input: string) {
+  const digits = (input || '').replace(/[^0-9]/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0,2)}:${digits.slice(2)}`;
+}
+
 export default function SettingsScreen() {
   const state = useAppStore();
   const router = useRouter();
@@ -45,6 +51,13 @@ export default function SettingsScreen() {
   const [customLabel, setCustomLabel] = useState('');
   const [customTime, setCustomTime] = useState('');
   const [cupInput, setCupInput] = useState(String(state.waterCupMl || 250));
+  const [timeInputs, setTimeInputs] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const map: Record<string, string> = {};
+    for (const r of state.reminders) map[r.id] = r.time;
+    setTimeInputs(map);
+  }, [state.reminders]);
 
   async function seedDefaults() {
     await ensureNotificationPermissions();
@@ -71,9 +84,9 @@ export default function SettingsScreen() {
       await ensureNotificationPermissions();
       await ensureAndroidChannel();
       const title = reminderLabel(r.type, state.language as any, r.label);
-      const notifId = await scheduleDailyReminder(id, title, state.language==='de'?'Zeit für eine Aktion':(state.language==='pl'?'Czas na działanie':'Time for an action'), r.time);
-      state.updateReminder(id, { enabled: true });
-      state.setNotificationMeta(id, { id: notifId || '', time: r.time });
+      const notifId = await scheduleDailyReminder(id, title, state.language==='de'?'Zeit für eine Aktion':(state.language==='pl'?'Czas na działanie':'Time for an action'), timeInputs[id] || r.time);
+      state.updateReminder(id, { enabled: true, time: timeInputs[id] || r.time });
+      state.setNotificationMeta(id, { id: notifId || '', time: timeInputs[id] || r.time });
     } else {
       const meta = state.notificationMeta[id];
       await cancelNotification(meta?.id);
@@ -210,7 +223,7 @@ export default function SettingsScreen() {
             <View style={{ marginTop: 10 }}>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TextInput placeholder={state.language==='de'?'Label':(state.language==='pl'?'Etykieta':'Label')} placeholderTextColor={colors.muted} value={customLabel} onChangeText={setCustomLabel} style={{ flex: 1, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, color: colors.text, backgroundColor: colors.input }} />
-                <TextInput placeholder='HH:MM' placeholderTextColor={colors.muted} value={customTime} onChangeText={setCustomTime} style={{ width: 100, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, color: colors.text, backgroundColor: colors.input }} />
+                <TextInput placeholder='HH:MM' placeholderTextColor={colors.muted} value={customTime} onChangeText={(v)=>setCustomTime(formatTimeDigits(v))} style={{ width: 100, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, color: colors.text, backgroundColor: colors.input }} />
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
                 <TouchableOpacity onPress={() => { setCustomMode(false); setCustomLabel(''); setCustomTime(''); }} style={[styles.badge, { borderColor: colors.muted }]}><Text style={{ color: colors.text }}>{state.language==='de'?'Abbrechen':(state.language==='pl'?'Anuluj':'Cancel')}</Text></TouchableOpacity>
@@ -224,7 +237,7 @@ export default function SettingsScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>{reminderLabel(r.type, state.language as any, r.label)}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                  <TextInput value={r.time} onChangeText={(v)=>updateTime(r.id, v)} placeholder='HH:MM' placeholderTextColor={colors.muted} style={{ flex: 1, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: colors.text, backgroundColor: colors.input }} />
+                  <TextInput value={timeInputs[r.id] ?? r.time} onChangeText={(v)=>setTimeInputs((m)=>({ ...m, [r.id]: formatTimeDigits(v) }))} onBlur={()=> updateTime(r.id, timeInputs[r.id] ?? r.time)} placeholder='HH:MM' placeholderTextColor={colors.muted} style={{ flex: 1, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: colors.text, backgroundColor: colors.input }} />
                   <View style={{ width: 8 }} />
                   <Switch value={r.enabled} onValueChange={(v)=>toggleReminder(r.id, v)} thumbColor={'#fff'} trackColor={{ true: colors.primary, false: colors.muted }} />
                 </View>

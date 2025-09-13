@@ -66,6 +66,33 @@ export default function CycleScreen() {
 
   const todayKey = dateKey(new Date());
 
+  // Highlights across all attributes (last 6 months)
+  const highlightItems = useMemo(() => {
+    const now = new Date(); const six = new Date(); six.setMonth(six.getMonth()-6);
+    const entries = Object.entries(state.cycleLogs||{})
+      .map(([k,v]) => ({ key:k, date:new Date(k), v }))
+      .filter(x => +x.date >= +six && +x.date <= +now);
+
+    function score(v: any) {
+      let s = 0;
+      const flow = typeof v.flow==='number'? v.flow : 0; s += flow * 2;
+      const pain = typeof v.pain==='number'? v.pain : 0; s += Math.max(0, pain - 5) * 2;
+      const mood = typeof v.mood==='number'? v.mood : 0; s += mood <= 3 ? (4 - mood) * 2 : 0;
+      const energy = typeof v.energy==='number'? v.energy : 0; s += energy <= 3 ? (4 - energy) * 1.5 : 0;
+      const sleep = typeof v.sleep==='number'? v.sleep : 0; s += sleep <= 3 ? (4 - sleep) * 1.5 : 0;
+      if (v.cramps) s += 2; if (v.headache) s += 2; if (v.nausea) s += 2;
+      if (v.notes && v.notes.trim().length>=30) s += 2; else if (v.notes && v.notes.trim().length>0) s += 1;
+      return s;
+    }
+
+    const arr = entries.map(e => ({ ...e, s: score(e.v) }))
+      .filter(e => e.s > 0)
+      .sort((a,b) => (b.s - a.s) || (+b.date - +a.date))
+      .slice(0,5);
+
+    return arr;
+  }, [state.cycleLogs]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
@@ -249,7 +276,7 @@ export default function CycleScreen() {
           ) : null}
         </View>
 
-        {/* Highlights – top 5 intense days (last 6 months) */}
+        {/* Highlights – top 5 intense days (last 6 months) with all attributes */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -261,28 +288,42 @@ export default function CycleScreen() {
             </TouchableOpacity>
           </View>
           {expanded.highlights ? (
-            (() => {
-              const now = new Date(); const six = new Date(); six.setMonth(six.getMonth()-6);
-              const items = Object.entries(state.cycleLogs||{})
-                .map(([k,v]) => ({ key:k, date:new Date(k), flow: typeof v.flow==='number'? v.flow : -1 }))
-                .filter(x => x.flow>=0 && +x.date >= +six && +x.date <= +now)
-                .sort((a,b) => (b.flow - a.flow) || (+b.date - +a.date))
-                .slice(0,5);
-              if (items.length===0) return <Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Keine Highlights':'No highlights'}</Text>;
-              return (
-                <View style={{ marginTop: 6 }}>
-                  {items.map((it) => (
-                    <View key={it.key} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                      <Text style={{ color: colors.text, width: 120 }}>{new Date(it.key).toLocaleDateString(lang==='de'?'de-DE':(lang==='pl'?'pl-PL':'en-GB'))}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
-                        {Array.from({ length: it.flow }).map((_,i) => (<Ionicons key={i} name='water' size={14} color={colors.primary} />))}
-                        <Text style={{ color: colors.muted, marginLeft: 6 }}>{lang==='de'?'Stärke':'Intensity'}: {it.flow}</Text>
+            highlightItems.length === 0 ? (
+              <Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Keine Highlights':'No highlights'}</Text>
+            ) : (
+              <View style={{ marginTop: 6 }}>
+                {highlightItems.map((it) => {
+                  const v: any = it.v || {};
+                  const dateLabel = new Date(it.key).toLocaleDateString(lang==='de'?'de-DE':(lang==='pl'?'pl-PL':'en-GB'));
+                  const line = (label: string, value: string | number | undefined) => (value===undefined || value===null || value=== '') ? null : (
+                    <Text style={{ color: colors.muted, marginTop: 2 }}>{label}: {value}</Text>
+                  );
+                  const bool = (label: string, on?: boolean) => on ? <Text style={{ color: colors.muted, marginTop: 2 }}>• {label}</Text> : null;
+                  return (
+                    <View key={it.key} style={{ borderTopWidth: 1, borderTopColor: `${colors.muted}33`, paddingTop: 8, marginTop: 8 }}>
+                      <Text style={{ color: colors.text, fontWeight: '700' }}>{dateLabel}</Text>
+                      {/* Numbers */}
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 }}>
+                        {line(lang==='de'?'Periode':'Flow', typeof v.flow==='number'? v.flow : undefined)}
+                        {line(lang==='de'?'Schmerz':'Pain', typeof v.pain==='number'? v.pain : undefined)}
+                        {line(lang==='de'?'Stimmung':'Mood', typeof v.mood==='number'? v.mood : undefined)}
+                        {line(lang==='de'?'Energie':'Energy', typeof v.energy==='number'? v.energy : undefined)}
+                        {line(lang==='de'?'Schlaf':'Sleep', typeof v.sleep==='number'? v.sleep : undefined)}
                       </View>
+                      {/* Toggles */}
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                        {bool(lang==='de'?'Krämpfe':'Cramps', v.cramps)}
+                        {bool(lang==='de'?'Kopfschmerzen':'Headache', v.headache)}
+                        {bool(lang==='de'?'Übelkeit':'Nausea', v.nausea)}
+                        {bool('Sex', v.sex)}
+                      </View>
+                      {/* Notes */}
+                      {v.notes ? <Text style={{ color: colors.muted, marginTop: 4 }} numberOfLines={3}>{v.notes}</Text> : null}
                     </View>
-                  ))}
-                </View>
-              );
-            })()
+                  );
+                })}
+              </View>
+            )
           ) : null}
         </View>
       </ScrollView>
