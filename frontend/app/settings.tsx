@@ -84,7 +84,7 @@ export default function SettingsScreen() {
       await ensureNotificationPermissions();
       await ensureAndroidChannel();
       const title = reminderLabel(r.type, state.language as any, r.label);
-      const notifId = await scheduleDailyReminder(id, title, state.language==='de'?'Zeit für eine Aktion':(state.language==='pl'?'Czas na działanie':'Time for an action'), timeInputs[id] || r.time);
+      const notifId = await scheduleDailyReminder(id, title, state.language==='de'?'Zeit für eine Aktion':(state.language==='pl'?'Czas na działanie':'Time for an action'), timeInputs[id] || r.time, r.type === 'pills_morning' || r.type === 'pills_evening');
       state.updateReminder(id, { enabled: true, time: timeInputs[id] || r.time });
       state.setNotificationMeta(id, { id: notifId || '', time: timeInputs[id] || r.time });
     } else {
