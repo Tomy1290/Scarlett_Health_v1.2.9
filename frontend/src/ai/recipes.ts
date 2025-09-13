@@ -27,10 +27,14 @@ export function searchRecipes(q: RecipeQuery) {
 
 export function pickDailySuggestions(lang: 'de'|'en'|'pl') {
   const all = getAllRecipes();
-  // simple deterministic pick by day
   const seed = new Date().getDate();
   const a = all[(seed * 13) % all.length];
   const b = all[(seed * 29 + 7) % all.length];
   const c = all[(seed * 31 + 11) % all.length];
   return [a,b,c];
+}
+
+export function getRecipeDetail(id: string) {
+  const r = getAllRecipes().find(x=>x.id===id);
+  return r || null;
 }

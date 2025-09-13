@@ -1,14 +1,13 @@
 import { AppState } from '../store/useStore';
-import { computeAIv1 } from './insights';
-import { searchRecipes, pickDailySuggestions } from './recipes';
+import { computeAIPro } from './insights';
+import { searchRecipes, pickDailySuggestions, getAllRecipes } from './recipes';
+import { answerCycle, answerWeight, answerReminders } from './knowledge';
 
-function t(lang: 'de'|'en'|'pl', de: string, en: string, pl?: string) {
-  return lang==='en' ? en : (lang==='pl' ? (pl||en) : de);
-}
+function t(lang: 'de'|'en'|'pl', de: string, en: string, pl?: string) { return lang==='en'?en:(lang==='pl'?(pl||en):de); }
 
 export async function localGreeting(state: AppState) {
   const lang = state.language as 'de'|'en'|'pl';
-  const tips = computeAIv1({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled });
+  const tips = computeAIPro({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled, cycleLogs: state.cycleLogs });
   const tip = tips[0]?.text || t(lang,'Trink heute morgens ein Glas Wasser mehr.','Add one extra glass of water in the morning.','Dodaj rano jedną szklankę wody.');
   const picks = pickDailySuggestions(lang).slice(0,2);
   const rec = picks.map(p => `• ${p.title[lang]} (${p.durationMin} Min)`).join('\n');
@@ -23,7 +22,13 @@ export async function localGreeting(state: AppState) {
 export async function localReply(state: AppState, userText: string) {
   const lang = state.language as 'de'|'en'|'pl';
   const q = userText.toLowerCase();
-  // intent: recipes
+
+  // knowledge intents – cycle & weight highly prioritized
+  if (/(zyklus|periode|menstru|ovulation|eisprung|fruchtbar|fertile)/.test(q)) return answerCycle(state, userText);
+  if (/(gewicht|plateau|trend|abnehmen|kalorien|waga|masa)/.test(q)) return answerWeight(state, userText);
+  if (/(erinnerung|reminder|benachrichtigung|czas|hh:|hh\:|hh|mm)/.test(q)) return answerReminders(state);
+
+  // recipes intent
   if (/(rezept|recipe|przepis|kochen|cook)/.test(q)) {
     const results = searchRecipes({ lang, keywords: userText, limit: 5 });
     if (results.length === 0) {
@@ -34,17 +39,19 @@ export async function localReply(state: AppState, userText: string) {
     const list = results.map(r => `• ${r.title[lang]} – ${r.desc[lang]}`).join('\n');
     return t(lang, `Hier sind Rezepte für dich:\n${list}`, `Here are recipes for you:\n${list}`, `Oto przepisy dla ciebie:\n${list}`);
   }
-  // intent: tips/analysis
-  if (/(analyse|analysis|analiza|trink|wasser|water|kaffee|coffee|gewicht|weight|pille|pills|sport)/.test(q)) {
-    const tips = computeAIv1({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled });
+
+  // analysis/tips intent
+  if (/(analyse|analysis|analiza|trink|wasser|water|kaffee|coffee|pille|pills|sport)/.test(q)) {
+    const tips = computeAIPro({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled, cycleLogs: state.cycleLogs });
     const top = tips.slice(0,3).map(x => `• ${x.text}`).join('\n');
     if (top) return t(lang, `Kurze Analyse & Tipps:\n${top}`, `Quick analysis & tips:\n${top}`, `Krótka analiza i wskazówki:\n${top}`);
   }
+
   // smalltalk default
   const fallback = t(lang,
-    'Erzähl mir, wie es dir heute geht – oder frag nach Rezepten (z. B. „italienisches Abendessen, low carb“).',
-    'Tell me how you feel today – or ask for recipes (e.g., “Italian dinner, low carb”).',
-    'Powiedz, jak się dziś czujesz – albo poproś o przepisy (np. „włoska kolacja, low carb”).'
+    'Erzähl mir, wie es dir heute geht – oder frag nach Rezepten (z. B. „italienisches Abendessen, low carb”). Für Zyklus & Gewicht habe ich extra Wissen. ',
+    'Tell me how you feel today – or ask for recipes (e.g., “Italian dinner, low carb”). I have extra knowledge for cycle & weight. ',
+    'Powiedz, jak się dziś czujesz – albo poproś o przepisy (np. „włoska kolacja, low carb”). Mam dodatkową wiedzę o cyklu i wadze. '
   );
   return fallback;
 }

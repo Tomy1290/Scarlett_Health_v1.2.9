@@ -2,16 +2,19 @@ export type Cuisine = 'de'|'pl'|'it'|'gr'|'tr'|'us';
 export type Meal = 'breakfast'|'lunch'|'dinner';
 export type Category = 'fleisch'|'lowcarb'|'abnehmen'|'vegetarisch'|'kuchen'|'suesses';
 
+export type LocalText = { de: string; en: string; pl: string };
+
 export type Recipe = {
   id: string;
   cuisine: Cuisine;
   meal: Meal;
   category: Category;
-  // Titles and short description per language
-  title: { de: string; en: string; pl: string };
-  desc: { de: string; en: string; pl: string };
+  title: LocalText;
+  desc: LocalText;
   durationMin: number;
   kcal: number;
+  ingredients: { de: string[]; en: string[]; pl: string[] };
+  steps: { de: string[]; en: string[]; pl: string[] };
 };
 
 const CUISINES: Cuisine[] = ['de','pl','it','gr','tr','us'];
@@ -45,8 +48,55 @@ const BASE_PL: Record<Category, string[]> = {
   suesses: ['Kasza manna na mleku','Ryż na mleku','Naleśniki','Gofry','Krem jogurtowy','Deser z twarogu','Budyń karmelowy','Budyń waniliowy','Krem czekoladowy','Sałatka owocowa','Twaróg truskawkowy','Musli birchera','Kulki mocy','Kubek z płatkami i kakao'],
 };
 
-function mkTitle(lang: 'de'|'en'|'pl', cat: Category, baseIdx: number) {
-  return { de: BASE_DE[cat][baseIdx], en: BASE_EN[cat][baseIdx], pl: BASE_PL[cat][baseIdx] } as const;
+function mkTitle(cat: Category, idx: number): LocalText {
+  return { de: BASE_DE[cat][idx], en: BASE_EN[cat][idx], pl: BASE_PL[cat][idx] } as const;
+}
+
+function mkIngredients(cat: Category, cuisine: Cuisine, lang: 'de'|'en'|'pl') {
+  // Procedural minimal ingredient templates
+  const base = {
+    de: ['Olivenöl', 'Salz', 'Pfeffer'],
+    en: ['Olive oil','Salt','Pepper'],
+    pl: ['Oliwa','Sól','Pieprz'],
+  };
+  const extraByCat: Record<Category, Record<'de'|'en'|'pl', string[]>> = {
+    fleisch: { de: ['Hähnchen/ Rind/ Pute', 'Paprika', 'Zwiebel'], en: ['Chicken/Beef/Turkey','Bell pepper','Onion'], pl: ['Kurczak/Wołowina/Indyk','Papryka','Cebula'] },
+    lowcarb: { de: ['Zucchini/Kohlrabi', 'Ei', 'Käse'], en: ['Zucchini/Kohlrabi','Egg','Cheese'], pl: ['Cukinia/Kalarepa','Jajko','Ser'] },
+    abnehmen: { de: ['Magerquark/Brühe', 'Gemüse-Mix'], en: ['Low-fat quark/Broth','Veg mix'], pl: ['Chudy twaróg/Bulion','Miks warzyw'] },
+    vegetarisch: { de: ['Gemüse-Mix', 'Käse/Feta'], en: ['Veg mix','Cheese/Feta'], pl: ['Miks warzyw','Ser/Feta'] },
+    kuchen: { de: ['Mehl','Eier','Zucker','Butter'], en: ['Flour','Eggs','Sugar','Butter'], pl: ['Mąka','Jajka','Cukier','Masło'] },
+    suesses: { de: ['Milch','Grieß/Reis','Zucker'], en: ['Milk','Semolina/Rice','Sugar'], pl: ['Mleko','Kasza manna/Ryż','Cukier'] },
+  };
+  const catExtra = extraByCat[cat][lang];
+  const baseList = base[lang];
+  // Cuisine tweak
+  const tweak: Record<Cuisine, Record<'de'|'en'|'pl', string>> = {
+    de: { de:'Petersilie', en:'Parsley', pl:'Pietruszka' },
+    pl: { de:'Koperek', en:'Dill', pl:'Koperek' },
+    it: { de:'Basilikum', en:'Basil', pl:'Bazylia' },
+    gr: { de:'Oregano', en:'Oregano', pl:'Oregano' },
+    tr: { de:'Paprika edelsüß', en:'Sweet paprika', pl:'Papryka słodka' },
+    us: { de:'BBQ-Gewürz', en:'BBQ spice', pl:'Przyprawa BBQ' },
+  };
+  return [...catExtra, ...baseList, tweak[cuisine][lang]].slice(0,7);
+}
+
+function mkSteps(cat: Category, cuisine: Cuisine, lang: 'de'|'en'|'pl') {
+  const s: Record<'de'|'en'|'pl', string[]> = {
+    de: ['Schneiden/Vorbereiten','Anbraten/Erhitzen','Würzen & garen','Abschmecken & servieren'],
+    en: ['Chop/prepare','Sauté/heat','Season & cook','Taste & serve'],
+    pl: ['Kroić/przygotować','Podsmażyć/podgrzać','Doprawić i gotować','Doprawić i podać'],
+  };
+  // Add cuisine hint
+  const hint: Record<Cuisine, Record<'de'|'en'|'pl', string>> = {
+    de: { de:'Mit Petersilie bestreuen.', en:'Garnish with parsley.', pl:'Posypać pietruszką.' },
+    pl: { de:'Z koperkiem.', en:'Add dill.', pl:'Z koperkiem.' },
+    it: { de:'Mit Basilikum servieren.', en:'Serve with basil.', pl:'Podawać z bazylią.' },
+    gr: { de:'Mit Oregano abrunden.', en:'Finish with oregano.', pl:'Doprawić oregano.' },
+    tr: { de:'Mit Paprika verfeinern.', en:'Add sweet paprika.', pl:'Dodać słodką paprykę.' },
+    us: { de:'BBQ‑Note geben.', en:'Add BBQ note.', pl:'Nadać nutę BBQ.' },
+  };
+  return [...s[lang], hint[cuisine][lang]];
 }
 
 export function generateRecipes(): Recipe[] {
@@ -55,12 +105,11 @@ export function generateRecipes(): Recipe[] {
   for (const cuisine of CUISINES) {
     for (const meal of MEALS) {
       for (const cat of CATS) {
-        // 14 Varianten je Kombination => 6*3*14 = 252 Rezepte
         for (let i = 0; i < 14; i++) {
           const idx = i % 14;
-          const title = mkTitle('de', cat, idx);
-          const titleAll = { de: title.de, en: BASE_EN[cat][idx], pl: BASE_PL[cat][idx] };
-          const dur = 10 + ((i * 5 + (meal==='dinner'?10:0)) % 35); // 10..44
+          const title = mkTitle(cat, idx);
+          const titleAll = { de: title.de, en: title.en, pl: title.pl };
+          const dur = 10 + ((i * 5 + (meal==='dinner'?10:0)) % 35);
           const kcalBase = cat==='kuchen' || cat==='suesses' ? 420 : (cat==='abnehmen' ? 280 : 360);
           const kcal = kcalBase + ((i*17) % 120);
           const descAll = {
@@ -68,7 +117,17 @@ export function generateRecipes(): Recipe[] {
             en: `${titleAll.en} – ${cuisine.toUpperCase()} · ${meal==='breakfast'?'Breakfast':meal==='lunch'?'Lunch':'Dinner'} · ${dur} min · ~${kcal} kcal.`,
             pl: `${titleAll.pl} – ${cuisine.toUpperCase()} · ${meal==='breakfast'?'Śniadanie':meal==='lunch'?'Obiad':'Kolacja'} · ${dur} min · ok. ${kcal} kcal.`,
           };
-          out.push({ id: `r${idCounter++}`, cuisine, meal, category: cat, title: titleAll, desc: descAll, durationMin: dur, kcal });
+          const ingredients = {
+            de: mkIngredients(cat, cuisine, 'de'),
+            en: mkIngredients(cat, cuisine, 'en'),
+            pl: mkIngredients(cat, cuisine, 'pl'),
+          };
+          const steps = {
+            de: mkSteps(cat, cuisine, 'de'),
+            en: mkSteps(cat, cuisine, 'en'),
+            pl: mkSteps(cat, cuisine, 'pl'),
+          };
+          out.push({ id: `r${idCounter++}`, cuisine, meal, category: cat, title: titleAll, desc: descAll, durationMin: dur, kcal, ingredients, steps });
         }
       }
     }
