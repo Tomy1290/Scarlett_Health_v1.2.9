@@ -267,11 +267,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "All major frontend flows completed"
-    - "Mobile E2E testing completed successfully"
+    - "Weekly Events Display Bug Fix"
+    - "Notifications System Fix"
+    - "Cloud LLM Integration with fallback"
   stuck_tasks: []
   test_all: false
-  test_priority: "completed"
+  test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
@@ -280,3 +281,5 @@ agent_communication:
     message: "✅ Backend API testing COMPLETED successfully. Both GET /api/ and POST/GET /api/status endpoints are working correctly. MongoDB connection is functional. Created backend_test.py for comprehensive API testing. All services (backend, mongodb) confirmed running via supervisorctl. Ready for frontend testing if needed."
   - agent: "testing"
     message: "🎉 COMPREHENSIVE MOBILE E2E TESTING COMPLETED SUCCESSFULLY! Fixed missing expo-linear-gradient dependency. Tested all major flows on Android Pixel 6 Pro dimensions (412x915): ✅ Dashboard (Event cards, Chains teaser, Rewards) ✅ Achievements (Top-3 chains, All chains, Rewards, Unlocks) ✅ Analysis (Weight chart, Scale toggle, Help hints, L10 Extended Stats, L75 AI Insights with feedback) ✅ Chat (VIP gate, Message sending, Timestamps, Quick-action save, Settings link) ✅ Settings (Insights/Events toggles) ✅ Events Archive (12 weeks, completion status) ✅ Saved Messages (CRUD operations) ✅ Data Persistence (reload test). All navigation via UI buttons/links as requested. Mobile responsiveness verified. No critical issues found."
+  - agent: "main"
+    message: "Fixed Weekly Events display bug (weeklyEvent.title function needs language parameter) and modernized notification system (CalendarTriggerInput/DateTriggerInput format). Need to test these fixes and then implement Cloud LLM integration."
