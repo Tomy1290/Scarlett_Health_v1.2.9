@@ -8,6 +8,7 @@ import { useAppStore, useLevel } from '../src/store/useStore';
 import { computeAIv1 } from '../src/ai/insights';
 import { buildCompactSummary } from '../src/ai/summary';
 import { useFocusEffect } from '@react-navigation/native';
+import { apiFetch, getBackendBaseUrl } from '../src/utils/api';
 
 function useThemeColors(theme: string) {
   if (theme === 'pink_pastel') return { bg: '#fff0f5', card: '#ffe4ef', primary: '#d81b60', text: '#3a2f33', muted: '#8a6b75', input: '#ffffff' };
@@ -67,6 +68,7 @@ export default function ChatScreen() {
   const [typingText, setTypingText] = useState('');
   const typingAbort = useRef<{abort: boolean}>({ abort: false });
   const [loading, setLoading] = useState(false);
+  const [aiOnline, setAiOnline] = useState<boolean | null>(null);
 
   const maxVisible = level >= 50 ? 30 : 5;
   const allChat = state.chat || [];
@@ -83,7 +85,6 @@ export default function ChatScreen() {
     for (let i = 0; i < full.length; i++) {
       if (typingAbort.current.abort) break;
       setTypingText(prev => prev + full[i]);
-      // small delay, longer after punctuation
       const ch = full[i];
       let delay = 25;
       if (ch === '.' || ch === '!' || ch === '?') delay = 120;
@@ -98,19 +99,30 @@ export default function ChatScreen() {
 
   async function callLLM(payload: any): Promise<string> {
     try {
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const res = await apiFetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      setAiOnline(res.ok);
       if (!res.ok) throw new Error('LLM HTTP ' + res.status);
       const json = await res.json();
       return (json.text || '').toString();
     } catch (e) {
+      setAiOnline(false);
       return '';
     }
+  }
+
+  async function pingAI() {
+    try {
+      const res = await apiFetch('/', { method: 'GET' });
+      setAiOnline(res.ok);
+    } catch { setAiOnline(false); }
   }
 
   async function handleGreetingIfNeeded() {
     const now = Date.now();
     const last = state.lastChatLeaveAt || 0;
     const allow = last === 0 || (now - last >= 5 * 60 * 1000);
+    // Always ping to show status badge
+    pingAI();
     if (!allow) return;
     if (!state.aiInsightsEnabled) return;
     setLoading(true);
@@ -129,10 +141,8 @@ export default function ChatScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      // on focus
       handleGreetingIfNeeded();
       return () => {
-        // on blur/unmount
         useAppStore.getState().setLastChatLeaveAt(Date.now());
         typingAbort.current.abort = true;
       };
@@ -148,7 +158,6 @@ export default function ChatScreen() {
     if (state.aiInsightsEnabled) {
       setLoading(true);
       const summary = buildCompactSummary({ days: state.days, cycles: state.cycles, language: state.language });
-      // build short chat history
       const hist = (state.chat || []).slice(-10).map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
       const res = await callLLM({ mode: 'chat', language: state.language, model: 'gpt-4o-mini', summary, messages: hist.concat([{ role: 'user', content: t }]) });
       setLoading(false);
@@ -178,6 +187,7 @@ export default function ChatScreen() {
 
   const canSend = text.trim().length > 0;
   const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : (state.language==='pl'?'Zdrowie Scarlett':'Scarletts Gesundheitstracking');
+  const backendBase = getBackendBaseUrl();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -192,6 +202,19 @@ export default function ChatScreen() {
         <TouchableOpacity onPress={() => router.push('/saved')} style={styles.iconBtn} accessibilityLabel='Gespeichert'>
           <Ionicons name='bookmark' size={20} color={colors.text} />
         </TouchableOpacity>
+      </View>
+
+      {/* AI status badge */}
+      <View style={{ paddingHorizontal: 12, paddingTop: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Ionicons name={aiOnline ? 'cloud-outline' : 'cloud-offline-outline'} size={14} color={aiOnline ? '#2bb673' : colors.muted} />
+          <Text style={{ color: aiOnline ? '#2bb673' : colors.muted, fontSize: 12 }}>
+            {aiOnline===null ? '—' : (aiOnline ? 'KI online' : 'KI offline – lokale Tipps aktiv')}
+          </Text>
+          {backendBase ? (
+            <Text style={{ color: colors.muted, fontSize: 12 }}>· {backendBase}</Text>
+          ) : null}
+        </View>
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
