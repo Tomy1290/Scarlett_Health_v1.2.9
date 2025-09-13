@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Image, View, Text } from 'react-native';
+import { Image, View, Text, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { ensureAndroidChannel, ensureNotificationPermissions } from "../src/utils/notifications";
 import { useAppStore } from "../src/store/useStore";
 
+// Suppress alerts while the app is in foreground to avoid "flood" on open
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false }),
+  handleNotification: async () => ({ shouldShowAlert: false, shouldPlaySound: false, shouldSetBadge: false }),
 });
 
 export default function RootLayout() {
