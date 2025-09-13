@@ -84,7 +84,7 @@ export default function SettingsScreen() {
 
   async function updateTime(id: string, time: string) {
     const ok = !!parseHHMM(time);
-    if (!ok) { Alert.alert(state.language==='de'?'Ungültige Zeit':(state.language==='pl'?'Nieprawidłowy czas':'Invalid time'), state.language==='de'?'Bitte HH:MM eingeben.':(state.language==='pl'?'Wpisz HH:MM.':'Please enter HH:MM.')); return; }
+    if (!ok) { return; }
     const r = state.reminders.find(x=>x.id===id);
     if (!r) return;
     state.updateReminder(id, { time });
