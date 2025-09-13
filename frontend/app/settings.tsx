@@ -107,7 +107,7 @@ export default function SettingsScreen() {
       await cancelNotification(meta?.id);
       await ensureNotificationPermissions();
       await ensureAndroidChannel();
-      const newId = await scheduleDailyReminder(id, title, state.language==='de'?'Zeit für eine Aktion':(state.language==='pl'?'Czas na działanie':'Time for an action'), time);
+      const newId = await scheduleDailyReminder(id, title, state.language==='de'?'Zeit für eine Aktion':(state.language==='pl'?'Czas na działanie':'Time for an action'), time, r.type === 'pills_morning' || r.type === 'pills_evening');
       state.setNotificationMeta(id, { id: newId || '', time });
     } else {
       state.setNotificationMeta(id, { id: meta?.id || '', time });
