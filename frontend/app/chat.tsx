@@ -8,8 +8,6 @@ import { useAppStore, useLevel } from '../src/store/useStore';
 import { computeAIv1 } from '../src/ai/insights';
 import { buildCompactSummary } from '../src/ai/summary';
 import { useFocusEffect } from '@react-navigation/native';
-import { buildCompactSummary } from '../src/ai/summary';
-import { useFocusEffect } from '@react-navigation/native';
 
 function useThemeColors(theme: string) {
   if (theme === 'pink_pastel') return { bg: '#fff0f5', card: '#ffe4ef', primary: '#d81b60', text: '#3a2f33', muted: '#8a6b75', input: '#ffffff' };
@@ -18,15 +16,17 @@ function useThemeColors(theme: string) {
   return { bg: '#fde7ef', card: '#ffd0e0', primary: '#e91e63', text: '#2a1e22', muted: '#7c5866', input: '#ffffff' };
 }
 
-function fmtTime(ts: number, lang: 'de'|'en') {
-  try { return new Date(ts).toLocaleTimeString(lang==='de'?'de-DE':'en-US', { hour: '2-digit', minute: '2-digit' }); } catch { return ''; }
+function fmtTime(ts: number, lang: 'de'|'en'|'pl') {
+  try {
+    const loc = lang==='de'?'de-DE':(lang==='pl'?'pl-PL':'en-US');
+    return new Date(ts).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
 }
 
 function generateOfflineReply(state: ReturnType<typeof useAppStore.getState>, userText: string) {
   const lang = state.language;
   const lower = userText.toLowerCase();
-  const t = (de: string, en: string) => (lang==='en'?en:de);
-  // Simple domain heuristics
+  const t = (de: string, en: string, pl?: string) => (lang==='en'?en:(lang==='pl'?(pl||en):de));
   if (lower.includes('wasser') || lower.includes('water')) {
     const avg = (() => {
       const days = Object.values(state.days);
@@ -34,23 +34,24 @@ function generateOfflineReply(state: ReturnType<typeof useAppStore.getState>, us
       const sum = days.reduce((a,d)=>a+(d.drinks?.water||0),0);
       return (sum/count).toFixed(1);
     })();
-    return t(`Trinkziel Tipp: Ø Wasser aktuell ${avg}/Tag. Versuche über den Tag verteilt 6+ Einheiten zu erreichen.`, `Hydration tip: Current avg water is ${avg}/day. Try to reach 6+ units spread across the day.`);
+    return t(`Trinkziel Tipp: Ø Wasser aktuell ${avg}/Tag. Versuche über den Tag verteilt 6+ Einheiten zu erreichen.`, `Hydration tip: Current avg water is ${avg}/day. Try to reach 6+ units spread across the day.`, `Wskazówka: średnie spożycie wody ${avg}/dzień. Celuj w 6+ porcji dziennie.`);
   }
   if (lower.includes('kaffee') || lower.includes('coffee')) {
-    return t('Kaffee-Kontrolle: Ersetze eine Tasse durch Wasser oder Tee, um Koffein zu reduzieren.', 'Coffee control: Swap one cup for water or tea to reduce caffeine.');
+    return t('Kaffee-Kontrolle: Ersetze eine Tasse durch Wasser oder Tee, um Koffein zu reduzieren.', 'Coffee control: Swap one cup for water or tea to reduce caffeine.', 'Zamień jedną kawę na wodę lub herbatę, aby zmniejszyć kofeinę.');
   }
-  if (lower.includes('gewicht') || lower.includes('weight')) {
-    return t('Gewichts-Tipp: Beurteile Trends über mehrere Tage. Tägliche Schwankungen sind normal.', 'Weight tip: Assess multi-day trends. Daily fluctuations are normal.');
+  if (lower.includes('gewicht') || lower.includes('weight') || lower.includes('waga')) {
+    return t('Gewichts-Tipp: Beurteile Trends über mehrere Tage. Tägliche Schwankungen sind normal.', 'Weight tip: Assess multi-day trends. Daily fluctuations are normal.', 'Wskazówka: oceniaj trend wagi na przestrzeni dni – wahania dzienne są normalne.');
   }
   if (lower.includes('pille') || lower.includes('pills') || lower.includes('med')) {
-    return t('Pillen-Routine: Verknüpfe die Einnahme mit festen Ritualen (z. B. nach dem Zähneputzen).', 'Pill routine: Tie intake to fixed rituals (e.g., after brushing teeth).');
+    return t('Pillen-Routine: Verknüpfe die Einnahme mit festen Ritualen (z. B. nach dem Zähneputzen).', 'Pill routine: Tie intake to fixed rituals (e.g., after brushing teeth).', 'Rutyna tabletek: powiąż przyjmowanie z rytuałami (np. po myciu zębów).');
   }
   if (lower.includes('sport') || lower.includes('workout') || lower.includes('exercise')) {
-    return t('Sport-Streak: Starte mit 10–15 Minuten und erhöhe schrittweise – Kontinuität gewinnt.', 'Workout streak: Start with 10–15 minutes and ramp up – consistency wins.');
+    return t('Sport-Streak: Starte mit 10–15 Minuten und erhöhe schrittweise – Kontinuität gewinnt.', 'Workout streak: Start with 10–15 minutes and ramp up – consistency wins.', 'Zacznij od 10–15 min i zwiększaj stopniowo – liczy się regularność.');
   }
-  // Default with small empathy
-  return t('Verstanden. Erzähl mir mehr – was ist dein Ziel diese Woche?', 'Got it. Tell me more – what’s your goal this week?');
+  return t('Verstanden. Erzähl mir mehr – was ist dein Ziel diese Woche?', 'Got it. Tell me more – what’s your goal this week?', 'Rozumiem. Jaki cel na ten tydzień?');
 }
+
+function sleep(ms: number) { return new Promise(res => setTimeout(res, ms)); }
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -62,6 +63,11 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [saved, setSaved] = useState<Record<string, boolean>>({});
 
+  const [typing, setTyping] = useState(false);
+  const [typingText, setTypingText] = useState('');
+  const typingAbort = useRef<{abort: boolean}>({ abort: false });
+  const [loading, setLoading] = useState(false);
+
   const maxVisible = level >= 50 ? 30 : 5;
   const allChat = state.chat || [];
   const visibleChat = useMemo(() => {
@@ -69,27 +75,97 @@ export default function ChatScreen() {
   }, [allChat, maxVisible]);
 
   useEffect(() => {
-    // Smooth scroll to bottom when content changes
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
-  }, [visibleChat.length]);
+  }, [visibleChat.length, typingText]);
 
-  function send() {
+  async function typeOut(full: string) {
+    setTyping(true); setTypingText(''); typingAbort.current.abort = false;
+    for (let i = 0; i < full.length; i++) {
+      if (typingAbort.current.abort) break;
+      setTypingText(prev => prev + full[i]);
+      // small delay, longer after punctuation
+      const ch = full[i];
+      let delay = 25;
+      if (ch === '.' || ch === '!' || ch === '?') delay = 120;
+      else if (ch === ',' || ch === ';' || ch === ':') delay = 60;
+      await sleep(delay);
+    }
+    setTyping(false);
+    const finalText = typingAbort.current.abort ? '' : full;
+    setTypingText(finalText);
+    return finalText;
+  }
+
+  async function callLLM(payload: any): Promise<string> {
+    try {
+      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('LLM HTTP ' + res.status);
+      const json = await res.json();
+      return (json.text || '').toString();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  async function handleGreetingIfNeeded() {
+    const now = Date.now();
+    const last = state.lastChatLeaveAt || 0;
+    const allow = last === 0 || (now - last >= 5 * 60 * 1000);
+    if (!allow) return;
+    if (!state.aiInsightsEnabled) return;
+    setLoading(true);
+    const summary = buildCompactSummary({ days: state.days, cycles: state.cycles, language: state.language });
+    const text = await callLLM({ mode: 'greeting', language: state.language, model: 'gpt-4o-mini', summary });
+    setLoading(false);
+    const reply = text && text.trim().length > 0 ? text : (computeAIv1({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled })[0]?.text || '');
+    if (!reply) return;
+    const typed = await typeOut(reply);
+    if (typed) {
+      const bot = { id: String(Date.now()), sender: 'bot' as const, text: typed, createdAt: Date.now() };
+      state.addChat(bot);
+      setTypingText('');
+    }
+  }
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // on focus
+      handleGreetingIfNeeded();
+      return () => {
+        // on blur/unmount
+        useAppStore.getState().setLastChatLeaveAt(Date.now());
+        typingAbort.current.abort = true;
+      };
+    }, [state.aiInsightsEnabled, state.language, state.days, state.cycles])
+  );
+
+  async function send() {
     const t = text.trim(); if (!t) return;
     const msg = { id: String(Date.now()), sender: 'user' as const, text: t, createdAt: Date.now() };
     state.addChat(msg); setText(''); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // AI v1 suggestion as reply (if enabled)
     let replyText = '';
     if (state.aiInsightsEnabled) {
-      const ai = computeAIv1({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled });
-      replyText = ai[0]?.text || '';
+      setLoading(true);
+      const summary = buildCompactSummary({ days: state.days, cycles: state.cycles, language: state.language });
+      // build short chat history
+      const hist = (state.chat || []).slice(-10).map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
+      const res = await callLLM({ mode: 'chat', language: state.language, model: 'gpt-4o-mini', summary, messages: hist.concat([{ role: 'user', content: t }]) });
+      setLoading(false);
+      replyText = (res || '').trim();
     }
     if (!replyText) {
-      replyText = generateOfflineReply(state, t);
+      const ai = computeAIv1({ days: state.days, language: state.language, aiFeedback: state.aiFeedback, aiInsightsEnabled: state.aiInsightsEnabled });
+      replyText = ai[0]?.text || generateOfflineReply(state, t);
     }
-    const bot = { id: String(Date.now()+1), sender: 'bot' as const, text: replyText, createdAt: Date.now()+1 };
-    state.addChat(bot);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    typingAbort.current.abort = false;
+    const typed = await typeOut(replyText);
+    if (typed) {
+      const bot = { id: String(Date.now()+1), sender: 'bot' as const, text: typed, createdAt: Date.now()+1 };
+      state.addChat(bot);
+      setTypingText('');
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    }
   }
 
   function saveTip(id: string, text: string) {
@@ -101,7 +177,7 @@ export default function ChatScreen() {
   }
 
   const canSend = text.trim().length > 0;
-  const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
+  const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : (state.language==='pl'?'Zdrowie Scarlett':'Scarletts Gesundheitstracking');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -112,19 +188,6 @@ export default function ChatScreen() {
         <View style={{ alignItems: 'center' }}>
           <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
           <Text style={[styles.title, { color: colors.muted }]}>Gugi</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-            {level >= 50 ? (
-              <View style={[styles.vipPill, { borderColor: colors.primary, backgroundColor: colors.primary }]}> 
-                <Ionicons name='star' size={12} color={'#fff'} />
-                <Text style={{ color: '#fff', marginLeft: 6, fontSize: 12 }}>VIP</Text>
-              </View>
-            ) : (
-              <View style={[styles.vipPill, { borderColor: colors.muted, backgroundColor: 'transparent' }]}> 
-                <Ionicons name='lock-closed' size={12} color={colors.muted} />
-                <Text style={{ color: colors.muted, marginLeft: 6, fontSize: 12 }}>VIP (Level 50)</Text>
-              </View>
-            )}
-          </View>
         </View>
         <TouchableOpacity onPress={() => router.push('/saved')} style={styles.iconBtn} accessibilityLabel='Gespeichert'>
           <Ionicons name='bookmark' size={20} color={colors.text} />
@@ -134,13 +197,10 @@ export default function ChatScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
           <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, gap: 8 }} showsVerticalScrollIndicator={false} onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
-            {level < 50 ? (
-              <Text style={{ color: colors.muted, textAlign: 'center', marginBottom: 8 }}>{state.language==='de'?'Nur die letzten 5 Nachrichten sichtbar. Mit VIP (Level 50) siehst du 30.':'Only last 5 messages visible. With VIP (Level 50) you see 30.'}</Text>
-            ) : null}
             {visibleChat.map((m) => (
-              <View key={m.id} style={[styles.msgRow, { justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start' }]}>
+              <View key={m.id} style={[styles.msgRow, { justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start' }]}> 
                 <View style={{ maxWidth: '82%' }}>
-                  <View style={[styles.msgBubble, { backgroundColor: m.sender==='user' ? colors.primary : colors.card, borderColor: colors.muted }]}>
+                  <View style={[styles.msgBubble, { backgroundColor: m.sender==='user' ? colors.primary : colors.card, borderColor: colors.muted }]}> 
                     <Text style={{ color: m.sender==='user' ? '#fff' : colors.text }}>{m.text}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start', marginTop: 4 }}>
@@ -154,7 +214,25 @@ export default function ChatScreen() {
                 </View>
               </View>
             ))}
-            {visibleChat.length === 0 ? (
+
+            {/* Typing bubble */}
+            {typing && typingText ? (
+              <View style={[styles.msgRow, { justifyContent: 'flex-start' }]}> 
+                <View style={{ maxWidth: '82%' }}>
+                  <View style={[styles.msgBubble, { backgroundColor: colors.card, borderColor: colors.muted }]}> 
+                    <Text style={{ color: colors.text }}>{typingText}</Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
+            {loading && !typing ? (
+              <View style={{ alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 8 }}>
+                <ActivityIndicator size='small' color={colors.primary} />
+              </View>
+            ) : null}
+
+            {visibleChat.length === 0 && !typing ? (
               <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 24 }}>{state.language==='de'?'Keine Nachrichten':'No messages yet'}</Text>
             ) : null}
           </ScrollView>
@@ -165,12 +243,12 @@ export default function ChatScreen() {
             ref={inputRef}
             value={text}
             onChangeText={setText}
-            placeholder={state.language==='de'?'Schreibe eine Nachricht…':'Type a message…'}
+            placeholder={state.language==='de'?'Schreibe eine Nachricht…':(state.language==='pl'?'Napisz wiadomość…':'Type a message…')}
             placeholderTextColor={colors.muted}
             style={[styles.input, { color: colors.text, backgroundColor: colors.input, borderColor: colors.muted }]}
             multiline
           />
-          <TouchableOpacity disabled={!canSend} onPress={send} style={[styles.sendBtn, { backgroundColor: canSend ? colors.primary : colors.muted }]} accessibilityLabel={state.language==='de'?'Senden':'Send'}>
+          <TouchableOpacity disabled={!canSend || typing} onPress={send} style={[styles.sendBtn, { backgroundColor: canSend && !typing ? colors.primary : colors.muted }]} accessibilityLabel={state.language==='de'?'Senden':'Send'}>
             <Ionicons name='send' size={18} color={'#fff'} />
           </TouchableOpacity>
         </View>
@@ -184,7 +262,6 @@ const styles = StyleSheet.create({
   appTitle: { fontSize: 14, fontWeight: '800' },
   title: { fontSize: 12, fontWeight: '600' },
   iconBtn: { padding: 8 },
-  vipPill: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   msgRow: { flexDirection: 'row' },
   msgBubble: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 0 },
   inputBar: { flexDirection: 'row', alignItems: 'flex-end', padding: 8, borderTopWidth: 1 },

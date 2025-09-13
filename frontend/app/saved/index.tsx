@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -27,6 +27,11 @@ export default function SavedManager() {
   const [newText, setNewText] = useState('');
   const [showNew, setShowNew] = useState(false);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editTags, setEditTags] = useState('');
+
   const categories = useMemo(() => {
     const fromSaved = Array.from(new Set((state.saved || []).map(s => s.category).filter(Boolean) as string[]));
     return Array.from(new Set([...PRESET_CATEGORIES, ...fromSaved]));
@@ -49,6 +54,22 @@ export default function SavedManager() {
     state.addSaved({ id: String(Date.now()), title: newTitle || 'Notiz', category: newCategory || undefined, tags: newTags ? newTags.split(',').map(t => t.trim()).filter(Boolean) : undefined, text: newText.trim(), createdAt: Date.now() });
     setNewTitle(''); setNewCategory(''); setNewTags(''); setNewText(''); setShowNew(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
+
+  function openEdit(id: string) {
+    const it = (state.saved || []).find(s => s.id === id); if (!it) return;
+    setEditingId(id);
+    setEditTitle(it.title || '');
+    setEditCategory(it.category || '');
+    setEditTags((it.tags || []).join(', '));
+  }
+
+  function saveEdit() {
+    if (!editingId) return;
+    const tags = editTags ? editTags.split(',').map(t => t.trim()).filter(Boolean) : undefined;
+    useAppStore.getState().updateSaved(editingId, { title: editTitle || 'Notiz', category: editCategory || undefined, tags });
+    setEditingId(null);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
   return (
@@ -87,7 +108,7 @@ export default function SavedManager() {
             <TextInput value={newTitle} onChangeText={setNewTitle} placeholder='Titel (optional)' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, marginBottom: 8 }]} />
             <ScrollView horizontal contentContainerStyle={{ gap: 8 }} showsHorizontalScrollIndicator={false}>
               {PRESET_CATEGORIES.map((c) => (
-                <TouchableOpacity key={c} onPress={() => setNewCategory(c)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: newCategory===c?colors.primary:'transparent' }]}>
+                <TouchableOpacity key={c} onPress={() => setNewCategory(c)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: newCategory===c?colors.primary:'transparent' }]}> 
                   <Text style={{ color: newCategory===c?'#fff':colors.text }}>{c}</Text>
                 </TouchableOpacity>
               ))}
@@ -97,7 +118,7 @@ export default function SavedManager() {
             <TextInput value={newTags} onChangeText={setNewTags} placeholder='Tags (kommagetrennt)' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, marginTop: 8 }]} />
             <TextInput value={newText} onChangeText={setNewText} placeholder='Text…' placeholderTextColor={colors.muted} multiline style={[styles.input, { borderColor: colors.muted, color: colors.text, marginTop: 8, minHeight: 80 }]} />
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
-              <TouchableOpacity onPress={addItem} style={[styles.primaryBtn, { backgroundColor: colors.primary }]}>
+              <TouchableOpacity onPress={addItem} style={[styles.primaryBtn, { backgroundColor: colors.primary }]}> 
                 <Ionicons name='save' size={16} color='#fff' />
                 <Text style={{ color: '#fff', marginLeft: 8 }}>{state.language==='de'?'Speichern':'Save'}</Text>
               </TouchableOpacity>
@@ -114,9 +135,14 @@ export default function SavedManager() {
                 <Text style={{ color: colors.text, fontWeight: '700' }}>{s.title || 'Notiz'}</Text>
                 {s.category ? <Text style={{ color: colors.muted, marginTop: 2 }}>{s.category}</Text> : null}
               </View>
-              <TouchableOpacity onPress={() => useAppStore.getState().deleteSaved(s.id)}>
-                <Ionicons name='trash' size={18} color={colors.muted} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <TouchableOpacity onPress={() => openEdit(s.id)}>
+                  <Ionicons name='create-outline' size={18} color={colors.muted} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => useAppStore.getState().deleteSaved(s.id)}>
+                  <Ionicons name='trash' size={18} color={colors.muted} />
+                </TouchableOpacity>
+              </View>
             </View>
             <Text style={{ color: colors.text, marginTop: 8 }}>{s.text}</Text>
             {s.tags?.length ? (
@@ -131,6 +157,39 @@ export default function SavedManager() {
           </View>
         ))}
       </ScrollView>
+
+      {/* Edit Modal */}
+      <Modal visible={!!editingId} transparent animationType='slide' onRequestClose={() => setEditingId(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
+            <View style={[styles.modalSheet, { backgroundColor: colors.bg, borderColor: colors.muted }]}> 
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{state.language==='de'?'Nachricht bearbeiten':'Edit message'}</Text>
+                <TouchableOpacity onPress={() => setEditingId(null)}>
+                  <Ionicons name='close' size={20} color={colors.muted} />
+                </TouchableOpacity>
+              </View>
+              <TextInput value={editTitle} onChangeText={setEditTitle} placeholder='Titel' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, marginTop: 12 }]} />
+              <ScrollView horizontal contentContainerStyle={{ gap: 8 }} showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                {categories.map((c) => (
+                  <TouchableOpacity key={c} onPress={() => setEditCategory(c)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: editCategory===c?colors.primary:'transparent' }]}> 
+                    <Text style={{ color: editCategory===c?'#fff':colors.text }}>{c}</Text>
+                  </TouchableOpacity>
+                ))}
+                <View style={{ width: 8 }} />
+                <TextInput value={editCategory} onChangeText={setEditCategory} placeholder='Eigene Kategorie…' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, width: 180 }]} />
+              </ScrollView>
+              <TextInput value={editTags} onChangeText={setEditTags} placeholder='Tags (kommagetrennt)' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, marginTop: 12 }]} />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
+                <TouchableOpacity onPress={saveEdit} style={[styles.primaryBtn, { backgroundColor: colors.primary }]}> 
+                  <Ionicons name='save' size={16} color={'#fff'} />
+                  <Text style={{ color: '#fff', marginLeft: 8 }}>{state.language==='de'?'Speichern':'Save'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -145,4 +204,5 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
   tag: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   primaryBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8 },
+  modalSheet: { borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, borderTopWidth: 1 },
 });
