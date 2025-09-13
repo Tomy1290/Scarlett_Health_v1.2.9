@@ -146,7 +146,7 @@ export default function Home() {
               accessibilityLabel={t('Morgens', 'Morning', 'Rano')}
             >
               <Ionicons 
-                name="sunny" 
+                name="sunny-outline" 
                 size={16} 
                 color={day.pills.morning ? '#fff' : colors.primary} 
                 style={{ marginRight: 6 }}
@@ -171,7 +171,7 @@ export default function Home() {
               accessibilityLabel={t('Abends', 'Evening', 'Wieczorem')}
             >
               <Ionicons 
-                name="moon" 
+                name="moon-outline" 
                 size={16} 
                 color={day.pills.evening ? '#fff' : colors.primary} 
                 style={{ marginRight: 6 }}
