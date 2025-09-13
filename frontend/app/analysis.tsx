@@ -14,6 +14,8 @@ function useThemeColors(theme: string) {
   return { bg: '#fde7ef', card: '#ffd0e0', primary: '#e91e63', text: '#2a1e22', muted: '#7c5866' };
 }
 
+function daysBetween(a: Date, b: Date) { return Math.round((+b - +a) / (1000*60*60*24)); }
+
 export default function AnalysisScreen() {
   const router = useRouter();
   const state = useAppStore();
@@ -46,13 +48,69 @@ export default function AnalysisScreen() {
 
   const last14 = useMemo(() => weightArrAll.slice(-14), [weightArrAll]);
 
-  const t = (key: string) => { const de: Record<string, string> = { analysis: 'Analyse', weight: 'Gewichtsanalyse', app: 'Scarletts Gesundheitstracking', range7: '7 Tage', range14: '14 Tage', range30: '30 Tage', custom: 'Eigener Zeitraum', from: 'Von', to: 'Bis', weight_help: 'Wähle den Zeitraum und betrachte Trends.', insights: 'Premium Insights', insights_help: 'Letzte 14 Einträge mit Tagesdifferenz.' }; const en: Record<string, string> = { analysis: 'Analysis', weight: 'Weight analysis', app: "Scarlett’s Health Tracking", range7: '7 days', range14: '14 days', range30: '30 days', custom: 'Custom', from: 'From', to: 'To', weight_help: 'Select a range and see trends.', insights: 'Premium Insights', insights_help: 'Last 14 entries with daily difference.' }; return (state.language === 'de' ? de : en)[key] || key; };
+  const t = (key: string) => { const de: Record<string, string> = { analysis: 'Analyse', weight: 'Gewichtsanalyse', app: 'Scarletts Gesundheitstracking', range7: '7 Tage', range14: '14 Tage', range30: '30 Tage', custom: 'Eigener Zeitraum', from: 'Von', to: 'Bis', weight_help: 'Wähle den Zeitraum und betrachte Trends.', insights: 'Premium Insights', insights_help: 'Letzte 14 Einträge mit Tagesdifferenz.', aiultra: 'KI Pro+++ (Zyklus & Korrelationen)', aiultra_help: 'Heatmap nach Zyklustagen und Korrelationen zwischen Metriken.' }; const en: Record<string, string> = { analysis: 'Analysis', weight: 'Weight analysis', app: "Scarlett’s Health Tracking", range7: '7 days', range14: '14 days', range30: '30 days', custom: 'Custom', from: 'From', to: 'To', weight_help: 'Select a range and see trends.', insights: 'Premium Insights', insights_help: 'Last 14 entries with daily difference.', aiultra: 'AI Pro+++ (cycle & correlations)', aiultra_help: 'Heatmap by cycle days and correlations between metrics.' }; return (state.language === 'de' ? de : en)[key] || key; };
+
+  // ===== Pro+++ computations =====
+  const cycleHeat = useMemo(() => {
+    const out: Record<number, { pain: number[]; energy: number[]; sleep: number[]; cramps: number; headache: number; nausea: number; count: number }> = {};
+    const cycles = state.cycles || [];
+    const logs = state.cycleLogs || {};
+    const sortedStarts = cycles.map(c => new Date(c.start)).sort((a,b)=>+a-+b);
+    function findCycleStart(dt: Date) {
+      let sel: Date | null = null;
+      for (const s of sortedStarts) { if (+s <= +dt) sel = s; else break; }
+      return sel;
+    }
+    for (const [dateKey, log] of Object.entries(logs)) {
+      const dt = new Date(dateKey);
+      const start = findCycleStart(dt);
+      if (!start) continue;
+      const idx = daysBetween(start, dt); if (idx<0 || idx>35) continue;
+      if (!out[idx]) out[idx] = { pain: [], energy: [], sleep: [], cramps: 0, headache: 0, nausea: 0, count: 0 };
+      if (typeof log.pain==='number') out[idx].pain.push(log.pain);
+      if (typeof log.energy==='number') out[idx].energy.push(log.energy);
+      if (typeof log.sleep==='number') out[idx].sleep.push(log.sleep);
+      if (log.cramps) out[idx].cramps += 1;
+      if (log.headache) out[idx].headache += 1;
+      if (log.nausea) out[idx].nausea += 1;
+      out[idx].count += 1;
+    }
+    return out;
+  }, [state.cycles, state.cycleLogs]);
+
+  function avg(xs: number[]) { return xs.length ? xs.reduce((a,b)=>a+b,0)/xs.length : 0; }
+
+  const correlations = useMemo(() => {
+    const days = Object.values(state.days).sort((a,b)=>a.date.localeCompare(b.date));
+    const logs = state.cycleLogs || {};
+    const waterOnHeadache = avg(Object.keys(logs).filter(k => logs[k]?.headache).map(k => state.days[k]?.drinks?.water ?? 0));
+    const waterOnNoHeadache = avg(Object.keys(logs).filter(k => !logs[k]?.headache).map(k => state.days[k]?.drinks?.water ?? 0));
+    const energyOnSport = avg(days.filter(d=>d.drinks?.sport).map(d => (logs[d.date]?.energy ?? 0)));
+    const energyNoSport = avg(days.filter(d=>!d.drinks?.sport).map(d => (logs[d.date]?.energy ?? 0)));
+    const sleepOnHighCoffee = avg(days.filter(d => (d.drinks?.coffee ?? 0) >= 6).map(d => (logs[d.date]?.sleep ?? 0)));
+    const sleepOnLowCoffee = avg(days.filter(d => (d.drinks?.coffee ?? 0) < 6).map(d => (logs[d.date]?.sleep ?? 0)));
+    const weightDays = days.filter(d=>typeof d.weight==='number');
+    let weightChangeLowSleep = 0, nLow=0, weightChangeHighSleep=0, nHigh=0;
+    for (let i=1;i<weightDays.length;i++) {
+      const prev = weightDays[i-1]; const cur = weightDays[i];
+      const sl = logs[cur.date]?.sleep ?? 0;
+      const diff = Math.abs((cur.weight||0) - (prev.weight||0));
+      if (sl <= 4) { weightChangeLowSleep += diff; nLow++; } else if (sl >= 7) { weightChangeHighSleep += diff; nHigh++; }
+    }
+    return {
+      waterOnHeadache, waterOnNoHeadache,
+      energyOnSport, energyNoSport,
+      sleepOnHighCoffee, sleepOnLowCoffee,
+      weightDeltaLowSleep: nLow? (weightChangeLowSleep/nLow):0,
+      weightDeltaHighSleep: nHigh? (weightChangeHighSleep/nHigh):0,
+    };
+  }, [state.days, state.cycleLogs]);
 
   const appTitle = t('app');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 12 }]}> 
+      <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 12 }]}>
         <TouchableOpacity onPress={() => router.back()} accessibilityLabel={state.language==='de'?'Zurück':'Back'} style={{ padding: 8 }}>
           <Ionicons name='chevron-back' size={26} color={colors.text} />
         </TouchableOpacity>
@@ -72,7 +130,7 @@ export default function AnalysisScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {/* Gewicht */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name='fitness' size={18} color={colors.primary} />
@@ -103,8 +161,8 @@ export default function AnalysisScreen() {
           )}
         </View>
 
-        {/* Premium Insights + last 14 weights */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
+        {/* Premium Insights */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name='sparkles' size={18} color={colors.primary} />
@@ -132,6 +190,45 @@ export default function AnalysisScreen() {
                 );
               })
             )}
+          </View>
+        </View>
+
+        {/* KI Pro+++ */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='pulse' size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('aiultra')}</Text>
+            </View>
+            <TouchableOpacity onPress={() => toggleHelp('aiultra')}>
+              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+          {help.aiultra ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{t('aiultra_help')}</Text>) : null}
+
+          {/* Heatmap Schmerz (ø pain) über Zyklustage 0..28 */}
+          <View style={{ marginTop: 8 }}>
+            <Text style={{ color: colors.text, fontWeight: '600' }}>Heatmap Schmerz (Zyklustage)</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+              {Array.from({length: 29}).map((_,i) => {
+                const cell = cycleHeat[i]; const p = cell ? avg(cell.pain) : 0; const intensity = Math.min(1, p/10);
+                const bg = `rgba(216,27,96,${(0.1 + intensity*0.9).toFixed(2)})`;
+                return (
+                  <View key={i} style={{ width: 20, height: 20, borderRadius: 3, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 10, color: '#fff' }}>{i}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Korrelationen */}
+          <View style={{ marginTop: 12, gap: 6 }}>
+            <Text style={{ color: colors.text, fontWeight: '600' }}>Korrelationen</Text>
+            <Text style={{ color: colors.muted }}>Wasser an Kopfschmerz-Tagen: {correlations.waterOnHeadache.toFixed(2)} · ohne: {correlations.waterOnNoHeadache.toFixed(2)}</Text>
+            <Text style={{ color: colors.muted }}>Energie an Sport-Tagen: {correlations.energyOnSport.toFixed(2)} · ohne: {correlations.energyNoSport.toFixed(2)}</Text>
+            <Text style={{ color: colors.muted }}>Schlaf bei viel Kaffee (≥6): {correlations.sleepOnHighCoffee.toFixed(2)} · wenig Kaffee: {correlations.sleepOnLowCoffee.toFixed(2)}</Text>
+            <Text style={{ color: colors.muted }}>Gewichtsänderung bei wenig Schlaf (≤4): {correlations.weightDeltaLowSleep.toFixed(2)} kg · viel Schlaf (≥7): {correlations.weightDeltaHighSleep.toFixed(2)} kg</Text>
           </View>
         </View>
       </ScrollView>

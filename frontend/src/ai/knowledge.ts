@@ -93,14 +93,22 @@ export function answerReminders(state: AppState) {
 
 export function answerKnowledge(state: AppState, q: string) {
   const s = q.toLowerCase();
-  if (/(zyklus|periode|menstru|ovulation|eisprung|fruchtbar|fertile|pms|krämpf|kramp|kopfschmerz|übelsch|nausea|energie|energy|schlaf|sleep)/.test(s)) {
+  if (/(zyklus|cycle|peri|ovul|fertile|pms|krämpf|kramp|kopfschmerz|übelsch|nausea|energie|energy|schlaf|sleep)/.test(s)) {
     const chunks = [answerCycle(state), cycleFertileWindow(state), cyclePainManagement(state), cycleEnergySleep(state)];
     return chunks.join('\n');
   }
-  if (/(gewicht|plateau|trend|abnehmen|kalorien|kcal|waga|masa|schlaf|sleep|wasser|hydration)/.test(s)) {
+  if (/(gewicht|weight|plateau|trend|abnehmen|kalorien|kcal|waga|masa|schlaf|sleep|wasser|hydration)/.test(s)) {
     const chunks = [answerWeight(state), weightPlateauStrategies(state), hydrationWeightRelation(state), weightSleepImpact(state)];
     return chunks.join('\n');
   }
   if (/(erinnerung|reminder|benachrichtigung)/.test(s)) return answerReminders(state);
   return '';
+}
+
+export function answerTopic(state: AppState, topic: 'cycle'|'weight'|'sleep'|'hydration'|'reminders') {
+  if (topic==='cycle') return [answerCycle(state), cycleFertileWindow(state), cyclePainManagement(state), cycleEnergySleep(state)].join('\n');
+  if (topic==='weight') return [answerWeight(state), weightPlateauStrategies(state), hydrationWeightRelation(state), weightSleepImpact(state)].join('\n');
+  if (topic==='sleep') return weightSleepImpact(state);
+  if (topic==='hydration') return hydrationWeightRelation(state);
+  return answerReminders(state);
 }
