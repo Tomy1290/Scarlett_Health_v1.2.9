@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { useAppStore, useLevel } from '../src/store/useStore';
 import { useFocusEffect } from '@react-navigation/native';
 import { localGreeting, localReply } from '../src/ai/localChat';
+import { hybridGreeting, hybridReply, getAIStatus } from '../src/ai/hybridChat';
 import { searchRecipes, getRecipeDetail } from '../src/ai/recipes';
 import type { Cuisine, Meal, Category } from '../src/data/recipes';
 import { answerTopic } from '../src/ai/knowledge';
