@@ -82,13 +82,19 @@ export async function scheduleDailyReminder(id: string, title: string, body: str
 
 export async function scheduleOneTime(title: string, body: string, date: Date): Promise<string | null> {
   if (+date <= +new Date()) return null;
-  const trigger: Notifications.NotificationTriggerInput = Platform.select({
-    android: { channelId: 'reminders', date },
-    ios: date,
-    default: date,
-  }) as any;
+  
+  const trigger: Notifications.DateTriggerInput = {
+    date,
+    ...(Platform.OS === 'android' && { channelId: 'reminders' })
+  };
+  
   const id = await Notifications.scheduleNotificationAsync({
-    content: { title, body, sound: 'default' as any },
+    content: { 
+      title, 
+      body, 
+      sound: 'default',
+      ...(Platform.OS === 'android' && { channelId: 'reminders' })
+    },
     trigger,
   });
   return id;
