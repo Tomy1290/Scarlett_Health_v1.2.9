@@ -63,7 +63,7 @@ export default function ChatScreen() {
   // AI Status tracking
   const [aiStatus, setAiStatus] = useState<'cloud' | 'local' | 'checking'>('checking');
 
-  const maxVisible = level >= 50 ? 30 : 5;
+  const maxVisible = level >= 50 ? 50 : (level >= 25 ? 30 : 20);
   const allChat = state.chat || [];
   const visibleChat = useMemo(() => allChat.slice(Math.max(0, allChat.length - maxVisible)), [allChat, maxVisible]);
 
