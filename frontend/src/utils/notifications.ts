@@ -278,34 +278,55 @@ export async function getScheduledNotifications() {
 // Test function to verify notifications work
 export async function testNotification() {
   try {
+    console.log('Starting notification test...');
+    
     const hasPermission = await ensureNotificationPermissions();
     if (!hasPermission) {
-      Alert.alert('Fehler', 'Keine Berechtigung für Benachrichtigungen');
+      Alert.alert('Fehler', 'Keine Berechtigung für Benachrichtigungen. Bitte in den Geräteeinstellungen aktivieren.');
       return;
     }
 
     await ensureAndroidChannel();
 
     const testDate = new Date();
-    testDate.setSeconds(testDate.getSeconds() + 5);
+    testDate.setSeconds(testDate.getSeconds() + 3); // 3 seconds instead of 5
 
-    const notifId = await scheduleOneTime(
-      'Test Benachrichtigung',
-      'Dies ist eine Test-Benachrichtigung. Wenn Sie diese sehen, funktionieren Benachrichtigungen!',
-      testDate
-    );
+    console.log('Scheduling test notification for:', testDate.toISOString());
+
+    const notifId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '✅ Test erfolgreich!',
+        body: 'Benachrichtigungen funktionieren korrekt. Du kannst jetzt Erinnerungen einrichten.',
+        sound: 'default',
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+        ...(Platform.OS === 'android' && { channelId: 'reminders' }),
+      },
+      trigger: { 
+        date: testDate,
+      },
+    });
+
+    console.log('Test notification scheduled with ID:', notifId);
 
     if (notifId) {
       Alert.alert(
-        'Test gestartet',
-        'Eine Test-Benachrichtigung wird in 5 Sekunden angezeigt.',
+        '🧪 Test gestartet',
+        'Eine Test-Benachrichtigung wird in 3 Sekunden angezeigt. Falls sie nicht erscheint, prüfe deine Geräteeinstellungen.',
         [{ text: 'OK' }]
       );
+      
+      // Also show immediate notification to test permissions
+      await Notifications.presentNotificationAsync({
+        title: '🔔 Sofort-Test',
+        body: 'Diese Benachrichtigung erscheint sofort.',
+        ...(Platform.OS === 'android' && { channelId: 'reminders' }),
+      });
+      
     } else {
       Alert.alert('Fehler', 'Test-Benachrichtigung konnte nicht geplant werden');
     }
   } catch (error) {
     console.error('Error testing notification:', error);
-    Alert.alert('Fehler', `Test fehlgeschlagen: ${error.message}`);
+    Alert.alert('Fehler', `Test fehlgeschlagen: ${error.message}\n\nMöglicherweise sind Benachrichtigungen in den Systemeinstellungen deaktiviert.`);
   }
 }
