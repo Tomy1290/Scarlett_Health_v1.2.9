@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -19,23 +19,38 @@ export default function CycleDayScreen() {
   const state = useAppStore();
   const router = useRouter();
   const colors = useThemeColors(state.theme);
-  const log = state.cycleLogs[date || ''] || {};
+  const serverLog = state.cycleLogs[date || ''] || {};
   const lang = state.language;
   const [help, setHelp] = useState<{[k:string]: boolean}>({});
   const toggleHelp = (k: string) => setHelp(h => ({ ...h, [k]: !h[k] }));
 
-  const setVal = (field: 'mood'|'energy'|'pain'|'sleep', delta: number) => {
-    const cur = (log as any)[field] ?? 5;
-    const next = clamp(cur + delta, 1, 10);
-    state.setCycleLog(String(date), { [field]: next } as any);
-  };
+  // Local draft, only save to store when pressing save
+  const [draft, setDraft] = useState({
+    mood: serverLog.mood ?? 5,
+    energy: serverLog.energy ?? 5,
+    pain: serverLog.pain ?? 5,
+    sleep: serverLog.sleep ?? 5,
+    sex: !!serverLog.sex,
+    notes: serverLog.notes || '',
+    flow: typeof serverLog.flow === 'number' ? serverLog.flow : 0,
+    cramps: !!serverLog.cramps,
+    headache: !!serverLog.headache,
+    nausea: !!serverLog.nausea,
+  });
+  useEffect(() => {
+    // If date changes, refresh draft from store
+    const s = state.cycleLogs[date || ''] || {};
+    setDraft({ mood: s.mood ?? 5, energy: s.energy ?? 5, pain: s.pain ?? 5, sleep: s.sleep ?? 5, sex: !!s.sex, notes: s.notes || '', flow: typeof s.flow === 'number' ? s.flow : 0, cramps: !!s.cramps, headache: !!s.headache, nausea: !!s.nausea });
+  }, [date]);
 
-  const setFlow = (val: number) => state.setCycleLog(String(date), { flow: val as any });
+  const setVal = (field: 'mood'|'energy'|'pain'|'sleep', delta: number) => {
+    setDraft((d) => ({ ...d, [field]: clamp((d as any)[field] + delta, 1, 10) }));
+  };
+  const setFlow = (val: number) => setDraft((d) => ({ ...d, flow: Math.max(0, Math.min(9, val)) }));
 
   const formattedDate = (() => { try { const [y,m,d] = String(date).split('-').map(Number); return `${String(d).padStart(2,'0')}.${String(m).padStart(2,'0')}.${y}`; } catch { return String(date); }})();
 
   const renderMoodScale = (value: number) => {
-    // 10 icons (1..10): 1-3 very/sad, 4-7 neutral, 8-10 very/happy; colored up to selected value
     const items = Array.from({ length: 10 }).map((_, i) => {
       const idx = i + 1;
       let name: keyof typeof MaterialIcons.glyphMap = 'sentiment-neutral';
@@ -43,10 +58,9 @@ export default function CycleDayScreen() {
       else if (idx === 3) name = 'sentiment-dissatisfied';
       else if (idx >= 9) name = 'sentiment-very-satisfied';
       else if (idx >= 8) name = 'sentiment-satisfied';
-      else name = 'sentiment-neutral';
       const active = idx <= value;
       return (
-        <TouchableOpacity key={`mood-${idx}`} onPress={() => state.setCycleLog(String(date), { mood: idx })} style={{ padding: 2 }}>
+        <TouchableOpacity key={`mood-${idx}`} onPress={() => setDraft((d)=>({ ...d, mood: idx }))} style={{ padding: 2 }}>
           <MaterialIcons name={name} size={18} color={active ? colors.primary : colors.muted} />
         </TouchableOpacity>
       );
@@ -59,7 +73,7 @@ export default function CycleDayScreen() {
       const idx = i + 1;
       const active = idx <= value;
       return (
-        <TouchableOpacity key={`${field}-${idx}`} onPress={() => state.setCycleLog(String(date), { [field]: idx } as any)} style={{ padding: 2 }}>
+        <TouchableOpacity key={`${field}-${idx}`} onPress={() => setDraft((d)=>({ ...d, [field]: idx }))} style={{ padding: 2 }}>
           <Ionicons name={icon} size={16} color={active ? colors.primary : colors.muted} />
         </TouchableOpacity>
       );
@@ -68,7 +82,6 @@ export default function CycleDayScreen() {
   };
 
   const renderBleedingScale = (value: number) => {
-    // 10 droplet icons 0..9, tap to set
     const items = Array.from({ length: 10 }).map((_, i) => {
       const idx = i; // 0..9
       const active = idx <= (typeof value === 'number' ? value : -1);
@@ -79,6 +92,14 @@ export default function CycleDayScreen() {
       );
     });
     return <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginVertical: 4 }}>{items}</View>;
+  };
+
+  const saveDraft = () => {
+    state.setCycleLog(String(date), draft as any);
+  };
+  const deleteDraft = () => {
+    state.clearCycleLog(String(date));
+    setDraft({ mood: 5, energy: 5, pain: 5, sleep: 5, sex: false, notes: '', flow: 0, cramps: false, headache: false, nausea: false });
   };
 
   return (
@@ -114,7 +135,7 @@ export default function CycleDayScreen() {
               <TouchableOpacity testID={`cycle-mood-minus`} onPress={() => setVal('mood', -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
                 <Ionicons name='remove' size={16} color={colors.primary} />
               </TouchableOpacity>
-              <View style={{ flex: 1, alignItems: 'center' }}>{renderMoodScale(log.mood ?? 5)}</View>
+              <View style={{ flex: 1, alignItems: 'center' }}>{renderMoodScale(draft.mood)}</View>
               <TouchableOpacity testID={`cycle-mood-plus`} onPress={() => setVal('mood', +1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
                 <Ionicons name='add' size={16} color={colors.primary} />
               </TouchableOpacity>
@@ -137,7 +158,7 @@ export default function CycleDayScreen() {
               <TouchableOpacity testID={`cycle-energy-minus`} onPress={() => setVal('energy', -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
                 <Ionicons name='remove' size={16} color={colors.primary} />
               </TouchableOpacity>
-              <View style={{ flex: 1, alignItems: 'center' }}>{renderIconScale(log.energy ?? 5, 'flash', 'energy')}</View>
+              <View style={{ flex: 1, alignItems: 'center' }}>{renderIconScale(draft.energy, 'flash', 'energy')}</View>
               <TouchableOpacity testID={`cycle-energy-plus`} onPress={() => setVal('energy', +1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
                 <Ionicons name='add' size={16} color={colors.primary} />
               </TouchableOpacity>
@@ -160,7 +181,7 @@ export default function CycleDayScreen() {
               <TouchableOpacity testID={`cycle-pain-minus`} onPress={() => setVal('pain', -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
                 <Ionicons name='remove' size={16} color={colors.primary} />
               </TouchableOpacity>
-              <View style={{ flex: 1, alignItems: 'center' }}>{renderIconScale(log.pain ?? 5, 'medkit', 'pain')}</View>
+              <View style={{ flex: 1, alignItems: 'center' }}>{renderIconScale(draft.pain, 'medkit', 'pain')}</View>
               <TouchableOpacity testID={`cycle-pain-plus`} onPress={() => setVal('pain', +1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
                 <Ionicons name='add' size={16} color={colors.primary} />
               </TouchableOpacity>
@@ -183,14 +204,14 @@ export default function CycleDayScreen() {
               <TouchableOpacity testID={`cycle-sleep-minus`} onPress={() => setVal('sleep', -1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
                 <Ionicons name='remove' size={16} color={colors.primary} />
               </TouchableOpacity>
-              <View style={{ flex: 1, alignItems: 'center' }}>{renderIconScale(log.sleep ?? 5, 'moon', 'sleep')}</View>
+              <View style={{ flex: 1, alignItems: 'center' }}>{renderIconScale(draft.sleep, 'moon', 'sleep')}</View>
               <TouchableOpacity testID={`cycle-sleep-plus`} onPress={() => setVal('sleep', +1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
                 <Ionicons name='add' size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Bleeding intensity (0..9 taps) */}
+          {/* Bleeding intensity (0..9 taps + stepper) */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -201,13 +222,19 @@ export default function CycleDayScreen() {
                 <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            {help.bleeding ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Tippe 0–9 Tropfen; mehr Tropfen = stärkere Blutung.':'Tap 0–9 drops; more drops = stronger bleeding.'}</Text>) : null}
-            <View style={{ marginTop: 8 }}>
-              {renderBleedingScale(log.flow ?? 0)}
+            {help.bleeding ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Wähle 0–9 Tropfen; mehr Tropfen = stärkere Blutung.':'Choose 0–9 drops; more drops = stronger bleeding.'}</Text>) : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+              <TouchableOpacity onPress={() => setFlow(draft.flow - 1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                <Ionicons name='remove' size={16} color={colors.primary} />
+              </TouchableOpacity>
+              <View style={{ flex: 1, alignItems: 'center' }}>{renderBleedingScale(draft.flow)}</View>
+              <TouchableOpacity onPress={() => setFlow(draft.flow + 1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
+                <Ionicons name='add' size={16} color={colors.primary} />
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Additional: Sex toggle */}
+          {/* Additional: toggles */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Weitere Angaben':'Additional'}</Text>
@@ -215,16 +242,28 @@ export default function CycleDayScreen() {
                 <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            {help.additional ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Zusätzliche Angaben wie Sex.':'Additional items like sex.'}</Text>) : null}
+            {help.additional ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Nützliche Marker: Krämpfe, Kopfschmerzen, Übelkeit.':'Useful markers: cramps, headache, nausea.'}</Text>) : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-              <TouchableOpacity testID='cycle-sex-toggle' onPress={() => state.setCycleLog(String(date), { sex: !log.sex })} style={[styles.chip, { borderColor: colors.primary, backgroundColor: log.sex ? colors.primary : 'transparent' }]}> 
-                <Ionicons name='heart' size={14} color={log.sex ? '#fff' : colors.primary} />
-                <Text style={{ color: log.sex ? '#fff' : colors.text, marginLeft: 6 }}>{lang==='de'?'Sex':'Sex'}</Text>
+              <TouchableOpacity onPress={() => setDraft((d)=>({ ...d, sex: !d.sex }))} style={[styles.chip, { borderColor: colors.primary, backgroundColor: draft.sex ? colors.primary : 'transparent' }]}> 
+                <Ionicons name='heart' size={14} color={draft.sex ? '#fff' : colors.primary} />
+                <Text style={{ color: draft.sex ? '#fff' : colors.text, marginLeft: 6 }}>{lang==='de'?'Sex':'Sex'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setDraft((d)=>({ ...d, cramps: !d.cramps }))} style={[styles.chip, { borderColor: colors.primary, backgroundColor: draft.cramps ? colors.primary : 'transparent' }]}> 
+                <Ionicons name='body' size={14} color={draft.cramps ? '#fff' : colors.primary} />
+                <Text style={{ color: draft.cramps ? '#fff' : colors.text, marginLeft: 6 }}>{lang==='de'?'Krämpfe':'Cramps'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setDraft((d)=>({ ...d, headache: !d.headache }))} style={[styles.chip, { borderColor: colors.primary, backgroundColor: draft.headache ? colors.primary : 'transparent' }]}> 
+                <Ionicons name='medkit' size={14} color={draft.headache ? '#fff' : colors.primary} />
+                <Text style={{ color: draft.headache ? '#fff' : colors.text, marginLeft: 6 }}>{lang==='de'?'Kopfschmerzen':'Headache'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setDraft((d)=>({ ...d, nausea: !d.nausea }))} style={[styles.chip, { borderColor: colors.primary, backgroundColor: draft.nausea ? colors.primary : 'transparent' }]}> 
+                <Ionicons name='restaurant' size={14} color={draft.nausea ? '#fff' : colors.primary} />
+                <Text style={{ color: draft.nausea ? '#fff' : colors.text, marginLeft: 6 }}>{lang==='de'?'Übelkeit':'Nausea'}</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Notes */}
+          {/* Notes + Save/Delete */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text style={{ color: colors.text, fontWeight: '700' }}>{lang==='de'?'Notizen':'Notes'}</Text>
@@ -233,7 +272,17 @@ export default function CycleDayScreen() {
               </TouchableOpacity>
             </View>
             {help.notes ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Freitext für besondere Beobachtungen.':'Free text for notable observations.'}</Text>) : null}
-            <TextInput testID='cycle-notes' style={{ marginTop: 8, minHeight: 100, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, padding: 10, color: colors.text, backgroundColor: colors.input }} placeholder={lang==='de'?'Notizen hier eingeben...':'Enter notes...'} placeholderTextColor={colors.muted} value={log.notes || ''} onChangeText={(v) => state.setCycleLog(String(date), { notes: v })} multiline />
+            <TextInput testID='cycle-notes' style={{ marginTop: 8, minHeight: 100, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, padding: 10, color: colors.text, backgroundColor: colors.input }} placeholder={lang==='de'?'Notizen hier eingeben...':'Enter notes...'} placeholderTextColor={colors.muted} value={draft.notes} onChangeText={(v) => setDraft((d)=>({ ...d, notes: v }))} multiline />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
+              <TouchableOpacity onPress={deleteDraft} style={[styles.chip, { borderColor: colors.primary }]}>
+                <Ionicons name='trash' size={16} color={colors.primary} />
+                <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Löschen':'Delete'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={saveDraft} style={[styles.chip, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                <Ionicons name='save' size={16} color={'#fff'} />
+                <Text style={{ color: '#fff', marginLeft: 6 }}>{lang==='de'?'Speichern':'Save'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

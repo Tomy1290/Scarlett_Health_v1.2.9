@@ -25,6 +25,7 @@ export default function SavedManager() {
   const [newCategory, setNewCategory] = useState('');
   const [newTags, setNewTags] = useState('');
   const [newText, setNewText] = useState('');
+  const [showNew, setShowNew] = useState(false);
 
   const categories = useMemo(() => {
     const fromSaved = Array.from(new Set((state.saved || []).map(s => s.category).filter(Boolean) as string[]));
@@ -46,7 +47,7 @@ export default function SavedManager() {
   function addItem() {
     if (!newText.trim()) return;
     state.addSaved({ id: String(Date.now()), title: newTitle || 'Notiz', category: newCategory || undefined, tags: newTags ? newTags.split(',').map(t => t.trim()).filter(Boolean) : undefined, text: newText.trim(), createdAt: Date.now() });
-    setNewTitle(''); setNewCategory(''); setNewTags(''); setNewText('');
+    setNewTitle(''); setNewCategory(''); setNewTags(''); setNewText(''); setShowNew(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
@@ -63,7 +64,6 @@ export default function SavedManager() {
         <View style={{ width: 40 }} />
       </View>
 
-
       <View style={{ padding: 16, gap: 8 }}>
         <TextInput value={query} onChangeText={setQuery} placeholder='Suchen (Titel, Text, Tags)…' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text }]} />
         <ScrollView horizontal contentContainerStyle={{ gap: 8 }} showsHorizontalScrollIndicator={false}>
@@ -76,11 +76,39 @@ export default function SavedManager() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* Collapsible new item */}
+        <TouchableOpacity onPress={() => setShowNew((v)=>!v)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+          <Ionicons name={showNew ? 'chevron-down' : 'chevron-forward'} size={18} color={colors.text} />
+          <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 6 }}>{state.language==='de'?'Neu anlegen':'Create new'}</Text>
+        </TouchableOpacity>
+        {showNew ? (
+          <View style={[styles.card, { backgroundColor: colors.card, marginTop: 8 }]}> 
+            <TextInput value={newTitle} onChangeText={setNewTitle} placeholder='Titel (optional)' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, marginBottom: 8 }]} />
+            <ScrollView horizontal contentContainerStyle={{ gap: 8 }} showsHorizontalScrollIndicator={false}>
+              {PRESET_CATEGORIES.map((c) => (
+                <TouchableOpacity key={c} onPress={() => setNewCategory(c)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: newCategory===c?colors.primary:'transparent' }]}>
+                  <Text style={{ color: newCategory===c?'#fff':colors.text }}>{c}</Text>
+                </TouchableOpacity>
+              ))}
+              <View style={{ width: 8 }} />
+              <TextInput value={newCategory} onChangeText={setNewCategory} placeholder='Eigene Kategorie…' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, width: 180 }]} />
+            </ScrollView>
+            <TextInput value={newTags} onChangeText={setNewTags} placeholder='Tags (kommagetrennt)' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, marginTop: 8 }]} />
+            <TextInput value={newText} onChangeText={setNewText} placeholder='Text…' placeholderTextColor={colors.muted} multiline style={[styles.input, { borderColor: colors.muted, color: colors.text, marginTop: 8, minHeight: 80 }]} />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+              <TouchableOpacity onPress={addItem} style={[styles.primaryBtn, { backgroundColor: colors.primary }]}>
+                <Ionicons name='save' size={16} color='#fff' />
+                <Text style={{ color: '#fff', marginLeft: 8 }}>{state.language==='de'?'Speichern':'Save'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         {filtered.map((s) => (
-          <View key={s.id} style={[styles.card, { backgroundColor: colors.card }]}>
+          <View key={s.id} style={[styles.card, { backgroundColor: colors.card }]}> 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flex: 1, paddingRight: 8 }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>{s.title || 'Notiz'}</Text>
@@ -94,7 +122,7 @@ export default function SavedManager() {
             {s.tags?.length ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                 {s.tags.map((t, i) => (
-                  <View key={i} style={[styles.tag, { borderColor: colors.muted }]}>
+                  <View key={i} style={[styles.tag, { borderColor: colors.muted }]}> 
                     <Text style={{ color: colors.muted }}>#{t}</Text>
                   </View>
                 ))}
@@ -103,35 +131,14 @@ export default function SavedManager() {
           </View>
         ))}
       </ScrollView>
-
-      <View style={[styles.card, { backgroundColor: colors.card, margin: 16 }]}>
-        <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 8 }}>Neu anlegen</Text>
-        <TextInput value={newTitle} onChangeText={setNewTitle} placeholder='Titel (optional)' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, marginBottom: 8 }]} />
-        <ScrollView horizontal contentContainerStyle={{ gap: 8 }} showsHorizontalScrollIndicator={false}>
-          {PRESET_CATEGORIES.map((c) => (
-            <TouchableOpacity key={c} onPress={() => setNewCategory(c)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: newCategory===c?colors.primary:'transparent' }]}>
-              <Text style={{ color: newCategory===c?'#fff':colors.text }}>{c}</Text>
-            </TouchableOpacity>
-          ))}
-          <View style={{ width: 8 }} />
-          <TextInput value={newCategory} onChangeText={setNewCategory} placeholder='Eigene Kategorie…' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, width: 180 }]} />
-        </ScrollView>
-        <TextInput value={newTags} onChangeText={setNewTags} placeholder='Tags (kommagetrennt)' placeholderTextColor={colors.muted} style={[styles.input, { borderColor: colors.muted, color: colors.text, marginTop: 8 }]} />
-        <TextInput value={newText} onChangeText={setNewText} placeholder='Text…' placeholderTextColor={colors.muted} multiline style={[styles.input, { borderColor: colors.muted, color: colors.text, marginTop: 8, minHeight: 80 }]} />
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
-          <TouchableOpacity onPress={addItem} style={[styles.primaryBtn, { backgroundColor: colors.primary }]}>
-            <Ionicons name='save' size={16} color='#fff' />
-            <Text style={{ color: '#fff', marginLeft: 8 }}>Speichern</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 16, fontWeight: '700' },
+  appTitle: { fontSize: 14, fontWeight: '800' },
+  title: { fontSize: 12, fontWeight: '600' },
   iconBtn: { padding: 8 },
   badge: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   card: { borderRadius: 12, padding: 12 },

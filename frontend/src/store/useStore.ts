@@ -1,7 +1,7 @@
 import React from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { mmkvAdapter } from "../utils/storage";
+import { mmkvAdapter, storage } from "../utils/storage";
 import { toKey } from "../utils/date";
 import { computeAchievements } from "../achievements";
 
@@ -35,6 +35,9 @@ export type CycleLog = {
   sex?: boolean;
   notes?: string;
   flow?: number; // 0..9 bleeding intensity
+  cramps?: boolean;
+  headache?: boolean;
+  nausea?: boolean;
 };
 
 export type AppState = {
@@ -101,6 +104,7 @@ export type AppState = {
   endCycle: (dateKey: string) => void;
 
   setCycleLog: (dateKey: string, patch: Partial<CycleLog>) => void;
+  clearCycleLog: (dateKey: string) => void;
 
   recalcAchievements: () => void;
 };
@@ -111,7 +115,7 @@ function clamp(n: number, min: number, max: number) { return Math.max(min, Math.
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.1.6",
+      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.1.7",
       currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {}, profileAlias: '', xpLog: [],
       aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true, cycles: [], cycleLogs: {}, waterCupMl: 250,
 
@@ -151,13 +155,60 @@ export const useAppStore = create<AppState>()(
       startCycle: (dateKey) => { const cycles = [...get().cycles]; const active = cycles.find(c => !c.end); if (active) return; cycles.push({ start: dateKey }); set({ cycles }); },
       endCycle: (dateKey) => { const cycles = [...get().cycles]; const activeIdx = cycles.findIndex(c => !c.end); if (activeIdx === -1) return; cycles[activeIdx] = { ...cycles[activeIdx], end: dateKey }; set({ cycles }); },
 
-      setCycleLog: (dateKey, patch) => { const all = { ...(get().cycleLogs || {}) }; const prev = all[dateKey] || {}; const merged: CycleLog = { ...prev }; if (typeof patch.mood === 'number') merged.mood = clamp(patch.mood, 1, 10); if (typeof patch.energy === 'number') merged.energy = clamp(patch.energy, 1, 10); if (typeof patch.pain === 'number') merged.pain = clamp(patch.pain, 1, 10); if (typeof patch.sleep === 'number') merged.sleep = clamp(patch.sleep, 1, 10); if (typeof patch.sex === 'boolean') merged.sex = patch.sex; if (typeof patch.notes === 'string') merged.notes = patch.notes; if (typeof patch.flow === 'number') merged.flow = Math.max(0, Math.min(9, patch.flow)); all[dateKey] = merged; set({ cycleLogs: all }); },
+      setCycleLog: (dateKey, patch) => { const all = { ...(get().cycleLogs || {}) }; const prev = all[dateKey] || {}; const merged: CycleLog = { ...prev };
+        if (typeof patch.mood === 'number') merged.mood = clamp(patch.mood, 1, 10);
+        if (typeof patch.energy === 'number') merged.energy = clamp(patch.energy, 1, 10);
+        if (typeof patch.pain === 'number') merged.pain = clamp(patch.pain, 1, 10);
+        if (typeof patch.sleep === 'number') merged.sleep = clamp(patch.sleep, 1, 10);
+        if (typeof patch.sex === 'boolean') merged.sex = patch.sex;
+        if (typeof patch.notes === 'string') merged.notes = patch.notes;
+        if (typeof patch.flow === 'number') merged.flow = Math.max(0, Math.min(9, patch.flow));
+        if (typeof patch.cramps === 'boolean') merged.cramps = patch.cramps;
+        if (typeof patch.headache === 'boolean') merged.headache = patch.headache;
+        if (typeof patch.nausea === 'boolean') merged.nausea = patch.nausea;
+        all[dateKey] = merged; set({ cycleLogs: all }); },
+      clearCycleLog: (dateKey) => { const all = { ...(get().cycleLogs || {}) }; delete all[dateKey]; set({ cycleLogs: all }); },
 
       recalcAchievements: () => { const state = get(); const base = computeAchievements({ days: state.days, goal: state.goal, reminders: state.reminders, chat: state.chat, saved: state.saved, achievementsUnlocked: state.achievementsUnlocked, xp: state.xp, language: state.language, theme: state.theme }); const prevSet = new Set(state.achievementsUnlocked); const newUnlocks = base.unlocked.filter((id) => !prevSet.has(id)); let xpDelta = 0; const comboBonus = newUnlocks.length >= 2 ? (newUnlocks.length - 1) * 50 : 0; if (newUnlocks.length > 0) { try { const { getAchievementConfigById } = require('../achievements'); const sum = newUnlocks.reduce((acc: number, id: string) => { const cfg = getAchievementConfigById(id); return acc + (cfg?.xp || 0); }, 0); xpDelta += sum; if (sum > 0) { const addLog = { id: `ach:${Date.now()}`, ts: Date.now(), amount: sum, source: 'achievement', note: `${newUnlocks.length} unlocks` } as XpLogEntry; set({ xpLog: [...(state.xpLog||[]), addLog] }); } } catch {} } if (comboBonus > 0) { const addLog = { id: `combo:${Date.now()}`, ts: Date.now(), amount: comboBonus, source: 'combo', note: `${newUnlocks.length} unlocks combo` } as XpLogEntry; set({ xpLog: [...(get().xpLog||[]), addLog] }); } set({ achievementsUnlocked: base.unlocked, xp: state.xp + xpDelta + comboBonus }); },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 16, onRehydrateStorage: () => (state) => { if (!state) return; const days = state.days || {}; for (const k of Object.keys(days)) { const d = days[k]; if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any; if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any; if (!d.xpToday) d.xpToday = {}; } if (typeof (state as any).waterCupMl !== 'number') (state as any).waterCupMl = 250; } }
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 17, onRehydrateStorage: () => (state) => {
+      if (!state) return;
+      // Migrations for missing fields
+      const days = state.days || {} as any;
+      for (const k of Object.keys(days)) {
+        const d = days[k];
+        if (!d.drinks) d.drinks = { water: 0, coffee: 0, slimCoffee: false, gingerGarlicTea: false, waterCure: false, sport: false } as any;
+        if (typeof d.drinks.sport !== 'boolean') d.drinks.sport = false as any;
+        if (!d.xpToday) d.xpToday = {};
+      }
+      if (typeof (state as any).waterCupMl !== 'number') (state as any).waterCupMl = 250;
+      // Fallback restore from backup if content seems empty
+      try {
+        const empty = (!state.days || Object.keys(state.days).length === 0) && (!state.cycles || state.cycles.length === 0) && (!state.saved || state.saved.length === 0);
+        if (empty) {
+          const backup = storage.getString('scarlett-backup');
+          if (backup) {
+            const parsed = JSON.parse(backup);
+            // Dangerous replace: only if backup looks valid
+            if (parsed && parsed.days) {
+              // set whole state
+              setTimeout(() => {
+                try { (useAppStore as any).setState(parsed, true); } catch {}
+              }, 0);
+            }
+          }
+        }
+      } catch {}
+    } }
   )
 );
+
+// Continuous backup to MMKV (secondary key) to survive rare resets
+try {
+  (useAppStore as any).subscribe((s: any) => {
+    try { storage.set('scarlett-backup', JSON.stringify(s)); } catch {}
+  });
+} catch {}
 
 export function useLevel() { const xp = useAppStore((s) => s.xp); const level = Math.floor(xp / 100) + 1; return { level, xp }; }
 
