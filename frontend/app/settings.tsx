@@ -70,7 +70,7 @@ export default function SettingsScreen() {
       { id: 'sport_daily', type: 'sport', title: state.language==='de'?'Sport':(state.language==='pl'?'Sport':'Sport'), body: state.language==='de'?'Zeit für Sport.':(state.language==='pl'?'Czas na sport.':'Time for sport.'), time: '16:00' },
     ];
     for (const def of defaults) {
-      const notifId = await scheduleDailyReminder(def.id, def.title, def.body, def.time);
+      const notifId = await scheduleDailyReminder(def.id, def.title, def.body, def.time, def.type === 'pills_morning' || def.type === 'pills_evening');
       state.addReminder({ id: def.id, type: def.type, time: def.time, enabled: true });
       state.setNotificationMeta(def.id, { id: notifId || '', time: def.time });
     }
