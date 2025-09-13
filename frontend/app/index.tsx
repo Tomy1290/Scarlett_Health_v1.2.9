@@ -202,7 +202,7 @@ export default function Home() {
           <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 10 }}>{t('Tabletten', 'Pills', 'Tabletki')}</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity 
-              onPress={() => { toggleFlag(currentDate, 'pillsMorning'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} 
+              onPress={() => { togglePill(currentDate, 'morning'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} 
               style={[styles.chip, { 
                 borderColor: colors.primary, 
                 backgroundColor: day.pills.morning ? colors.primary : 'transparent',
@@ -218,7 +218,7 @@ export default function Home() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              onPress={() => { toggleFlag(currentDate, 'pillsEvening'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} 
+              onPress={() => { togglePill(currentDate, 'evening'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} 
               style={[styles.chip, { 
                 borderColor: colors.primary, 
                 backgroundColor: day.pills.evening ? colors.primary : 'transparent',
