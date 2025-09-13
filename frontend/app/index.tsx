@@ -147,26 +147,26 @@ export default function Home() {
           {/* Water simple counter */}
           <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ color: colors.text, fontWeight: '600' }}>{t('Wasser', 'Water', 'Woda')}</Text>
-            <View style={{ width: 12 }} />
-            <TouchableOpacity onPress={() => { incDrink(currentDate, 'water', -1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]} accessibilityLabel={t('Wasser verringern', 'Decrease water', 'Zmniejsz wodę')}>
-              <Ionicons name='remove' size={18} color={colors.primary} />
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity onPress={() => { incDrink(currentDate, 'water', -1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtnSm, { borderColor: colors.primary }]} accessibilityLabel={t('Wasser verringern', 'Decrease water', 'Zmniejsz wodę')}>
+              <Ionicons name='remove' size={16} color={colors.primary} />
             </TouchableOpacity>
-            <Text style={{ color: colors.text, marginHorizontal: 12 }}>{day.drinks.water}</Text>
-            <TouchableOpacity onPress={() => { incDrink(currentDate, 'water', +1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]} accessibilityLabel={t('Wasser erhöhen', 'Increase water', 'Zwiększ wodę')}>
-              <Ionicons name='add' size={18} color={colors.primary} />
+            <Text style={{ color: colors.text, marginHorizontal: 10, minWidth: 18, textAlign: 'center' }}>{day.drinks.water}</Text>
+            <TouchableOpacity onPress={() => { incDrink(currentDate, 'water', +1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtnSm, { borderColor: colors.primary }]} accessibilityLabel={t('Wasser erhöhen', 'Increase water', 'Zwiększ wodę')}>
+              <Ionicons name='add' size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
           {/* Coffee simple counter */}
           <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ color: colors.text, fontWeight: '600' }}>{t('Kaffee', 'Coffee', 'Kawa')}</Text>
-            <View style={{ width: 12 }} />
-            <TouchableOpacity onPress={() => { incDrink(currentDate, 'coffee', -1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]} accessibilityLabel={t('Kaffee verringern', 'Decrease coffee', 'Zmniejsz kawę')}>
-              <Ionicons name='remove' size={18} color={colors.primary} />
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity onPress={() => { incDrink(currentDate, 'coffee', -1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtnSm, { borderColor: colors.primary }]} accessibilityLabel={t('Kaffee verringern', 'Decrease coffee', 'Zmniejsz kawę')}>
+              <Ionicons name='remove' size={16} color={colors.primary} />
             </TouchableOpacity>
-            <Text style={{ color: colors.text, marginHorizontal: 12 }}>{day.drinks.coffee}</Text>
-            <TouchableOpacity onPress={() => { incDrink(currentDate, 'coffee', +1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtn, { borderColor: colors.primary }]} accessibilityLabel={t('Kaffee erhöhen', 'Increase coffee', 'Zwiększ kawę')}>
-              <Ionicons name='add' size={18} color={colors.primary} />
+            <Text style={{ color: colors.text, marginHorizontal: 10, minWidth: 18, textAlign: 'center' }}>{day.drinks.coffee}</Text>
+            <TouchableOpacity onPress={() => { incDrink(currentDate, 'coffee', +1); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={[styles.counterBtnSm, { borderColor: colors.primary }]} accessibilityLabel={t('Kaffee erhöhen', 'Increase coffee', 'Zwiększ kawę')}>
+              <Ionicons name='add' size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
@@ -273,8 +273,60 @@ export default function Home() {
           )}
         </View>
 
-        {/* Quick access */}
+        {/* Weekly Event */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name='calendar' size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('Wochen-Event', 'Weekly event', 'Wydarzenie tygodnia')}</Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push('/events')}>
+              <Ionicons name='chevron-forward' size={18} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+          {state.eventsEnabled === false ? (
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Events sind deaktiviert (siehe Einstellungen).', 'Events are disabled (see Settings).', 'Wydarzenia są wyłączone (patrz Ustawienia).')}</Text>
+          ) : weeklyEvent ? (
+            <View style={{ marginTop: 6 }}>
+              <Text style={{ color: colors.text }}>{weeklyEvent.title}</Text>
+              <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
+                <View style={{ width: `${Math.round(evProg.percent || 0)}%`, height: 6, backgroundColor: evProg.completed ? '#2bb673' : colors.primary }} />
+              </View>
+              <Text style={{ color: colors.muted, marginTop: 4 }}>{Math.round(evProg.percent || 0)}% {evProg.completed ? t('abgeschlossen','completed','ukończone') : ''}</Text>
+            </View>
+          ) : (
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Kein aktives Event.', 'No active event.', 'Brak aktywnego wydarzenia.')}</Text>
+          )}
+        </View>
+
+        {/* Rewards */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="gift" size={20} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{language==='de'?'Belohnungen':(language==='pl'?'Nagrody':'Rewards')}</Text>
+            </View>
+            <TouchableOpacity onPress={() => toggleHelp('rewards')}>
+              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+          {help.rewards ? (
+            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Sammle XP, um Belohnungen freizuschalten. Sieh dir Erfolge und Rangliste an.', 'Earn XP to unlock rewards. Check achievements and leaderboard.', 'Zbieraj XP, aby odblokować nagrody. Sprawdź osiągnięcia i ranking.')}</Text>
+          ) : null}
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
+            <TouchableOpacity style={[styles.cta, { backgroundColor: colors.primary }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/achievements'); }}>
+              <Ionicons name="trophy" size={16} color="#fff" />
+              <Text style={{ color: '#fff', marginLeft: 6 }}>{language==='de'?'Erfolge':(language==='pl'?'Osiągnięcia':'Achievements')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.cta, { borderColor: colors.primary, borderWidth: 1 }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/leaderboard'); }}>
+              <Ionicons name="podium" size={16} color={colors.primary} />
+              <Text style={{ color: colors.text, marginLeft: 6 }}>{language==='de'?'Rangliste':(language==='pl'?'Ranking':'Leaderboard')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Quick access */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>{language==='de'?'Schnellzugriff':(language==='pl'?'Szybki dostęp':'Quick access')}</Text>
             <TouchableOpacity onPress={() => toggleHelp('quick')}>
@@ -341,6 +393,7 @@ const styles = StyleSheet.create({
   iconBtn: { padding: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   toggle: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, borderWidth: 1 },
   counterBtn: { paddingHorizontal: 10, paddingVertical: 10, borderRadius: 8, borderWidth: 1, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+  counterBtnSm: { paddingHorizontal: 8, paddingVertical: 8, borderRadius: 8, borderWidth: 1, minWidth: 36, alignItems: 'center', justifyContent: 'center' },
   chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
   quick: { width: '47%', borderRadius: 12, padding: 12, alignItems: 'center', justifyContent: 'center' },
 });
