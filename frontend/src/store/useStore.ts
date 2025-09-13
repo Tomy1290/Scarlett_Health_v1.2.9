@@ -121,7 +121,7 @@ function clamp(n: number, min: number, max: number) { return Math.max(min, Math.
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.2.2",
+      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.2.3",
       currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {}, profileAlias: '', xpLog: [],
       aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true, cycles: [], cycleLogs: {}, waterCupMl: 250, lastChatLeaveAt: 0,
 
@@ -163,7 +163,7 @@ export const useAppStore = create<AppState>()(
       startCycle: async (dateKey) => { const cycles = [...get().cycles]; const active = cycles.find(c => !c.end); if (active) return; cycles.push({ start: dateKey }); set({ cycles }); await get().scheduleCycleNotifications(); },
       endCycle: async (dateKey) => { const cycles = [...get().cycles]; const activeIdx = cycles.findIndex(c => !c.end); if (activeIdx === -1) return; cycles[activeIdx] = { ...cycles[activeIdx], end: dateKey }; set({ cycles }); await get().scheduleCycleNotifications(); },
 
-      setCycleLog: (dateKey, patch) => { const all = { ...(get().cycleLogs || {}) }; const prev = all[dateKey] || {}; const merged: CycleLog = { ...prev };
+      setCycleLog: (dateKey, patch) => { const all = { ...(get().cycleLogs || {}) }; const prev = all[dateKey] || {}; const merged: any = { ...prev };
         if (typeof patch.mood === 'number') merged.mood = clamp(patch.mood, 1, 10);
         if (typeof patch.energy === 'number') merged.energy = clamp(patch.energy, 1, 10);
         if (typeof patch.pain === 'number') merged.pain = clamp(patch.pain, 1, 10);
@@ -183,7 +183,6 @@ export const useAppStore = create<AppState>()(
         try {
           await ensureNotificationPermissions();
           await ensureAndroidChannel();
-          // Cancel existing cycle notifications
           const keys = ['cycle_period_minus2','cycle_period_day0','cycle_fertile_minus2','cycle_fertile_day0'];
           for (const k of keys) { const meta = get().notificationMeta[k]; if (meta?.id) await cancelNotification(meta.id); }
           const cycles = get().cycles;
@@ -220,9 +219,8 @@ export const useAppStore = create<AppState>()(
         } catch {}
       },
     }),
-    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 18, onRehydrateStorage: () => (state) => {
+    { name: "scarlett-app-state", storage: createJSONStorage(() => mmkvAdapter), partialize: (s) => s, version: 19, onRehydrateStorage: () => (state) => {
       if (!state) return;
-      // Migrations for missing fields
       const days = state.days || {} as any;
       for (const k of Object.keys(days)) {
         const d = days[k];
@@ -232,21 +230,6 @@ export const useAppStore = create<AppState>()(
       }
       if (typeof (state as any).waterCupMl !== 'number') (state as any).waterCupMl = 250;
       if (typeof (state as any).lastChatLeaveAt !== 'number') (state as any).lastChatLeaveAt = 0;
-      try {
-        const empty = (!state.days || Object.keys(state.days).length === 0) && (!state.cycles || state.cycles.length === 0) && (!state.saved || state.saved.length === 0);
-        if (empty) {
-          const backup = storage.getString('scarlett-backup');
-          if (backup) {
-            const parsed = JSON.parse(backup);
-            if (parsed && parsed.days) {
-              setTimeout(() => {
-                try { (useAppStore as any).setState(parsed, true); } catch {}
-              }, 0);
-            }
-          }
-        }
-      } catch {}
-      // Schedule notifications after rehydrate
       setTimeout(() => { try { (useAppStore.getState() as any).scheduleCycleNotifications(); } catch {} }, 200);
     } }
   )

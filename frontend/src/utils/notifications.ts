@@ -24,23 +24,36 @@ export async function ensureAndroidChannel() {
   }
 }
 
+function normalizeTime(input: string): string {
+  if (!input) return '';
+  let s = input.trim();
+  // replace common separators with ':'
+  s = s.replace(/[．。·•·。•・]/g, ':'); // exotic dots
+  s = s.replace(/[：:;，,]/g, ':'); // full-width colon and similar
+  s = s.replace(/\s+/g, ':');
+  // if only digits like 730 or 0730
+  const digits = s.replace(/[^0-9]/g, '');
+  if (digits.length === 4) return `${digits.slice(0,2)}:${digits.slice(2)}`;
+  if (digits.length === 3) return `0${digits[0]}:${digits.slice(1)}`;
+  if (digits.length === 2) return `${digits}:00`;
+  // accept H:MM or HH:MM
+  const m = s.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (m) {
+    const h = m[1].padStart(2,'0');
+    const mm = m[2].padStart(2,'0');
+    return `${h}:${mm}`;
+  }
+  return s;
+}
+
 export function parseHHMM(time: string): { hour: number; minute: number } | null {
-  const m = time.match(/^(\d{2}):(\d{2})$/);
+  const norm = normalizeTime(time);
+  const m = norm.match(/^(\d{2}):(\d{2})$/);
   if (!m) return null;
   const hour = parseInt(m[1], 10);
   const minute = parseInt(m[2], 10);
   if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
   return { hour, minute };
-}
-
-function secondsUntilNextOccurrence(hour: number, minute: number) {
-  const now = new Date();
-  const next = new Date();
-  next.setHours(hour, minute, 0, 0);
-  if (+next <= +now) {
-    next.setDate(next.getDate() + 1);
-  }
-  return Math.max(1, Math.round((+next - +now) / 1000));
 }
 
 export async function scheduleDailyReminder(id: string, title: string, body: string, time: string): Promise<string | null> {
@@ -59,7 +72,6 @@ export async function scheduleDailyReminder(id: string, title: string, body: str
 }
 
 export async function scheduleOneTime(title: string, body: string, date: Date): Promise<string | null> {
-  // If past date, do not schedule
   if (+date <= +new Date()) return null;
   const trigger: Notifications.NotificationTriggerInput = Platform.select({
     android: { channelId: 'reminders', date },
