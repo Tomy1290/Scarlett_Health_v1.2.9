@@ -126,17 +126,31 @@ export default function Home() {
 
         {/* Pills Section */}
         <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 10 }}>{t('Tabletten', 'Pills', 'Tabletki')}</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="medical" size={20} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('Tabletten', 'Pills', 'Tabletki')}</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
             <TouchableOpacity 
               onPress={() => { togglePill(currentDate, 'morning'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} 
               style={[styles.chip, { 
                 borderColor: colors.primary, 
                 backgroundColor: day.pills.morning ? colors.primary : 'transparent',
-                flex: 1
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center'
               }]} 
               accessibilityLabel={t('Morgens', 'Morning', 'Rano')}
             >
+              <Ionicons 
+                name="sunny" 
+                size={16} 
+                color={day.pills.morning ? '#fff' : colors.primary} 
+                style={{ marginRight: 6 }}
+              />
               <Text style={{ 
                 color: day.pills.morning ? '#fff' : colors.text,
                 textAlign: 'center'
@@ -149,10 +163,19 @@ export default function Home() {
               style={[styles.chip, { 
                 borderColor: colors.primary, 
                 backgroundColor: day.pills.evening ? colors.primary : 'transparent',
-                flex: 1
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center'
               }]} 
               accessibilityLabel={t('Abends', 'Evening', 'Wieczorem')}
             >
+              <Ionicons 
+                name="moon" 
+                size={16} 
+                color={day.pills.evening ? '#fff' : colors.primary} 
+                style={{ marginRight: 6 }}
+              />
               <Text style={{ 
                 color: day.pills.evening ? '#fff' : colors.text,
                 textAlign: 'center'
