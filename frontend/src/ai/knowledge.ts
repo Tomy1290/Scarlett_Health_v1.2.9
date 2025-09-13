@@ -93,15 +93,46 @@ export function answerReminders(state: AppState) {
 
 export function answerKnowledge(state: AppState, q: string) {
   const s = q.toLowerCase();
-  if (/(zyklus|cycle|peri|ovul|fertile|pms|krämpf|kramp|kopfschmerz|übelsch|nausea|energie|energy|schlaf|sleep)/.test(s)) {
-    const chunks = [answerCycle(state), cycleFertileWindow(state), cyclePainManagement(state), cycleEnergySleep(state)];
-    return chunks.join('\n');
+  
+  // Spezifische Zyklus-Fragen
+  if (/(fruchtbar|fertile|eisprung|ovul)/i.test(q)) {
+    return cycleFertileWindow(state);
   }
-  if (/(gewicht|weight|plateau|trend|abnehmen|kalorien|kcal|waga|masa|schlaf|sleep|wasser|hydration)/.test(s)) {
-    const chunks = [answerWeight(state), weightPlateauStrategies(state), hydrationWeightRelation(state), weightSleepImpact(state)];
-    return chunks.join('\n');
+  if (/(schmerz|kramp|cramp|kopfschmerz|übelsch|nausea)/i.test(q)) {
+    return cyclePainManagement(state);
   }
-  if (/(erinnerung|reminder|benachrichtigung)/.test(s)) return answerReminders(state);
+  if (/(energie|energy|schlaf|sleep|müde|tired)/i.test(q)) {
+    return cycleEnergySleep(state);
+  }
+  if (/(pms|periode|period|menstruation|blut)/i.test(q)) {
+    return answerCycle(state);
+  }
+  
+  // Allgemeine Zyklus-Fragen - nur Basis-Info
+  if (/(zyklus|cycle)/i.test(q)) {
+    return answerCycle(state);
+  }
+  
+  // Spezifische Gewichts-Fragen
+  if (/(plateau|stagnation|stillstand)/i.test(q)) {
+    return weightPlateauStrategies(state);
+  }
+  if (/(wasser|hydration|trinken|dehydr)/i.test(q)) {
+    return hydrationWeightRelation(state);
+  }
+  if (/(abnehmen|lose.*weight|diät)/i.test(q)) {
+    return [answerWeight(state), weightPlateauStrategies(state)].join('\n\n');
+  }
+  
+  // Allgemeine Gewichts-Fragen
+  if (/(gewicht|weight|waga|masa)/i.test(q)) {
+    return answerWeight(state);
+  }
+  
+  if (/(erinnerung|reminder|benachrichtigung)/i.test(q)) {
+    return answerReminders(state);
+  }
+  
   return '';
 }
 
