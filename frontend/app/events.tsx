@@ -18,19 +18,24 @@ export default function EventsScreen() {
   const state = useAppStore();
   const colors = useThemeColors(state.theme);
 
-  // Create last 12 weeks list
+  // Show: last 2 past, current, next 2 future weeks
   const weeks = useMemo(() => {
-    const arr: { key: string; start: Date; end: Date }[] = [];
-    let base = new Date();
-    for (let i=0;i<12;i++) {
-      const { weekKey, start, end } = getWeekRange(base);
-      arr.push({ key: weekKey, start, end });
-      base = new Date(start.getFullYear(), start.getMonth(), start.getDate()-1); // go to previous week
-    }
-    return arr;
+    const res: { key: string; start: Date; end: Date }[] = [];
+    const cur = getWeekRange(new Date());
+    const prev1 = getWeekRange(new Date(cur.start.getFullYear(), cur.start.getMonth(), cur.start.getDate() - 7));
+    const prev2 = getWeekRange(new Date(cur.start.getFullYear(), cur.start.getMonth(), cur.start.getDate() - 14));
+    const next1 = getWeekRange(new Date(cur.start.getFullYear(), cur.start.getMonth(), cur.start.getDate() + 7));
+    const next2 = getWeekRange(new Date(cur.start.getFullYear(), cur.start.getMonth(), cur.start.getDate() + 14));
+    // order: prev2, prev1, current, next1, next2
+    res.push({ key: prev2.weekKey, start: prev2.start, end: prev2.end });
+    res.push({ key: prev1.weekKey, start: prev1.start, end: prev1.end });
+    res.push({ key: cur.weekKey, start: cur.start, end: cur.end });
+    res.push({ key: next1.weekKey, start: next1.start, end: next1.end });
+    res.push({ key: next2.weekKey, start: next2.start, end: next2.end });
+    return res;
   }, []);
 
-  const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
+  const appTitle = state.language==='en' ? "Scarlett’s Health Tracking" : (state.language==='pl'? 'Zdrowie Scarlett' : 'Scarletts Gesundheitstracking');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -40,7 +45,7 @@ export default function EventsScreen() {
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
           <Text style={[styles.appTitle, { color: colors.text }]}>{appTitle}</Text>
-          <Text style={[styles.title, { color: colors.muted }]}>{state.language==='de'?'Events':'Events'}</Text>
+          <Text style={[styles.title, { color: colors.muted }]}>{state.language==='de'?'Events':(state.language==='pl'?'Wydarzenia':'Events')}</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
@@ -49,15 +54,16 @@ export default function EventsScreen() {
         {weeks.map((w) => {
           const evt = getCurrentWeeklyEvent(w.start);
           const hist = state.eventHistory[w.key];
+          const isCurrent = (() => { const now = new Date(); return +now >= +w.start && +now <= +w.end; })();
           return (
             <View key={w.key} style={[styles.card, { backgroundColor: colors.card }]}> 
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>{evt.title(state.language)}</Text>
-                {hist?.completed ? <Ionicons name='checkmark-circle' size={18} color={'#2bb673'} /> : <Ionicons name='time' size={18} color={colors.muted} />}
+                {isCurrent ? <Text style={{ color: colors.primary, fontWeight: '700' }}>{state.language==='de'?'Aktuell':(state.language==='pl'?'Aktualne':'Current')}</Text> : (hist?.completed ? <Ionicons name='checkmark-circle' size={18} color={'#2bb673'} /> : <Ionicons name='time' size={18} color={colors.muted} />)}
               </View>
               <Text style={{ color: colors.muted, marginTop: 4 }}>{evt.description(state.language)}</Text>
               <Text style={{ color: colors.muted, marginTop: 6 }}>{w.start.toLocaleDateString()} – {w.end.toLocaleDateString()}</Text>
-              <Text style={{ color: colors.muted, marginTop: 2 }}>{hist?.completed ? `+${hist.xp} XP` : (state.language==='de'?'Nicht abgeschlossen':'Not completed')}</Text>
+              <Text style={{ color: colors.muted, marginTop: 2 }}>{hist?.completed ? `+${hist.xp} XP` : (state.language==='de'?'Nicht abgeschlossen':(state.language==='pl'?'Nieukończone':'Not completed'))}</Text>
             </View>
           );
         })}
