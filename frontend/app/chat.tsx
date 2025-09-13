@@ -59,6 +59,9 @@ export default function ChatScreen() {
 
   const [showKnowledge, setShowKnowledge] = useState(false);
   const [selTopic, setSelTopic] = useState<typeof TOPICS[number]['key']>('cycle');
+  
+  // AI Status tracking
+  const [aiStatus, setAiStatus] = useState<'cloud' | 'local' | 'checking'>('checking');
 
   const maxVisible = level >= 50 ? 30 : 5;
   const allChat = state.chat || [];
