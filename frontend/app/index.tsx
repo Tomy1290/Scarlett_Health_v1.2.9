@@ -236,45 +236,6 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Pills Section */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 10 }}>{t('Tabletten', 'Pills', 'Tabletki')}</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity 
-              onPress={() => { togglePill(currentDate, 'morning'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} 
-              style={[styles.chip, { 
-                borderColor: colors.primary, 
-                backgroundColor: day.pills.morning ? colors.primary : 'transparent',
-                flex: 1
-              }]} 
-              accessibilityLabel={t('Morgens', 'Morning', 'Rano')}
-            >
-              <Text style={{ 
-                color: day.pills.morning ? '#fff' : colors.text,
-                textAlign: 'center'
-              }}>
-                {t('Morgens', 'Morning', 'Rano')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => { togglePill(currentDate, 'evening'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} 
-              style={[styles.chip, { 
-                borderColor: colors.primary, 
-                backgroundColor: day.pills.evening ? colors.primary : 'transparent',
-                flex: 1
-              }]} 
-              accessibilityLabel={t('Abends', 'Evening', 'Wieczorem')}
-            >
-              <Text style={{ 
-                color: day.pills.evening ? '#fff' : colors.text,
-                textAlign: 'center'
-              }}>
-                {t('Abends', 'Evening', 'Wieczorem')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Weight */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
