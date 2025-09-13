@@ -273,34 +273,8 @@ export default function Home() {
           )}
         </View>
 
-        {/* Rewards */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="gift" size={20} color={colors.primary} />
-              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{language==='de'?'Belohnungen':(language==='pl'?'Nagrody':'Rewards')}</Text>
-            </View>
-            <TouchableOpacity onPress={() => toggleHelp('rewards')}>
-              <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
-            </TouchableOpacity>
-          </View>
-          {help.rewards ? (
-            <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Sammle XP, um Belohnungen freizuschalten. Sieh dir Erfolge und Rangliste an.', 'Earn XP to unlock rewards. Check achievements and leaderboard.', 'Zbieraj XP, aby odblokować nagrody. Sprawdź osiągnięcia i ranking.')}</Text>
-          ) : null}
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
-            <TouchableOpacity style={[styles.cta, { backgroundColor: colors.primary }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/achievements'); }}>
-              <Ionicons name="trophy" size={16} color="#fff" />
-              <Text style={{ color: '#fff', marginLeft: 6 }}>{language==='de'?'Erfolge':(language==='pl'?'Osiągnięcia':'Achievements')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.cta, { borderColor: colors.primary, borderWidth: 1 }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/leaderboard'); }}>
-              <Ionicons name="podium" size={16} color={colors.primary} />
-              <Text style={{ color: colors.text, marginLeft: 6 }}>{language==='de'?'Rangliste':(language==='pl'?'Ranking':'Leaderboard')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Quick access */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>{language==='de'?'Schnellzugriff':(language==='pl'?'Szybki dostęp':'Quick access')}</Text>
             <TouchableOpacity onPress={() => toggleHelp('quick')}>
@@ -320,6 +294,10 @@ export default function Home() {
             <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/saved'); }} style={[styles.quick, { backgroundColor: colors.bg }]} accessibilityLabel='Gespeichert'>
               <Ionicons name="bookmark" size={18} color={colors.primary} />
               <Text style={{ color: colors.text, marginTop: 6 }}>{language==='de'?'Gespeichert':(language==='pl'?'Zapisane':'Saved')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/faq'); }} style={[styles.quick, { backgroundColor: colors.bg }]} accessibilityLabel='FAQ'>
+              <Ionicons name="help-circle" size={18} color={colors.primary} />
+              <Text style={{ color: colors.text, marginTop: 6 }}>FAQ</Text>
             </TouchableOpacity>
           </View>
         </View>
