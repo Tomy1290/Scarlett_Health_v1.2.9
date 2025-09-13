@@ -85,6 +85,7 @@ export type AppState = {
   setPillsBoth: (key: string) => void;
   incDrink: (key: string, type: "water" | "coffee", delta: number) => void;
   toggleFlag: (key: string, type: "slimCoffee" | "gingerGarlicTea" | "waterCure" | "sport") => void;
+  togglePill: (key: string, type: "morning" | "evening") => void;
   setWeight: (key: string, weight: number) => void;
   setGoal: (goal: Goal) => void;
   removeGoal: () => void;
