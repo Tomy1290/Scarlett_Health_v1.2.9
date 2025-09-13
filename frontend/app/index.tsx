@@ -298,7 +298,7 @@ export default function Home() {
             <Text style={{ color: colors.muted, marginTop: 6 }}>{t('Events sind deaktiviert (siehe Einstellungen).', 'Events are disabled (see Settings).', 'Wydarzenia są wyłączone (patrz Ustawienia).')}</Text>
           ) : weeklyEvent ? (
             <View style={{ marginTop: 6 }}>
-              <Text style={{ color: colors.text }}>{weeklyEvent.title}</Text>
+              <Text style={{ color: colors.text }}>{weeklyEvent.title(language === 'en' ? 'en' : 'de')}</Text>
               <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
                 <View style={{ width: `${Math.round(evProg.percent || 0)}%`, height: 6, backgroundColor: evProg.completed ? '#2bb673' : colors.primary }} />
               </View>
