@@ -177,11 +177,11 @@ export default function SettingsScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
             <Text style={{ color: colors.text, width: 160 }}>{state.language==='de'?'Bechergröße':(state.language==='pl'?'Rozmiar kubka':'Cup size')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <TextInput keyboardType='number-pad' value={cupInput} onChangeText={setCupInput} onBlur={() => { const n = parseInt((cupInput||'').replace(/[^0-9]/g,'')||'0',10); const v = Math.max(100, Math.min(1000, isNaN(n)?250:n)); state.setWaterCupMl(v); setCupInput(String(v)); }} style={{ flex: 1, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, color: colors.text, backgroundColor: colors.input }} />
+              <TextInput keyboardType='number-pad' value={cupInput} onChangeText={setCupInput} onBlur={() => { const n = parseInt((cupInput||'').replace(/[^0-9]/g,'')||'0',10); const v = Math.max(0, Math.min(1000, isNaN(n)?0:n)); state.setWaterCupMl(v); setCupInput(String(v)); }} style={{ flex: 1, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, paddingHorizontal: 10, color: colors.text, backgroundColor: colors.input }} />
               <Text style={{ color: colors.muted, marginLeft: 8 }}>ml</Text>
             </View>
           </View>
-          <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Empfohlen: 100–1000 ml.':'Recommended: 100–1000 ml.'}</Text>
+          <Text style={{ color: colors.muted, marginTop: 6 }}>{state.language==='de'?'Bereich: 0–1000 ml.':(state.language==='pl'?'Zakres: 0–1000 ml.':'Range: 0–1000 ml.')}</Text>
         </View>
 
         {/* Reminders */}

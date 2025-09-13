@@ -153,7 +153,7 @@ export const useAppStore = create<AppState>()(
       setAiInsightsEnabled: (v) => set({ aiInsightsEnabled: v }),
       feedbackAI: (id, delta) => { const map = { ...(get().aiFeedback||{}) }; map[id] = (map[id]||0) + delta; set({ aiFeedback: map }); },
       setEventsEnabled: (v) => set({ eventsEnabled: v }),
-      setWaterCupMl: (ml) => set({ waterCupMl: Math.max(50, Math.min(1000, Math.round(ml))) }),
+      setWaterCupMl: (ml) => set({ waterCupMl: Math.max(0, Math.min(1000, Math.round(ml))) }),
 
       startCycle: async (dateKey) => { const cycles = [...get().cycles]; const active = cycles.find(c => !c.end); if (active) return; cycles.push({ start: dateKey }); set({ cycles }); await get().scheduleCycleNotifications(); },
       endCycle: async (dateKey) => { const cycles = [...get().cycles]; const activeIdx = cycles.findIndex(c => !c.end); if (activeIdx === -1) return; cycles[activeIdx] = { ...cycles[activeIdx], end: dateKey }; set({ cycles }); await get().scheduleCycleNotifications(); },

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Platform, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppStore, useLevel } from "../src/store/useStore";
 import { useRouter } from "expo-router";
 import * as Haptics from 'expo-haptics';
@@ -65,9 +65,6 @@ export default function Home() {
   const [help, setHelp] = useState<{[k:string]: boolean}>({});
   const toggleHelp = (k: string) => setHelp((h) => ({ ...h, [k]: !h[k] }));
 
-  const chains = useMemo(() => computeChains(useAppStore.getState()), [days]);
-  const topChain = useMemo(() => chains.filter(c => c.completed < c.total).sort((a,b) => b.nextPercent - a.nextPercent)[0], [chains]);
-
   const t = (de: string, en: string, pl?: string) => (language === 'en' ? en : (language==='pl' && pl ? pl : de));
 
   // Hydration progress
@@ -78,6 +75,11 @@ export default function Home() {
 
   // Next expected cycle
   const expectedNext = predictNextStart(state.cycles);
+
+  const topChain = useMemo(() => {
+    const chains = computeChains(state);
+    return chains.sort((a,b) => (b.nextPercent - a.nextPercent))[0];
+  }, [state.days, state.goal, state.reminders, state.chat, state.saved, state.achievementsUnlocked, state.xp, state.language, state.theme]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -116,8 +118,7 @@ export default function Home() {
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialCommunityIcons name="cup-water" size={20} color={colors.primary} />
-              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('Getränke & Sport', 'Drinks & Sport', 'Napoje i sport')}</Text>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{t('Getränke & Sport', 'Drinks & Sport', 'Napoje i sport')}</Text>
             </View>
             <TouchableOpacity onPress={() => toggleHelp('drinks')}>
               <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
@@ -137,8 +138,7 @@ export default function Home() {
             {day.drinks.waterCure ? (
               <View style={{ flexDirection: 'row', justifyContent: 'flex-start', marginTop: 6 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primary, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
-                  <Ionicons name='water' size={14} color={'#fff'} />
-                  <Text style={{ color: '#fff', marginLeft: 6 }}>{t('Wasserkur +1,0 L', 'Water cure +1.0 L', 'Kuracja wodna +1,0 L')}</Text>
+                  <Text style={{ color: '#fff' }}>{t('Wasserkur +1,0 L', 'Water cure +1.0 L', 'Kuracja wodna +1,0 L')}</Text>
                 </View>
               </View>
             ) : null}
