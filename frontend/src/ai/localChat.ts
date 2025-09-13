@@ -33,10 +33,18 @@ export async function localReply(state: AppState, userText: string) {
     if (results.length === 0) {
       const picks = pickDailySuggestions(lang).slice(0,3);
       const list = picks.map(p => `• ${p.title[lang]} – ${p.desc[lang]}`).join('\n');
-      return t(lang, `Keine passenden Rezepte gefunden. Vorschläge:\n${list}`, `No matching recipes. Suggestions:\n${list}`, `Brak pasujących przepisów. Propozycje:\n${list}`);
+      return t(lang, 
+        `Keine passenden Rezepte gefunden. Vorschläge:\n${list}\n\n💡 Tipp: Nutze den "Rezepte filtern" Button für eine detaillierte Suche!`, 
+        `No matching recipes. Suggestions:\n${list}\n\n💡 Tip: Use the "Filter recipes" button for detailed search!`, 
+        `Brak pasujących przepisów. Propozycje:\n${list}\n\n💡 Wskazówka: Użyj przycisku "Filtruj przepisy" dla szczegółowego wyszukiwania!`
+      );
     }
     const list = results.map(r => `• ${r.title[lang]} – ${r.desc[lang]}`).join('\n');
-    return t(lang, `Hier sind Rezepte für dich:\n${list}`, `Here are recipes for you:\n${list}`, `Oto przepisy dla ciebie:\n${list}`);
+    return t(lang, 
+      `Hier sind Rezepte für dich:\n${list}\n\n💡 Tipp: Nutze den "Rezepte filtern" Button unten für mehr Details und Filter-Optionen!`, 
+      `Here are recipes for you:\n${list}\n\n💡 Tip: Use the "Filter recipes" button below for more details and filter options!`, 
+      `Oto przepisy dla ciebie:\n${list}\n\n💡 Wskazówka: Użyj przycisku "Filtruj przepisy" poniżej, aby uzyskać więcej szczegółów i opcji filtrowania!`
+    );
   }
 
   // analysis/tips intent
