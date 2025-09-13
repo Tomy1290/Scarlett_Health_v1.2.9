@@ -46,11 +46,10 @@ function secondsUntilNextOccurrence(hour: number, minute: number) {
 export async function scheduleDailyReminder(id: string, title: string, body: string, time: string): Promise<string | null> {
   const parsed = parseHHMM(time);
   if (!parsed) return null;
-  const secs = secondsUntilNextOccurrence(parsed.hour, parsed.minute);
   const trigger: Notifications.NotificationTriggerInput = Platform.select({
-    android: { channelId: 'reminders', seconds: secs, repeats: true },
-    ios: { seconds: secs, repeats: true },
-    default: { seconds: secs, repeats: true },
+    android: { hour: parsed.hour, minute: parsed.minute, repeats: true, channelId: 'reminders' },
+    ios: { hour: parsed.hour, minute: parsed.minute, repeats: true },
+    default: { hour: parsed.hour, minute: parsed.minute, repeats: true },
   }) as any;
   const notifId = await Notifications.scheduleNotificationAsync({
     content: { title, body, sound: 'default' as any },
