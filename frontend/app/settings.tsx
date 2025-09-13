@@ -8,7 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { useRouter } from "expo-router";
 import { useAppStore } from "../src/store/useStore";
-import { ensureAndroidChannel, ensureNotificationPermissions, scheduleDailyReminder, cancelNotification } from "../src/utils/notifications";
+import { ensureAndroidChannel, ensureNotificationPermissions, scheduleDailyReminder, cancelNotification, testNotification, getScheduledNotifications } from "../src/utils/notifications";
 import { parseHHMM } from "../src/utils/notifications";
 
 function useThemeColors(theme: string) {
