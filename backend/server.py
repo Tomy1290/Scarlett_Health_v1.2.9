@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,10 +6,15 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Literal, Optional, Dict, Any
 import uuid
 from datetime import datetime
 
+# LLM Integrations (Emergent)
+try:
+    from emergentintegrations import llm_client
+except Exception:  # pragma: no cover – fallback if lib not present
+    llm_client = None
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -35,7 +40,6 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
-# Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -51,6 +55,95 @@ async def create_status_check(input: StatusCheckCreate):
 async def get_status_checks():
     status_checks = await db.status_checks.find().to_list(1000)
     return [StatusCheck(**status_check) for status_check in status_checks]
+
+# ====== Gugi AI (LLM-Light via Emergent) ======
+class ChatMessage(BaseModel):
+    role: Literal['system','user','assistant']
+    content: str
+
+class ChatRequest(BaseModel):
+    mode: Literal['greeting','chat'] = 'chat'
+    language: Literal['de','en','pl'] = 'de'
+    model: Optional[str] = None  # e.g., 'gpt-4o-mini'
+    summary: Optional[Dict[str, Any]] = None
+    messages: Optional[List[ChatMessage]] = None
+
+class ChatResponse(BaseModel):
+    text: str
+
+SYSTEM_PROMPT_DE = (
+    "Du bist Gugi – ein freundlicher, pragmatischer Gesundheitscoach. "
+    "Nutze ausschließlich die bereitgestellte Zusammenfassung (summary), keine Websuche. "
+    "Gib konkrete, kurze Tipps (1–3 Sätze), keine Diagnosen, kein medizinischer Rat. "
+    "Sprich locker, positiv, aber präzise."
+)
+SYSTEM_PROMPT_EN = (
+    "You are Gugi – a friendly, pragmatic health coach. "
+    "Use only the provided summary; no web browsing. "
+    "Provide concrete, short tips (1–3 sentences), no diagnoses or medical advice. "
+    "Be casual, positive, and precise."
+)
+SYSTEM_PROMPT_PL = (
+    "Jesteś Gugi – przyjaznym, pragmatycznym trenerem zdrowia. "
+    "Używaj wyłącznie podanego podsumowania; bez przeglądania sieci. "
+    "Dawaj konkretne, krótkie wskazówki (1–3 zdania), bez diagnoz i porad medycznych. "
+    "Mów swobodnie, pozytywnie i precyzyjnie."
+)
+
+async def _call_llm(messages: List[Dict[str,str]], model: str) -> str:
+    if llm_client is None:
+        # Fallback: simple echo/tip if integration not available
+        return messages[-1].get('content','').strip() or "Hi!"
+    try:
+        resp = await llm_client.chat_completion(
+            model=model,
+            messages=messages,
+            temperature=0.4,
+            max_tokens=280,
+        )
+        # Unify result extraction across providers
+        # emergentintegrations returns OpenAI-style choices
+        content = None
+        if hasattr(resp, 'choices') and resp.choices:
+            msg = getattr(resp.choices[0], 'message', None)
+            if msg and hasattr(msg, 'content'):
+                content = msg.content
+        if not content:
+            # try dict fallback
+            content = (getattr(resp, 'content', None) or '').strip()
+        return (content or '').strip() or ""
+    except Exception as e:
+        logging.exception("LLM call failed: %s", e)
+        raise HTTPException(status_code=500, detail="LLM error")
+
+@api_router.post("/chat", response_model=ChatResponse)
+async def chat(req: ChatRequest):
+    lang = req.language or 'de'
+    model = req.model or 'gpt-4o-mini'
+    system = SYSTEM_PROMPT_DE if lang=='de' else (SYSTEM_PROMPT_PL if lang=='pl' else SYSTEM_PROMPT_EN)
+
+    # Build base messages
+    msgs: List[Dict[str,str]] = [
+        {"role":"system","content": system}
+    ]
+    # Inject compact summary as assistant context
+    if req.summary:
+        msgs.append({"role":"system","content": f"summary: {req.summary}"})
+
+    if req.mode == 'greeting':
+        user_prompt = {
+            'de': "Gib einen sehr kurzen Tipp und einen kurzen Hinweis basierend auf der summary.",
+            'en': "Give one short tip and one short remark based on the summary.",
+            'pl': "Podaj jedną krótką wskazówkę i jedną krótką uwagę na podstawie podsumowania.",
+        }[lang]
+        msgs.append({"role":"user","content": user_prompt})
+    else:
+        # normal chat
+        for m in (req.messages or [])[-12:]:
+            msgs.append({"role": m.role, "content": m.content})
+
+    text = await _call_llm(msgs, model)
+    return ChatResponse(text=text)
 
 # Include the router in the main app
 app.include_router(api_router)
