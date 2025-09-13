@@ -83,19 +83,48 @@ export default function ChatScreen() {
   async function handleGreetingIfNeeded() {
     const now = Date.now(); const last = state.lastChatLeaveAt || 0; const allow = last === 0 || (now - last >= 5 * 60 * 1000);
     if (!allow) return; if (!state.aiInsightsEnabled) return;
-    const reply = await localGreeting(state); if (!reply) return; const typed = await typeOut(reply);
-    if (typed) { const bot = { id: String(Date.now()), sender: 'bot' as const, text: typed, createdAt: Date.now() }; state.addChat(bot); setTypingText(''); }
+    
+    // Check AI status first
+    const status = await getAIStatus();
+    setAiStatus(status);
+    
+    const reply = await hybridGreeting(state); 
+    if (!reply) return; 
+    const typed = await typeOut(reply);
+    if (typed) { 
+      const bot = { id: String(Date.now()), sender: 'bot' as const, text: typed, createdAt: Date.now() }; 
+      state.addChat(bot); 
+      setTypingText(''); 
+    }
   }
 
-  useFocusEffect(React.useCallback(() => { handleGreetingIfNeeded(); return () => { useAppStore.getState().setLastChatLeaveAt(Date.now()); typingAbort.current.abort = true; }; }, [state.aiInsightsEnabled, state.language, state.days, state.cycles]));
+  useFocusEffect(React.useCallback(() => { 
+    handleGreetingIfNeeded(); 
+    // Check AI status on focus
+    getAIStatus().then(setAiStatus);
+    return () => { 
+      useAppStore.getState().setLastChatLeaveAt(Date.now()); 
+      typingAbort.current.abort = true; 
+    }; 
+  }, [state.aiInsightsEnabled, state.language, state.days, state.cycles]));
 
   async function send() {
     const t = text.trim(); if (!t) return;
     const msg = { id: String(Date.now()), sender: 'user' as const, text: t, createdAt: Date.now() };
     state.addChat(msg); setText(''); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const replyText = await localReply(state, t);
+    
+    // Update AI status before making request
+    const status = await getAIStatus();
+    setAiStatus(status);
+    
+    const replyText = await hybridReply(state, t);
     typingAbort.current.abort = false; const typed = await typeOut(replyText);
-    if (typed) { const bot = { id: String(Date.now()+1), sender: 'bot' as const, text: typed, createdAt: Date.now()+1 }; state.addChat(bot); setTypingText(''); setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80); }
+    if (typed) { 
+      const bot = { id: String(Date.now()+1), sender: 'bot' as const, text: typed, createdAt: Date.now()+1 }; 
+      state.addChat(bot); 
+      setTypingText(''); 
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80); 
+    }
   }
 
   function saveTip(id: string, text: string) {
