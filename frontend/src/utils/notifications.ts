@@ -59,13 +59,22 @@ export function parseHHMM(time: string): { hour: number; minute: number } | null
 export async function scheduleDailyReminder(id: string, title: string, body: string, time: string): Promise<string | null> {
   const parsed = parseHHMM(time);
   if (!parsed) return null;
-  const trigger: Notifications.NotificationTriggerInput = Platform.select({
-    android: { hour: parsed.hour, minute: parsed.minute, repeats: true, channelId: 'reminders' },
-    ios: { hour: parsed.hour, minute: parsed.minute, repeats: true },
-    default: { hour: parsed.hour, minute: parsed.minute, repeats: true },
-  }) as any;
+  
+  // Modern expo-notifications format with calendar trigger
+  const trigger: Notifications.CalendarTriggerInput = {
+    hour: parsed.hour,
+    minute: parsed.minute,
+    repeats: true,
+    ...(Platform.OS === 'android' && { channelId: 'reminders' })
+  };
+  
   const notifId = await Notifications.scheduleNotificationAsync({
-    content: { title, body, sound: 'default' as any },
+    content: { 
+      title, 
+      body, 
+      sound: 'default',
+      ...(Platform.OS === 'android' && { channelId: 'reminders' })
+    },
     trigger,
   });
   return notifId;
