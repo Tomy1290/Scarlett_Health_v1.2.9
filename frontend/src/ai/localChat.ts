@@ -1,7 +1,7 @@
 import { AppState } from '../store/useStore';
 import { computeAIPro } from './insights';
-import { searchRecipes, pickDailySuggestions, getAllRecipes } from './recipes';
-import { answerCycle, answerWeight, answerReminders } from './knowledge';
+import { searchRecipes, pickDailySuggestions } from './recipes';
+import { answerKnowledge } from './knowledge';
 
 function t(lang: 'de'|'en'|'pl', de: string, en: string, pl?: string) { return lang==='en'?en:(lang==='pl'?(pl||en):de); }
 
@@ -23,10 +23,9 @@ export async function localReply(state: AppState, userText: string) {
   const lang = state.language as 'de'|'en'|'pl';
   const q = userText.toLowerCase();
 
-  // knowledge intents – cycle & weight highly prioritized
-  if (/(zyklus|periode|menstru|ovulation|eisprung|fruchtbar|fertile)/.test(q)) return answerCycle(state, userText);
-  if (/(gewicht|plateau|trend|abnehmen|kalorien|waga|masa)/.test(q)) return answerWeight(state, userText);
-  if (/(erinnerung|reminder|benachrichtigung|czas|hh:|hh\:|hh|mm)/.test(q)) return answerReminders(state);
+  // knowledge first (cycle & weight)
+  const know = answerKnowledge(state, userText);
+  if (know) return know;
 
   // recipes intent
   if (/(rezept|recipe|przepis|kochen|cook)/.test(q)) {
@@ -49,9 +48,9 @@ export async function localReply(state: AppState, userText: string) {
 
   // smalltalk default
   const fallback = t(lang,
-    'Erzähl mir, wie es dir heute geht – oder frag nach Rezepten (z. B. „italienisches Abendessen, low carb”). Für Zyklus & Gewicht habe ich extra Wissen. ',
-    'Tell me how you feel today – or ask for recipes (e.g., “Italian dinner, low carb”). I have extra knowledge for cycle & weight. ',
-    'Powiedz, jak się dziś czujesz – albo poproś o przepisy (np. „włoska kolacja, low carb”). Mam dodatkową wiedzę o cyklu i wadze. '
+    'Erzähl mir, wie es dir heute geht – oder frag nach Rezepten (z. B. „italienisches Abendessen, low carb”). Ich habe extra Wissen zu Zyklus & Gewicht.',
+    'Tell me how you feel today – or ask for recipes (e.g., “Italian dinner, low carb”). I have extra knowledge for cycle & weight.',
+    'Powiedz, jak się dziś czujesz – albo poproś o przepisy (np. „włoska kolacja, low carb”). Mam dodatkową wiedzę o cyklu i wadze.'
   );
   return fallback;
 }
