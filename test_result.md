@@ -133,6 +133,34 @@ backend:
         agent: "testing"
         comment: "✅ POST/GET /api/status tests PASSED - POST creates status check with UUID, client_name, timestamp. GET retrieves all status checks as list. MongoDB connection working properly. All services running (mongodb, backend confirmed via supervisorctl). Tested with real data client_name='qa'."
 frontend:
+  - task: "Weekly Events Display Bug Fix"
+    implemented: true
+    working: false
+    file: "/app/frontend/app/index.tsx"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "User reported Weekly Event titles not showing on Dashboard, only 100% progress bar visible"
+      - working: false
+        agent: "main"
+        comment: "Fixed by calling weeklyEvent.title(language === 'en' ? 'en' : 'de') instead of weeklyEvent.title - title is a function that needs language parameter"
+  - task: "Notifications System Fix"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/utils/notifications.ts"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "User reported notifications not working correctly - alle Benachrichtigungen"
+      - working: false
+        agent: "main"
+        comment: "Fixed notification system by updating to modern expo-notifications format: using CalendarTriggerInput for daily reminders and DateTriggerInput for one-time notifications with proper channelId handling"
   - task: "Achievements + Chains + Rewards"
     implemented: true
     working: true
