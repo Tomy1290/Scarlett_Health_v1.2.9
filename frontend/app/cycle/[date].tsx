@@ -46,7 +46,7 @@ export default function CycleDayScreen() {
   const setVal = (field: 'mood'|'energy'|'pain'|'sleep', delta: number) => {
     setDraft((d) => ({ ...d, [field]: clamp((d as any)[field] + delta, 1, 10) }));
   };
-  const setFlow = (val: number) => setDraft((d) => ({ ...d, flow: Math.max(0, Math.min(9, val)) }));
+  const setFlow = (val: number) => setDraft((d) => ({ ...d, flow: Math.max(0, Math.min(10, val)) }));
 
   const formattedDate = (() => { try { const [y,m,d] = String(date).split('-').map(Number); return `${String(d).padStart(2,'0')}.${String(m).padStart(2,'0')}.${y}`; } catch { return String(date); }})();
 
@@ -82,8 +82,8 @@ export default function CycleDayScreen() {
   };
 
   const renderBleedingScale = (value: number) => {
-    const items = Array.from({ length: 10 }).map((_, i) => {
-      const idx = i; // 0..9
+    const items = Array.from({ length: 11 }).map((_, i) => {
+      const idx = i; // 0..10
       const active = idx <= (typeof value === 'number' ? value : -1);
       return (
         <TouchableOpacity key={`flow-${idx}`} onPress={() => setFlow(idx)} style={{ padding: 2 }}>
@@ -102,6 +102,20 @@ export default function CycleDayScreen() {
     setDraft({ mood: 5, energy: 5, pain: 5, sleep: 5, sex: false, notes: '', flow: 0, cramps: false, headache: false, nausea: false });
   };
 
+  // 7-day rule and future lock for save/delete
+  const canModify = (() => {
+    try {
+      const [y,m,d] = String(date).split('-').map((n)=>parseInt(n,10));
+      const dt = new Date(y, m-1, d);
+      const today = new Date();
+      const dayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const dtOnly = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+      if (+dtOnly > +dayOnly) return false; // future
+      const diffDays = Math.floor((+dayOnly - +dtOnly)/(24*60*60*1000));
+      return diffDays <= 7;
+    } catch { return true; }
+  })();
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[styles.header, { backgroundColor: colors.card, paddingVertical: 16 }]}> 
@@ -109,7 +123,7 @@ export default function CycleDayScreen() {
           <Ionicons name='chevron-back' size={26} color={colors.text} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.appTitle, { color: colors.text }]}>{lang==='en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking'}</Text>
+          <Text style={[styles.appTitle, { color: colors.text }]}>{lang==='en' ? "Scarlett’s Health Tracking" : (lang==='pl'?'Zdrowie Scarlett':'Scarletts Gesundheitstracking')}</Text>
           <Text style={[styles.title, { color: colors.muted }]}>{lang==='de'?'Zyklus-Tag':'Cycle day'}</Text>
         </View>
         <View style={{ width: 40 }} />
@@ -211,18 +225,18 @@ export default function CycleDayScreen() {
             </View>
           </View>
 
-          {/* Bleeding intensity (0..9 taps + stepper) */}
+          {/* Bleeding intensity (0..10 taps + stepper) */}
           <View style={[styles.card, { backgroundColor: colors.card, marginTop: 12 }]}> 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Ionicons name='water' size={16} color={colors.primary} />
-                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 6 }}>{lang==='de'?'Blutung':'Bleeding'}</Text>
+                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 6 }}>{lang==='de'?'Periode (Stärke)':'Bleeding (intensity)'}</Text>
               </View>
               <TouchableOpacity onPress={() => toggleHelp('bleeding')}>
                 <Ionicons name='information-circle-outline' size={18} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            {help.bleeding ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Wähle 0–9 Tropfen; mehr Tropfen = stärkere Blutung.':'Choose 0–9 drops; more drops = stronger bleeding.'}</Text>) : null}
+            {help.bleeding ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Wähle 0–10 Tropfen; mehr Tropfen = stärkere Blutung.':'Choose 0–10 drops; more drops = stronger bleeding.'}</Text>) : null}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
               <TouchableOpacity onPress={() => setFlow(draft.flow - 1)} style={[styles.stepBtnSmall, { borderColor: colors.primary }]}> 
                 <Ionicons name='remove' size={16} color={colors.primary} />
@@ -273,12 +287,15 @@ export default function CycleDayScreen() {
             </View>
             {help.notes ? (<Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Freitext für besondere Beobachtungen.':'Free text for notable observations.'}</Text>) : null}
             <TextInput testID='cycle-notes' style={{ marginTop: 8, minHeight: 100, borderWidth: 1, borderColor: colors.muted, borderRadius: 8, padding: 10, color: colors.text, backgroundColor: colors.input }} placeholder={lang==='de'?'Notizen hier eingeben...':'Enter notes...'} placeholderTextColor={colors.muted} value={draft.notes} onChangeText={(v) => setDraft((d)=>({ ...d, notes: v }))} multiline />
+            {!canModify ? (
+              <Text style={{ color: colors.muted, marginTop: 6 }}>{lang==='de'?'Bearbeiten für Einträge älter als 7 Tage oder in der Zukunft deaktiviert.':'Editing disabled for entries older than 7 days or in the future.'}</Text>
+            ) : null}
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
-              <TouchableOpacity onPress={deleteDraft} style={[styles.chip, { borderColor: colors.primary }]}>
+              <TouchableOpacity disabled={!canModify} onPress={deleteDraft} style={[styles.chip, { borderColor: colors.primary, opacity: canModify?1:0.4 }]}>
                 <Ionicons name='trash' size={16} color={colors.primary} />
                 <Text style={{ color: colors.text, marginLeft: 6 }}>{lang==='de'?'Löschen':'Delete'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={saveDraft} style={[styles.chip, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+              <TouchableOpacity disabled={!canModify} onPress={saveDraft} style={[styles.chip, { backgroundColor: colors.primary, borderColor: colors.primary, opacity: canModify?1:0.4 }]}>
                 <Ionicons name='save' size={16} color={'#fff'} />
                 <Text style={{ color: '#fff', marginLeft: 6 }}>{lang==='de'?'Speichern':'Save'}</Text>
               </TouchableOpacity>

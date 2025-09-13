@@ -6,8 +6,6 @@ import { useRouter } from "expo-router";
 import { useAppStore } from "../src/store/useStore";
 import { computeAchievements, getAchievementConfigById } from "../src/achievements";
 import { BadgeIcon } from "../src/components/BadgeIcon";
-import { getWeekRange, getCurrentWeeklyEvent, computeEventProgress } from "../src/gamification/events";
-import { computeExtendedStats, computePremiumInsights } from "../src/analytics/stats";
 import { computeChains } from "../src/gamification/chains";
 
 function useThemeColors(theme: string) {
@@ -37,23 +35,27 @@ export default function AchievementsScreen() {
     return arr.sort((a,b) => (a.completed === b.completed) ? (b.percent - a.percent) : (a.completed ? 1 : -1));
   }, [list, filter, query]);
 
-  // Rewards (display order only) L10, L25, L50, L75, L100
-  const level = Math.floor(state.xp / 100) + 1;
-  const rewards = [
-    { id: 'ext', lvl: 10, title: 'Erweiterte Statistiken' },
-    { id: 'ins', lvl: 25, title: 'Premium Insights' },
-    { id: 'vip', lvl: 50, title: 'VIP-Chat' },
-    { id: 'golden', lvl: 75, title: 'Golden Pink Theme' },
-    { id: 'leg', lvl: 100, title: 'Legendärer Status' },
-  ];
-
-  const chains = useMemo(() => computeChains(state), [state.days, state.goal, state.reminders, state.chat, state.saved, state.achievementsUnlocked, state.xp, state.language, state.theme]);
+  const chainsRaw = useMemo(() => computeChains(state), [state.days, state.goal, state.reminders, state.chat, state.saved, state.achievementsUnlocked, state.xp, state.language, state.theme]);
+  const chains = useMemo(() => {
+    let arr = chainsRaw;
+    if (filter === 'progress') arr = arr.filter(c => c.completed < c.total);
+    if (filter === 'done') arr = arr.filter(c => c.completed >= c.total);
+    // sort by progress (descending), completed chains sent to bottom by default unless filtering done
+    const sorted = [...arr].sort((a,b) => {
+      const aDone = a.completed >= a.total; const bDone = b.completed >= b.total;
+      if (aDone && !bDone) return 1; if (!aDone && bDone) return -1;
+      const ap = aDone ? 100 : Math.round(a.nextPercent);
+      const bp = bDone ? 100 : Math.round(b.nextPercent);
+      return bp - ap;
+    });
+    return sorted;
+  }, [chainsRaw, filter]);
 
   const [showAch, setShowAch] = useState(false);
   const [showChains, setShowChains] = useState(false);
   const [showUnlocks, setShowUnlocks] = useState(false);
 
-  const appTitle = state.language === 'en' ? "Scarlett’s Health Tracking" : 'Scarletts Gesundheitstracking';
+  const appTitle = state.language === 'en' ? "Scarlett’s Health Tracking" : (state.language==='pl'? 'Zdrowie Scarlett' : 'Scarletts Gesundheitstracking');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -74,7 +76,7 @@ export default function AchievementsScreen() {
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {(['all','progress','done'] as const).map((f) => (
             <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.badge, { borderColor: colors.muted, backgroundColor: filter===f ? colors.primary : 'transparent' }]} accessibilityLabel={`Filter ${f}`}>
-              <Text style={{ color: filter===f ? '#fff' : colors.text }}>{f==='all'?(state.language==='de'?'Alle':'All'):f==='progress'?(state.language==='de'?'In Arbeit':'In progress'):(state.language==='de'?'Erreicht':'Done')}</Text>
+              <Text style={{ color: filter===f ? '#fff' : colors.text }}>{f==='all'?(state.language==='de'?'Alle':(state.language==='pl'?'Wszystkie':'All')):f==='progress'?(state.language==='de'?'In Arbeit':(state.language==='pl'?'W trakcie':'In progress')):(state.language==='de'?'Erreicht':(state.language==='pl'?'Zdobyte':'Done'))}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -108,12 +110,12 @@ export default function AchievementsScreen() {
           })}
           {filtered.length > 3 ? (
             <TouchableOpacity onPress={() => setShowAch(v=>!v)} style={{ alignSelf: 'center', marginTop: 6 }}>
-              <Text style={{ color: colors.primary }}>{showAch ? (state.language==='de'?'Weniger anzeigen':'Show less') : (state.language==='de'?'Mehr anzeigen':'Show more')}</Text>
+              <Text style={{ color: colors.primary }}>{showAch ? (state.language==='de'?'Weniger anzeigen':(state.language==='pl'?'Pokaż mniej':'Show less')) : (state.language==='de'?'Mehr anzeigen':(state.language==='pl'?'Pokaż więcej':'Show more'))}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
 
-        {/* Chains – collapsible, first 3 */}
+        {/* Chains – collapsible, first 3; filter and sort by progress */}
         <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>{state.language==='de'?'Ketten':'Chains'}</Text>
@@ -127,19 +129,19 @@ export default function AchievementsScreen() {
             return (
               <View key={c.id} style={{ marginTop: 8 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ color: colors.text }}>{c.title} {done ? '· '+(state.language==='de'?'Abgeschlossen':'Completed') : `· ${(state.language==='de'?'Schritt':'Step')} ${c.completed+1}/${c.total}`}</Text>
+                  <Text style={{ color: colors.text }}>{c.title} {done ? '· '+(state.language==='de'?'Abgeschlossen':(state.language==='pl'?'Ukończone':'Completed')) : `· ${(state.language==='de'?'Schritt':(state.language==='pl'?'Krok':'Step'))} ${c.completed+1}/${c.total}`}</Text>
                   <Text style={{ color: colors.muted }}>{pct}%</Text>
                 </View>
                 <View style={{ height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden', marginTop: 4 }}>
                   <View style={{ width: `${pct}%`, height: 6, backgroundColor: done ? '#2bb673' : colors.primary }} />
                 </View>
-                {!done && c.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Als Nächstes':'Next'}: {c.nextTitle}</Text> : null}
+                {!done && c.nextTitle ? <Text style={{ color: colors.muted, marginTop: 4 }}>{state.language==='de'?'Als Nächstes':(state.language==='pl'?'Następne':'Next')}: {c.nextTitle}</Text> : null}
               </View>
             );
           })}
           {chains.length > 3 ? (
             <TouchableOpacity onPress={() => setShowChains(v=>!v)} style={{ alignSelf: 'center', marginTop: 6 }}>
-              <Text style={{ color: colors.primary }}>{showChains ? (state.language==='de'?'Weniger anzeigen':'Show less') : (state.language==='de'?'Mehr anzeigen':'Show more')}</Text>
+              <Text style={{ color: colors.primary }}>{showChains ? (state.language==='de'?'Weniger anzeigen':(state.language==='pl'?'Pokaż mniej':'Show less')) : (state.language==='de'?'Mehr anzeigen':(state.language==='pl'?'Pokaż więcej':'Show more'))}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
