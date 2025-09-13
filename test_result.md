@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Scarletts Gesundheitstracking – Offline-first Android-App mit Gamification, Saisonevents, VIP-Chat, lokalen Insights; Phase 5 Build-Härtung und QA. Teste Backend-API und Haupt-Frontend-Flows ausführlich."
+user_problem_statement: "Fix Weekly Event names not displaying on Dashboard (only 100% progress bar visible) and fix all notifications system. Also re-integrate Cloud LLM with automatic fallback to offline AI."
 backend:
   - task: "API: GET /api/"
     implemented: true
