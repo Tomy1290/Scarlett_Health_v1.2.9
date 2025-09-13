@@ -58,6 +58,16 @@ export default function Home() {
   const evProg = computeEventProgress(dayKeys, { days }, weeklyEvent);
   const evCompleted = evProg.completed || !!eventHistory[weekKey]?.completed;
 
+  // Auto-complete weekly event when reaching 100% (once)
+  useEffect(() => {
+    if (!state.eventsEnabled) return;
+    if (!weeklyEvent) return;
+    const wasCompleted = !!eventHistory[weekKey]?.completed;
+    if (evProg.completed && !wasCompleted) {
+      state.completeEvent(weekKey, { id: weeklyEvent.id, xp: weeklyEvent.xp });
+    }
+  }, [evProg.completed, weekKey, weeklyEvent, state.eventsEnabled]);
+
   const [weightModal, setWeightModal] = useState(false);
   const [weightInput, setWeightInput] = useState<string>(day?.weight ? String(day.weight) : "");
   useEffect(() => { setWeightInput(day?.weight ? String(day.weight) : ""); }, [currentDate, day?.weight]);
