@@ -1,0 +1,101 @@
+<analysis>
+The AI engineer's work on Scarletts Gesundheitstracking has been highly iterative, addressing numerous user-reported issues and implementing significant feature enhancements. The initial phase focused on resolving UI bugs (doubled headers, weekly event display) and persistence issues (v1.2.0 to 1.2.1), which led to a regression on the dashboard, requiring a rollback to v1.2.0. Subsequently, the user requested a major LLM integration for Gugi AI, initially with no cost/server but then shifted to using the Emergent LLM Key with a FastAPI backend (gpt-4o-mini). This involved setting up an  endpoint, data summarization, and frontend chat logic (5-min greeting, typing effect, offline fallback, editable saved messages).
+
+A critical challenge emerged during testing via APK builds: the lack of a backend proxy for the  endpoint led to the LLM being offline. This prompted another significant pivot to a 100% offline Gugi Local model (v1.2.3-v1.2.5), incorporating extensive local heuristics, a large offline recipe database (252 recipes with details and filters), and a comprehensive knowledge base focusing on Cycle and Weight. Timestamps were introduced for detailed analysis. UI was added for AI insights (heatmap, correlations) and chat (knowledge button, recipe filters).
+
+Despite these advancements, recent user feedback indicates persistent issues with Weekly Event display (still showing only 100% bar, no name) and notifications not working, although the chat functionality (now offline-local) is reported to be working correctly. The user also expressed renewed interest in the API-based (Cloud) LLM, requesting its integration for version 1.2.6. The current task is to address the remaining bugs while re-integrating the cloud LLM.
+</analysis>
+
+<product_requirements>
+The Scarletts Gesundheitstracking app is an offline-first, multi-language (DE/EN/PL) mobile health tracker. It features a dashboard with daily navigation, XP/Level, and modules for Pills, Drinks & Sport, Weight & Goals, highly customizable reminders, gamification (40+ achievements, leveling, events), Gugi AI chat, Saved Messages, Advanced AI insights, an offline Leaderboard, and Settings for themes, language, app version, AI/Events toggles, and Android SAF data I/O.
+
+Recent work focused on:
+1.  **UI/UX Fixes**: Correcting a doubled/overflowing header on sub-pages and ensuring Weekly Event names display correctly on the Dashboard when completed.
+2.  **LLM Integration (Gugi AI)**: The primary goal shifted to making Gugi AI a real helper by enabling it to read analytical data, provide tips, facilitate normal conversations, and greet users with a data-driven tip on chat open (after a 5-minute cooldown). This involved extensive development of either a Cloud-based LLM (using Emergent LLM Key with a FastAPI backend, specifically GPT-4o-mini, with data privacy/scope considerations and an AI-toggle gate) or a fully Local/Offline AI (rule-based heuristics, local recipe database, knowledge base). The decision has toggled between these approaches.
+3.  **Saved Messages Module**: Make saved messages editable (Title, Category, Tags) via a modal, allowing free choice and creation of new categories/tags.
+4.  **Data Enhancements**: Implement timestamps for every user interaction (water/coffee, pills, weight, flags) for more granular analysis. Develop Pro+ and Pro++ heuristics for deeper insights and correlations (e.g., weekend hydration drop, sleep impact on weight).
+5.  **Offline Content**: Curated database of 250 recipes (multi-cuisine, multi-category, multi-meal, multi-language without images) with filter and detail views. Extensive knowledge base on Cycle and Weight topics.
+6.  **Notifications**: Ensure reliable time-based reminders and robust parsing of time inputs (HH:MM).
+7.  **Gamification**: Weekly Events display current/past/future events; Dashboard auto-completes at 100% and shows title. Achievements linked to filters.
+8.  **Theme**: Golden Pink theme exists and is unlocked at Level 75.
+</product_requirements>
+
+<key_technical_concepts>
+-   **Expo Router**: File-based routing for navigation.
+-   **Zustand + react-native-mmkv**: State management with local persistence, data migrations, and backup/restore.
+-   **React Native/Expo SDK**: Core UI components, native notifications, haptics, internationalization.
+-   **FastAPI Backend**: Used for backend API (initially ), with MongoDB.
+-   **Emergent LLM Key**: Universal key for accessing OpenAI (GPT-4o-mini), Anthropic, Google LLMs.
+-   **Local AI (Heuristics)**: Rule-based logic for offline insights, tips, and chat responses.
+-   **Data Logging**:  with timestamps for granular user interactions.
+-   **Recipe & Knowledge Bases**: Offline JSON data for recipes and app-specific knowledge.
+</key_technical_concepts>
+
+<code_architecture>
+The application uses a full-stack architecture with an Expo React Native  and a FastAPI  using MongoDB. The  adheres to Expo Router's file-based routing.
+
+
+-   : Configures global UI, splash screen, header, and notifications. **Changes**: Adjusted header rendering to address potential doubling/overflow and handling of notification permissions/channels.
+-   : Manages settings. **Changes**: Enhanced scrollability, added Polish language option, improved Android SAF data I/O, refined reminder options, water cup volume input, re-introduced  toggle, restored missing sections for Theme, Weekly Events toggle, Data & Backup, App Info. ( theme selection is present and unlocked at Level 75).
+-   : Implements the monthly cycle calendar. **Changes**: Future/past date locking, notification scheduling logic, reordering of analysis sections, Highlights section, integration of  for sparklines.
+-   : Daily logging screen. **Changes**: Updated icon-based scales,  toggle,  (0-10 with +/-), notes, new toggles for Krämpfe/Kopfschmerzen/Übelkeit. Introduced Save/Delete buttons and a short save confirmation. Now includes  for cycle logs.
+-   : Main dashboard. **Changes**: Updated header for Level/XP, Quick Access buttons, hydration progress, Wasserkur badge. Drinks/Kaffee layout reverted to number-based input. Re-added the Wochen-Event card, with logic intended to display its name even when 100% complete, along with next expected cycle date.
+-   : Achievements screen. **Changes**: Linked achievement chains to filter buttons and sorted chains by progress.
+-   : Dedicated screen for FAQs (new file).
+-   : Events screen. **Changes**: Filtered to show only the last 2 past, the current, and the next 2 future weekly events, with an Aktuell label.
+-   : The primary chat interface. **Changes**: Implemented Gugi AI greeting logic (5-min cooldown, typing animation), integrated local heuristics, recipe search with filter modal, recipe details modal, knowledge base integration, and a Wissen button for thematic chips. The AI status badge was implemented to indicate Cloud LLM reachability, but the LLM functionality has since been reverted to purely local.
+-   : Saved messages screen. **Changes**: Implemented an edit modal for title, category, and tags, allowing free input and new categories.
+-   : Central Zustand store. **Changes**: Manages new state for water cup volume, app version, gamification event history. Incorporates MMKV for persistence, data migrations. Critical for  (timestamps for all day actions) and  (for chat greeting cooldown).  in store is 1.2.4 (for migration stability), while  shows 1.2.5. A hotfix was applied to restore this file after a regression caused app crashes.
+-   : Utility functions for cycle prediction/analysis. **Changes**: Extended for advanced highlight analysis and notification logic.
+-   : Manages native notifications. **Changes**: Major refactoring for reliable time-based daily/cycle reminders (using calendar triggers), handling foreground notification suppression, re-planning on app start, and ensuring future-only planning. Robust time parsing (e.g., ) has been implemented.
+-   : **New file**: Helper for API calls, initially for Cloud LLM, constructing backend URLs (, , or proxy ). Currently unused due to offline shift but present.
+-   : Contains local heuristic logic () for Pro+, Pro++, and Pro+++ analyses, including weekend drops, coffee peaks, sport consistency, symptom clusters, weight trends, and activity log-based insights.
+-   : **New file**: Contains comprehensive, multi-language knowledge modules for Cycle and Weight topics, and a router () to provide targeted responses in chat.
+-   : **New file**: Orchestrates the local, offline Gugi chat logic, routing user intents to heuristics, recipes, and knowledge modules.
+-   : **New file**: Logic for searching, suggesting, and retrieving details for offline recipes.
+-   : **New file**: Stores 252 pre-generated offline recipes with details (ingredients, steps, duration, kcal) in multiple languages and categories.
+-   : Gamification event logic. **Changes**: Logic for automatic completion of weekly events, crediting XP, and tracking completion status in .
+-   : For calculating various statistics and generating tips, used by the Pro+++ heuristics (e.g., for correlation analysis and heatmap data).
+-   : Frontend environment variables.  was explicitly set but is currently not actively used by the primary chat logic due to the offline mode.
+-   : FastAPI backend. **Changes**: Contains a  endpoint for LLM integration (using  and ), which is currently inactive due to the app's offline shift.
+-   : Backend dependencies. **Changes**: Added .
+-   : Frontend application configuration.  incremented through 1.2.0 to 1.2.5 (with  also incremented to 4).
+</code_architecture>
+
+<pending_tasks>
+-   Fix: Weekly Event names are still not displaying on the Dashboard, only the 100% progress bar, even for active events.
+-   Fix: Notifications are still not working correctly.
+-   Enhancement: Re-integrate the API-based (Cloud) LLM for the Gugi chat as an optional feature, potentially in a hybrid model (Cloud if reachable, otherwise offline fallback). This is requested for version 1.2.6.
+</pending_tasks>
+
+<current_work>
+Immediately prior to this summary, the AI engineer was deep into developing and refining the Gugi Local (fully offline) AI capabilities, following user requests.
+
+The application is currently at version 1.2.5 (as per , with  at 1.2.4 for migration stability, and git tag  pushed to ).
+
+**Current state of Gugi AI and related features:**
+1.  **Gugi Local AI (Pro+++)**: The chat now functions entirely offline.
+    *   **Heuristics**:  in  provides Pro+++ level analyses, including weekend-drop for water, late-day water/coffee intake (utilizing new timestamps), sport consistency, cycle symptom clusters (over last 14 days), weight trends/plateaus/prognoses. It delivers prioritized, multi-language tips.
+    *   **Knowledge Base**:  contains extensive, multi-language information on Cycle (phases, fertile window, pain management, energy/sleep correlation) and Weight (trends/plateau strategies, hydration/sleep impact). The  router intelligently directs user queries.
+    *   **Recipes**: 252 recipes () are stored locally, with full details (ingredients, steps, duration, kcal) in DE/EN/PL.  handles searching, suggestions, and detail retrieval.
+    *   **Chat UI**:  includes:
+        *   A Wissen button that opens a bottom sheet with thematic chips (Cycle, Weight, Sleep, Hydration, Reminders), posting comprehensive answers directly into the chat.
+        *   A Rezepte filtern button which opens a modal for filtering by cuisine, category, meal, and keywords. Results are shown as cards, and tapping opens a detail modal.
+        *   Begrüßung (greeting) message displays after a 5-minute cooldown, with a typing animation.
+        *   Smalltalk and intent-based routing leverage heuristics, recipes, and knowledge modules.
+2.  **Data Logging**:  now incorporates  within , recording  (timestamp), , and  for all user interactions (water/coffee +/- buttons, flags, pills, weight). Cycle logs also have . A migration () ensures  arrays are initialized for older data.
+3.  **Analysis Page UI**:  features a new KI Pro+++ section with a Schmerz nach Zyklustagen heatmap (0-28 days, color-coded hotspots) and correlation cards (e.g., water on headache days vs. without, energy on sport days vs. without, sleep quality with high/low coffee intake).
+4.  **Saved Messages**:  supports editing title, category, and tags via a modal, with new categories allowed.
+5.  **Notifications/Reminders**:  uses a robust  to normalize various time input formats, improving reliability.
+6.  **Theme**: Golden Pink theme is available (unlocked at Level 75).
+
+**Immediate Problem:** The app **crashed on startup** after the latest push (v1.2.5). The AI engineer applied a hotfix ( restoration,  in store adjusted for migration,  ensured) and confirmed the push. The user reported that the app now runs again, *but* the Weekly Events display issue and notification bug persist. The user also expressed a desire to re-integrate the API-based LLM. The current action in the trajectory is the AI reading  to debug the Weekly Events display.
+</current_work>
+
+<optional_next_step>
+Investigate and fix the bug preventing Weekly Event names from displaying on the Dashboard, ensuring the event name appears with the 100% progress bar.
+</optional_next_step>
+
+<next_step_quotes>
+So, die App läuft wieder. Die events werden noch immer noch angezeigt. Ich habe mein Datum auf nächste Woche vorgestellt und auch das aktive erscheint nicht. Nur voller Balken auf 100%. Dann muss da der Fehler liegen.
+</next_step_quotes>
