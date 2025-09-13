@@ -69,6 +69,7 @@ export type AppState = {
   cycles: Cycle[];
   cycleLogs: Record<string, CycleLog>;
   waterCupMl: number;
+  lastChatLeaveAt?: number;
 
   setLanguage: (lng: Language) => void;
   setTheme: (t: ThemeName) => void;
@@ -88,6 +89,7 @@ export type AppState = {
   deleteReminder: (id: string) => void;
   addChat: (m: ChatMessage) => void;
   addSaved: (s: SavedMessage) => void;
+  updateSaved: (id: string, patch: Partial<SavedMessage>) => void;
   deleteSaved: (id: string) => void;
 
   setNotificationMeta: (remId: string, meta?: { id: string; time?: string }) => void;
@@ -101,6 +103,7 @@ export type AppState = {
   feedbackAI: (id: string, delta: 1 | -1) => void;
   setEventsEnabled: (v: boolean) => void;
   setWaterCupMl: (ml: number) => void;
+  setLastChatLeaveAt: (ts: number) => void;
 
   startCycle: (dateKey: string) => void;
   endCycle: (dateKey: string) => void;
@@ -118,9 +121,9 @@ function clamp(n: number, min: number, max: number) { return Math.max(min, Math.
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.2.1",
+      days: {}, reminders: [], chat: [], saved: [], achievementsUnlocked: [], xp: 0, xpBonus: 0, language: "de", theme: "pink_default", appVersion: "1.2.2",
       currentDate: toKey(new Date()), notificationMeta: {}, hasSeededReminders: false, showOnboarding: true, eventHistory: {}, legendShown: false, rewardsSeen: {}, profileAlias: '', xpLog: [],
-      aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true, cycles: [], cycleLogs: {}, waterCupMl: 250,
+      aiInsightsEnabled: true, aiFeedback: {}, eventsEnabled: true, cycles: [], cycleLogs: {}, waterCupMl: 250, lastChatLeaveAt: 0,
 
       setLanguage: (lng) => { set({ language: lng }); get().recalcAchievements(); },
       setTheme: (t) => { const lvl = Math.floor(get().xp / 100) + 1; if (t === 'golden_pink' && lvl < 75) { return; } set({ theme: t }); get().recalcAchievements(); },
@@ -141,6 +144,7 @@ export const useAppStore = create<AppState>()(
       deleteReminder: (id) => { set({ reminders: get().reminders.filter((r) => r.id !== id) }); get().recalcAchievements(); },
       addChat: (m) => { const lvl = Math.floor(get().xp / 100) + 1; let msg = m; if (m.sender === 'user' && lvl < 50 && typeof m.text === 'string' && m.text.length > 120) { msg = { ...m, text: m.text.slice(0, 120) }; } set({ chat: [...get().chat, msg] }); get().recalcAchievements(); },
       addSaved: (s) => { set({ saved: [s, ...get().saved] }); get().recalcAchievements(); },
+      updateSaved: (id, patch) => { const next = (get().saved||[]).map((s)=> s.id===id ? { ...s, ...patch } : s); set({ saved: next }); },
       deleteSaved: (id) => { set({ saved: get().saved.filter((s) => s.id !== id) }); get().recalcAchievements(); },
 
       setNotificationMeta: (remId, meta) => set({ notificationMeta: { ...get().notificationMeta, [remId]: meta } }),
@@ -154,6 +158,7 @@ export const useAppStore = create<AppState>()(
       feedbackAI: (id, delta) => { const map = { ...(get().aiFeedback||{}) }; map[id] = (map[id]||0) + delta; set({ aiFeedback: map }); },
       setEventsEnabled: (v) => set({ eventsEnabled: v }),
       setWaterCupMl: (ml) => set({ waterCupMl: Math.max(0, Math.min(1000, Math.round(ml))) }),
+      setLastChatLeaveAt: (ts) => set({ lastChatLeaveAt: ts }),
 
       startCycle: async (dateKey) => { const cycles = [...get().cycles]; const active = cycles.find(c => !c.end); if (active) return; cycles.push({ start: dateKey }); set({ cycles }); await get().scheduleCycleNotifications(); },
       endCycle: async (dateKey) => { const cycles = [...get().cycles]; const activeIdx = cycles.findIndex(c => !c.end); if (activeIdx === -1) return; cycles[activeIdx] = { ...cycles[activeIdx], end: dateKey }; set({ cycles }); await get().scheduleCycleNotifications(); },
@@ -226,6 +231,7 @@ export const useAppStore = create<AppState>()(
         if (!d.xpToday) d.xpToday = {};
       }
       if (typeof (state as any).waterCupMl !== 'number') (state as any).waterCupMl = 250;
+      if (typeof (state as any).lastChatLeaveAt !== 'number') (state as any).lastChatLeaveAt = 0;
       try {
         const empty = (!state.days || Object.keys(state.days).length === 0) && (!state.cycles || state.cycles.length === 0) && (!state.saved || state.saved.length === 0);
         if (empty) {
