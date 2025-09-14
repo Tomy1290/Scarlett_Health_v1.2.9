@@ -125,60 +125,62 @@ export default function Home() {
         </View>
 
         {/* Pills Section */}
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="medical" size={20} color={colors.primary} />
-              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>{t('Tabletten', 'Pills', 'Tabletki')}</Text>
+              <Ionicons name="medkit" size={20} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 8 }}>
+                {t('Tabletten', 'Pills', 'Tabletki')}
+              </Text>
             </View>
           </View>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 10 }}>
+            {/* Morning Button */}
             <TouchableOpacity 
-              onPress={() => { togglePill(currentDate, 'morning'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} 
-              style={[styles.chip, { 
+              accessibilityLabel={t('Morgens einnehmen', 'Take in the morning', 'Rano zażyć')}
+              onPress={() => { 
+                togglePill(currentDate, 'morning'); 
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); 
+              }} 
+              style={[styles.toggle, { 
                 borderColor: colors.primary, 
-                backgroundColor: day.pills.morning ? colors.primary : 'transparent',
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }]} 
-              accessibilityLabel={t('Morgens', 'Morning', 'Rano')}
-            >
+                backgroundColor: day.pills.morning ? colors.primary : 'transparent' 
+              }]}
+            > 
               <Ionicons 
-                name="sunny-outline" 
-                size={16} 
+                name="sunny" 
+                size={18} 
                 color={day.pills.morning ? '#fff' : colors.primary} 
-                style={{ marginRight: 6 }}
               />
               <Text style={{ 
-                color: day.pills.morning ? '#fff' : colors.text,
-                textAlign: 'center'
+                color: day.pills.morning ? '#fff' : colors.text, 
+                marginLeft: 6 
               }}>
                 {t('Morgens', 'Morning', 'Rano')}
               </Text>
             </TouchableOpacity>
+
+            {/* Evening Button */}
             <TouchableOpacity 
-              onPress={() => { togglePill(currentDate, 'evening'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} 
-              style={[styles.chip, { 
+              accessibilityLabel={t('Abends einnehmen', 'Take in the evening', 'Wieczorem zażyć')}
+              onPress={() => { 
+                togglePill(currentDate, 'evening'); 
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); 
+              }} 
+              style={[styles.toggle, { 
                 borderColor: colors.primary, 
-                backgroundColor: day.pills.evening ? colors.primary : 'transparent',
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }]} 
-              accessibilityLabel={t('Abends', 'Evening', 'Wieczorem')}
-            >
+                backgroundColor: day.pills.evening ? colors.primary : 'transparent' 
+              }]}
+            > 
               <Ionicons 
-                name="moon-outline" 
-                size={16} 
+                name="moon" 
+                size={18} 
                 color={day.pills.evening ? '#fff' : colors.primary} 
-                style={{ marginRight: 6 }}
               />
               <Text style={{ 
-                color: day.pills.evening ? '#fff' : colors.text,
-                textAlign: 'center'
+                color: day.pills.evening ? '#fff' : colors.text, 
+                marginLeft: 6 
               }}>
                 {t('Abends', 'Evening', 'Wieczorem')}
               </Text>
